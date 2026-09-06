@@ -1,0 +1,149 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Lowongan;
+use App\Models\Pelamar;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class PelamarController extends Controller
+{
+    /**
+     * Display a listing of candidates/applicants and their details.
+     */
+    public function index(Request $request): Response
+    {
+        $query = Pelamar::with(['lowongan.departement', 'lowongan.jabatan'])
+            ->orderBy('id', 'desc');
+
+        if ($request->filled('lowongan_id')) {
+            $query->where('lowongan_id', $request->lowongan_id);
+        }
+
+        $pelamars = $query->get()->map(function (Pelamar $p) {
+            return [
+                'id' => $p->id,
+                'no_pendaftaran' => $p->no_pendaftaran,
+                'nama_lengkap' => $p->nama_lengkap,
+                'tempat_lahir' => $p->tempat_lahir,
+                'tanggal_lahir' => $p->tanggal_lahir ? $p->tanggal_lahir->format('Y-m-d') : null,
+                'jenis_kelamin' => $p->jenis_kelamin,
+                'status_pernikahan' => $p->status_pernikahan,
+                'agama' => $p->agama,
+                'alamat' => $p->alamat,
+                'domisili' => $p->domisili,
+                'nomor_kontak' => $p->nomor_kontak,
+                'email' => $p->email,
+                'pendidikan_terakhir' => $p->pendidikan_terakhir,
+                'nama_institusi' => $p->nama_institusi,
+                'jurusan' => $p->jurusan,
+                'tahun_lulus' => $p->tahun_lulus,
+                'posisi_dilamar' => $p->posisi_dilamar,
+                'cv_url' => $p->cv_path ? asset('storage/' . $p->cv_path) : null,
+                'surat_lamaran_url' => $p->surat_lamaran_path ? asset('storage/' . $p->surat_lamaran_path) : null,
+                'status' => $p->status,
+                'catatan' => $p->catatan,
+                'lowongan' => $p->lowongan ? [
+                    'id' => $p->lowongan->id,
+                    'kode_lowongan' => $p->lowongan->kode_lowongan,
+                    'judul' => $p->lowongan->judul,
+                    'departemen_nama' => $p->lowongan->departement?->deskripsi,
+                    'posisi_nama' => $p->lowongan->jabatan?->nama_jabatan,
+                ] : null,
+                'created_at' => $p->created_at ? $p->created_at->format('Y-m-d H:i') : null,
+            ];
+        });
+
+        $lowongans = Lowongan::orderBy('id', 'desc')->get(['id', 'kode_lowongan', 'judul']);
+
+        return Inertia::render('pelamar/Index', [
+            'pelamars' => $pelamars,
+            'lowongans' => $lowongans,
+            'selectedLowonganId' => $request->lowongan_id ?? null,
+        ]);
+    }
+
+    /**
+     * Display the specified candidate detail page.
+     */
+    public function show(Pelamar $pelamar): Response
+    {
+        $pelamar->load(['lowongan.departement', 'lowongan.jabatan']);
+
+        return Inertia::render('pelamar/Show', [
+            'pelamar' => [
+                'id' => $pelamar->id,
+                'no_pendaftaran' => $pelamar->no_pendaftaran,
+                'nama_lengkap' => $pelamar->nama_lengkap,
+                'tempat_lahir' => $pelamar->tempat_lahir,
+                'tanggal_lahir' => $pelamar->tanggal_lahir ? $pelamar->tanggal_lahir->format('Y-m-d') : null,
+                'jenis_kelamin' => $pelamar->jenis_kelamin,
+                'status_pernikahan' => $pelamar->status_pernikahan,
+                'agama' => $pelamar->agama,
+                'alamat' => $pelamar->alamat,
+                'domisili' => $pelamar->domisili,
+                'nomor_kontak' => $pelamar->nomor_kontak,
+                'email' => $pelamar->email,
+                'pendidikan_terakhir' => $pelamar->pendidikan_terakhir,
+                'nama_institusi' => $pelamar->nama_institusi,
+                'jurusan' => $pelamar->jurusan,
+                'tahun_lulus' => $pelamar->tahun_lulus,
+                'posisi_dilamar' => $pelamar->posisi_dilamar,
+                'cv_url' => $pelamar->cv_path ? asset('storage/' . $pelamar->cv_path) : null,
+                'surat_lamaran_url' => $pelamar->surat_lamaran_path ? asset('storage/' . $pelamar->surat_lamaran_path) : null,
+                'status' => $pelamar->status,
+                'catatan' => $pelamar->catatan,
+                'lowongan' => $pelamar->lowongan ? [
+                    'id' => $pelamar->lowongan->id,
+                    'kode_lowongan' => $pelamar->lowongan->kode_lowongan,
+                    'judul' => $pelamar->lowongan->judul,
+                    'departemen_nama' => $pelamar->lowongan->departement?->deskripsi,
+                    'posisi_nama' => $pelamar->lowongan->jabatan?->nama_jabatan,
+                ] : null,
+                'created_at' => $pelamar->created_at ? $pelamar->created_at->format('Y-m-d H:i') : null,
+            ],
+        ]);
+    }
+
+    /**
+     * Update recruitment stage / selection status of a candidate.
+     */
+    public function updateStatus(Request $request, Pelamar $pelamar): RedirectResponse
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'in:submitted,review,interview,accepted,rejected'],
+            'catatan' => ['nullable', 'string', 'max:1000'],
+        ], [
+            'status.required' => 'Status seleksi wajib dipilih.',
+            'status.in' => 'Status seleksi tidak valid.',
+        ]);
+
+        $pelamar->update($validated);
+
+        return back()->with('success', "Status pelamar '{$pelamar->nama_lengkap}' berhasil diperbarui menjadi {$pelamar->status}.");
+    }
+
+    /**
+     * Remove the candidate application from storage.
+     */
+    public function destroy(Pelamar $pelamar): RedirectResponse
+    {
+        $name = $pelamar->nama_lengkap;
+
+        if ($pelamar->cv_path && Storage::disk('public')->exists($pelamar->cv_path)) {
+            Storage::disk('public')->delete($pelamar->cv_path);
+        }
+
+        if ($pelamar->surat_lamaran_path && Storage::disk('public')->exists($pelamar->surat_lamaran_path)) {
+            Storage::disk('public')->delete($pelamar->surat_lamaran_path);
+        }
+
+        $pelamar->delete();
+
+        return redirect()->route('pelamar.index')->with('success', "Data pelamar '{$name}' berhasil dihapus.");
+    }
+}
