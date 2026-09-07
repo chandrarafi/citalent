@@ -7,6 +7,7 @@ export type LinkComponent = (props: {
   href: string
   className?: string
   'aria-current'?: 'page'
+  title?: string
   children: ReactNode
 }) => ReactElement
 
@@ -27,20 +28,39 @@ interface NavLinkProps {
   children: ReactNode
   icon: IconLike
   tone?: Tone
+  title?: string
+  className?: string
   /** Swap in your router's Link (must forward href/className/children). */
   link?: LinkComponent
 }
 
-export function NavLink({ href, currentPath, children, icon, tone = 'purple', link: Link = Anchor }: NavLinkProps) {
+export function NavLink({
+  href,
+  currentPath,
+  children,
+  icon,
+  tone = 'purple',
+  title,
+  className,
+  link: Link = Anchor,
+}: NavLinkProps) {
   const active = isActivePath(href, currentPath)
+  const labelText = typeof children === 'string' ? children : undefined
+
   return (
     <Link
       href={href}
-      className={clsx('pouf-navlink', active && 'pouf-navlink--active', active && toneClass(tone))}
+      title={title || labelText}
+      className={clsx(
+        'pouf-navlink',
+        active && 'pouf-navlink--active',
+        active && toneClass(tone),
+        className,
+      )}
       aria-current={active ? 'page' : undefined}
     >
       {renderIcon(icon, 'md')}
-      {children}
+      <span className="truncate">{children}</span>
     </Link>
   )
 }

@@ -970,7 +970,7 @@ body {
  * seen. */
 @media (max-width: 900px) {
   .pouf-sidebar .pouf-nav {
-    display: none;
+    display: flex;
   }
 }
 
@@ -993,7 +993,7 @@ body {
   padding-block: calc(var(--s2) - var(--lip) / 2) calc(var(--s2) + var(--lip) / 2);
   box-shadow: var(--pouf-card);
 }
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .pouf-bottomnav {
     display: grid;
   }
@@ -1003,10 +1003,8 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  /* 44px is the documented minimum touch target; the bar is thumb-reachable by
-   * being at the bottom, which is the point of it existing at all. */
-  min-height: 54px;
+  gap: 2px;
+  min-height: 48px;
   border: none;
   background: transparent;
   border-radius: 18px;

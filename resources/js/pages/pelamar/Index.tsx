@@ -62,10 +62,11 @@ const STATUS_SELEKSI_OPTIONS = [
   { value: 'all', label: 'Semua Status' },
   { value: 'submitted', label: '1. Submit Lamaran' },
   { value: 'screening_cv', label: '2. Screening CV' },
-  { value: 'interview_hr', label: '3. Interview HR' },
+  { value: 'lengkapi_formulir', label: '3. Lengkapi Formulir Lamaran Kerja' },
   { value: 'skill_test', label: '4. Skill Test' },
-  { value: 'interview_user', label: '5. Interview User' },
-  { value: 'final_discussion', label: '6. Final Discussion' },
+  { value: 'interview_hr', label: '5. Interview HR' },
+  { value: 'interview_user', label: '6. Interview User' },
+  { value: 'final_discussion', label: '7. Final Discussion' },
   { value: 'accepted', label: 'Diterima (Accepted)' },
   { value: 'rejected', label: 'Ditolak (Rejected)' },
 ]
@@ -73,6 +74,7 @@ const STATUS_SELEKSI_OPTIONS = [
 const STATUS_TONE: Record<string, Tone> = {
   submitted: 'yellow',
   screening_cv: 'blue',
+  lengkapi_formulir: 'purple',
   interview_hr: 'purple',
   skill_test: 'orange',
   interview_user: 'blue',
@@ -86,6 +88,7 @@ const STATUS_TONE: Record<string, Tone> = {
 const STATUS_LABEL: Record<string, string> = {
   submitted: 'Submit Lamaran',
   screening_cv: 'Screening CV',
+  lengkapi_formulir: 'Lengkapi Formulir Lamaran Kerja',
   interview_hr: 'Interview HR',
   skill_test: 'Skill Test',
   interview_user: 'Interview User',

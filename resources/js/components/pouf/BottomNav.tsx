@@ -33,11 +33,11 @@ function Tab({
   return (
     <Link
       href={item.href}
+      title={item.label}
       className={clsx('pouf-tab', active && 'pouf-tab--active')}
       aria-current={active ? 'page' : undefined}
     >
       {renderIcon(item.icon, 'md')}
-      <span className="pouf-tab__label">{item.label}</span>
     </Link>
   )
 }
@@ -87,9 +87,13 @@ export function BottomNav({ primary, groups, currentPath, link: Link = Anchor }:
 
       <RDialog.Root open={open} onOpenChange={setOpen}>
         <RDialog.Trigger asChild>
-          <button type="button" className={clsx('pouf-tab', !onPrimary && 'pouf-tab--active')} aria-current={!onPrimary ? 'page' : undefined}>
+          <button
+            type="button"
+            title="Menu"
+            className={clsx('pouf-tab', !onPrimary && 'pouf-tab--active')}
+            aria-current={!onPrimary ? 'page' : undefined}
+          >
             <Icon name="menu" size="md" />
-            <span className="pouf-tab__label">Menu</span>
           </button>
         </RDialog.Trigger>
         <RDialog.Portal>

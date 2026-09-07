@@ -101,7 +101,6 @@ export function DashboardBlock() {
               <Eyebrow>Dashboard</Eyebrow>
               <Heading level={1}>Good morning</Heading>
             </Stack>
-            <Status label="All systems go" tone="up" at={Date.now()} />
           </Row>
 
           <Grid cols={3}>

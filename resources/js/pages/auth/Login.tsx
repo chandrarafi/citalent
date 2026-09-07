@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { router } from '@inertiajs/react'
+import { useState, useEffect } from 'react'
+import { Head, Link, router, usePage } from '@inertiajs/react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { Card } from '@/components/pouf/surface'
 import { Stack, Row } from '@/components/pouf/layout'
@@ -8,6 +8,7 @@ import { Field, Input } from '@/components/pouf/Input'
 import { Button } from '@/components/pouf/Button'
 import { Separator } from '@/components/pouf/separator'
 import { Blob } from '@/components/pouf/media'
+import { IconCheck, IconAlertCircle } from '@tabler/icons-react'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -17,10 +18,11 @@ interface LoginValues {
 }
 
 interface LoginPageProps {
-  errors?: { email?: string }
+  errors?: { email?: string; password?: string }
 }
 
 export default function Login({ errors: serverErrors }: LoginPageProps) {
+  const { flash } = usePage<any>().props
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -38,9 +40,14 @@ export default function Login({ errors: serverErrors }: LoginPageProps) {
   const email = useWatch({ control, name: 'email' })
 
   // Map server-side errors back to react-hook-form
-  if (serverErrors?.email && !errors.email) {
-    setError('email', { message: serverErrors.email })
-  }
+  useEffect(() => {
+    if (serverErrors?.email) {
+      setError('email', { message: serverErrors.email })
+    }
+    if (serverErrors?.password) {
+      setError('password', { message: serverErrors.password })
+    }
+  }, [serverErrors, setError])
 
   const submit = handleSubmit((values) => {
     setLoading(true)
@@ -52,7 +59,7 @@ export default function Login({ errors: serverErrors }: LoginPageProps) {
   })
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-3 sm:p-6 bg-[var(--bg)]">
+    <div className="min-h-screen w-full flex items-center justify-center p-3 sm:p-6 bg-slate-50">
       <div className="w-full max-w-[420px]">
         <form onSubmit={submit} noValidate>
           <Card>
@@ -66,6 +73,21 @@ export default function Login({ errors: serverErrors }: LoginPageProps) {
                   </Text>
                 </Stack>
               </Stack>
+
+              {/* Flash Messages */}
+              {flash?.success && (
+                <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm">
+                  <IconCheck size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+                  <span>{flash.success}</span>
+                </div>
+              )}
+
+              {flash?.error && (
+                <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm">
+                  <IconAlertCircle size={18} className="text-rose-600 shrink-0 mt-0.5" />
+                  <span>{flash.error}</span>
+                </div>
+              )}
 
               <Stack gap={4}>
                 {/* Email */}
@@ -148,10 +170,16 @@ export default function Login({ errors: serverErrors }: LoginPageProps) {
               </Stack>
 
               <Separator />
-              <Row justify="center">
+              <Row justify="center" gap={1}>
                 <Text size="sm" muted>
-                  HR Management System
+                  Belum punya akun kandidat?
                 </Text>
+                <Link
+                  href="/register"
+                  className="text-sm font-semibold text-sky-600 hover:text-sky-700 hover:underline dark:text-sky-400"
+                >
+                  Daftar Sekarang
+                </Link>
               </Row>
             </Stack>
           </Card>

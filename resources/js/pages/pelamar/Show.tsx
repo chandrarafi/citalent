@@ -46,6 +46,7 @@ interface PelamarDetail {
     judul: string
     departemen_nama?: string
     posisi_nama?: string
+    kd_jabatan?: string
   } | null
   created_at?: string | null
 }
@@ -54,39 +55,40 @@ interface Props {
   pelamar: PelamarDetail
 }
 
+const SKILL_TEST_JABATAN_CODES = ['JBT-5', 'JBT-27', 'JBT-28', 'JBT-29', 'JBT-31', 'JBT-26']
+
 const TIMELINE_STAGES = [
   {
-    step: 1,
     key: 'submitted',
     title: 'Submit Lamaran',
     defaultDesc: 'Data pendaftaran & berkas berhasil dikirim',
   },
   {
-    step: 2,
     key: 'screening_cv',
     title: 'Screening CV',
     defaultDesc: 'Pemeriksaan berkas & kualifikasi oleh HR',
   },
   {
-    step: 3,
-    key: 'interview_hr',
-    title: 'Interview HR',
-    defaultDesc: 'Wawancara awal & background check',
+    key: 'lengkapi_formulir',
+    title: 'Lengkapi Formulir Lamaran Kerja',
+    defaultDesc: 'Kandidat melengkapi formulir data diri dan berkas lamaran kerja',
   },
   {
-    step: 4,
     key: 'skill_test',
     title: 'Skill Test',
     defaultDesc: 'Uji kompetensi teknis / tes keahlian',
   },
   {
-    step: 5,
+    key: 'interview_hr',
+    title: 'Interview HR',
+    defaultDesc: 'Wawancara awal & background check',
+  },
+  {
     key: 'interview_user',
     title: 'Interview User',
     defaultDesc: 'Wawancara dengan calon atasan / User',
   },
   {
-    step: 6,
     key: 'final_discussion',
     title: 'Final Discussion',
     defaultDesc: 'Diskusi offering letter & kesepakatan join',
@@ -96,10 +98,11 @@ const TIMELINE_STAGES = [
 const STATUS_SELECT_OPTIONS = [
   { value: 'submitted', label: '1. Submit Lamaran' },
   { value: 'screening_cv', label: '2. Screening CV' },
-  { value: 'interview_hr', label: '3. Interview HR' },
+  { value: 'lengkapi_formulir', label: '3. Lengkapi Formulir Lamaran Kerja' },
   { value: 'skill_test', label: '4. Skill Test' },
-  { value: 'interview_user', label: '5. Interview User' },
-  { value: 'final_discussion', label: '6. Final Discussion' },
+  { value: 'interview_hr', label: '5. Interview HR' },
+  { value: 'interview_user', label: '6. Interview User' },
+  { value: 'final_discussion', label: '7. Final Discussion' },
   { value: 'accepted', label: '✓ Lolos / Diterima Bekerja (Accepted)' },
   { value: 'rejected', label: '✗ Ditolak (Rejected)' },
 ]
@@ -107,6 +110,7 @@ const STATUS_SELECT_OPTIONS = [
 const STATUS_TONE: Record<string, Tone> = {
   submitted: 'yellow',
   screening_cv: 'blue',
+  lengkapi_formulir: 'purple',
   interview_hr: 'purple',
   skill_test: 'orange',
   interview_user: 'blue',
@@ -120,6 +124,7 @@ const STATUS_TONE: Record<string, Tone> = {
 const STATUS_LABEL: Record<string, string> = {
   submitted: 'Submit Lamaran',
   screening_cv: 'Screening CV',
+  lengkapi_formulir: 'Lengkapi Formulir Lamaran Kerja',
   interview_hr: 'Interview HR',
   skill_test: 'Skill Test',
   interview_user: 'Interview User',
@@ -133,6 +138,37 @@ const STATUS_LABEL: Record<string, string> = {
 export default function Show({ pelamar }: Props) {
   const { flash } = usePage<any>().props
 
+  // Check if position requires skill test (JBT-5, JBT-27, JBT-28, JBT-29, JBT-31, JBT-26)
+  const hasSkillTest = pelamar.lowongan?.kd_jabatan
+    ? SKILL_TEST_JABATAN_CODES.includes(pelamar.lowongan.kd_jabatan)
+    : false
+
+  // Dynamic active stages
+  const activeStages = TIMELINE_STAGES.filter((stage) => {
+    if (stage.key === 'skill_test') {
+      return hasSkillTest
+    }
+    return true
+  }).map((stage, idx) => ({
+    ...stage,
+    step: idx + 1,
+  }))
+
+  const statusSelectOptions = STATUS_SELECT_OPTIONS.filter((opt) => {
+    if (opt.value === 'skill_test') {
+      return hasSkillTest
+    }
+    return true
+  }).map((opt, idx) => {
+    if (opt.value !== 'accepted' && opt.value !== 'rejected') {
+      return {
+        ...opt,
+        label: `${idx + 1}. ${opt.label.replace(/^[0-9]+\.\s*/, '')}`,
+      }
+    }
+    return opt
+  })
+
   // Stage dialog modal states
   const [updateModalOpen, setUpdateModalOpen] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState<string>(
@@ -144,13 +180,13 @@ export default function Show({ pelamar }: Props) {
   // Normalize legacy status
   const normalizedStatus = pelamar.status === 'review' ? 'screening_cv' : pelamar.status === 'interview' ? 'interview_hr' : pelamar.status
 
-  const currentStageIndex = TIMELINE_STAGES.findIndex((s) => s.key === normalizedStatus)
+  const currentStageIndex = activeStages.findIndex((s) => s.key === normalizedStatus)
   const isRejected = normalizedStatus === 'rejected'
   const isAccepted = normalizedStatus === 'accepted'
 
-  // Next stage calculation
-  const nextStage = !isRejected && !isAccepted && currentStageIndex >= 0 && currentStageIndex < TIMELINE_STAGES.length - 1
-    ? TIMELINE_STAGES[currentStageIndex + 1]
+  // Next stage calculation based on activeStages
+  const nextStage = !isRejected && !isAccepted && currentStageIndex >= 0 && currentStageIndex < activeStages.length - 1
+    ? activeStages[currentStageIndex + 1]
     : null
 
   function handleUpdateStatus(statusToSave: string, notes?: string) {
@@ -427,8 +463,8 @@ export default function Show({ pelamar }: Props) {
             {/* Vertical Timeline List (Image reference style) */}
             <div className="py-2 pl-2 sm:pl-4">
               <div className="flex flex-col">
-                {TIMELINE_STAGES.map((stage, idx) => {
-                  const isLast = idx === TIMELINE_STAGES.length - 1
+                {activeStages.map((stage, idx) => {
+                  const isLast = idx === activeStages.length - 1
                   let stepState: 'completed' | 'current' | 'upcoming' | 'rejected' = 'upcoming'
 
                   if (isRejected) {
@@ -594,7 +630,7 @@ export default function Show({ pelamar }: Props) {
                 <Select
                   value={selectedStatus}
                   onChange={(v) => setSelectedStatus(v)}
-                  options={STATUS_SELECT_OPTIONS}
+                  options={statusSelectOptions}
                 />
               )}
             </Field>

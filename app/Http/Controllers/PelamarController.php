@@ -54,6 +54,7 @@ class PelamarController extends Controller
                     'judul' => $p->lowongan->judul,
                     'departemen_nama' => $p->lowongan->departement?->deskripsi,
                     'posisi_nama' => $p->lowongan->jabatan?->nama_jabatan,
+                    'kd_jabatan' => $p->lowongan->jabatan?->kd_jabatan,
                 ] : null,
                 'created_at' => $p->created_at ? $p->created_at->format('Y-m-d H:i') : null,
             ];
@@ -105,6 +106,7 @@ class PelamarController extends Controller
                     'judul' => $pelamar->lowongan->judul,
                     'departemen_nama' => $pelamar->lowongan->departement?->deskripsi,
                     'posisi_nama' => $pelamar->lowongan->jabatan?->nama_jabatan,
+                    'kd_jabatan' => $pelamar->lowongan->jabatan?->kd_jabatan,
                 ] : null,
                 'created_at' => $pelamar->created_at ? $pelamar->created_at->format('Y-m-d H:i') : null,
             ],
@@ -117,7 +119,7 @@ class PelamarController extends Controller
     public function updateStatus(Request $request, Pelamar $pelamar): RedirectResponse
     {
         $validated = $request->validate([
-            'status' => ['required', 'in:submitted,screening_cv,interview_hr,skill_test,interview_user,final_discussion,accepted,rejected,review,interview'],
+            'status' => ['required', 'in:submitted,screening_cv,lengkapi_formulir,interview_hr,skill_test,interview_user,final_discussion,accepted,rejected,review,interview'],
             'catatan' => ['nullable', 'string', 'max:1000'],
         ], [
             'status.required' => 'Tahapan seleksi wajib dipilih.',
@@ -129,6 +131,7 @@ class PelamarController extends Controller
         $stageLabels = [
             'submitted' => 'Submit Lamaran',
             'screening_cv' => 'Screening CV',
+            'lengkapi_formulir' => 'Lengkapi Formulir Lamaran Kerja',
             'interview_hr' => 'Interview HR',
             'skill_test' => 'Skill Test',
             'interview_user' => 'Interview User',

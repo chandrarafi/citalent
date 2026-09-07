@@ -4,6 +4,8 @@ use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\KandidatLowonganController;
+use App\Http\Controllers\KandidatProfileController;
 use App\Http\Controllers\LowonganController;
 use App\Http\Controllers\PelamarController;
 use App\Http\Controllers\PermintaanRekrutmenController;
@@ -19,6 +21,13 @@ Route::post('/karir/{slug}/apply', [PublicJobController::class, 'apply'])->name(
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+
+    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+    Route::post('/register', [AuthController::class, 'register'])->name('register.post');
+
+    Route::get('/verify-otp', [AuthController::class, 'showVerifyOtp'])->name('otp.verify');
+    Route::post('/verify-otp', [AuthController::class, 'verifyOtp'])->name('otp.verify.post');
+    Route::post('/resend-otp', [AuthController::class, 'resendOtp'])->name('otp.resend');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
@@ -28,6 +37,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/', function () {
         return Inertia::render('dashboard/Index');
     })->name('dashboard');
+
+    // ─── Fitur Kandidat ──────────────────────────────────────────────────────
+    Route::get('/kandidat/lowongan', [KandidatLowonganController::class, 'index'])->name('kandidat.lowongan');
+    Route::post('/kandidat/lowongan/{lowongan}/apply', [KandidatLowonganController::class, 'apply'])->name('kandidat.lowongan.apply');
+    Route::get('/kandidat/lamaran', [KandidatLowonganController::class, 'myApplications'])->name('kandidat.lamaran');
+    Route::get('/kandidat/lamaran/{pelamar:no_pendaftaran}', [KandidatLowonganController::class, 'showApplication'])->name('kandidat.lamaran.show');
+    Route::get('/kandidat/profil', [KandidatProfileController::class, 'edit'])->name('kandidat.profile');
+    Route::post('/kandidat/profil', [KandidatProfileController::class, 'update'])->name('kandidat.profile.update');
 
     // ─── Permintaan Rekrutmen ────────────────────────────────────────────────
     Route::post('/permintaanrekrutmen/{permintaanrekrutman}/approve', [PermintaanRekrutmenController::class, 'approve'])

@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\CheckPermission;
 use App\Http\Middleware\CheckRole;
+use App\Http\Middleware\EnsureCandidateProfileComplete;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -19,11 +20,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            EnsureCandidateProfileComplete::class,
         ]);
 
         $middleware->alias([
-            'role'       => CheckRole::class,
-            'permission' => CheckPermission::class,
+            'role'              => CheckRole::class,
+            'permission'        => CheckPermission::class,
+            'profile.complete'  => EnsureCandidateProfileComplete::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

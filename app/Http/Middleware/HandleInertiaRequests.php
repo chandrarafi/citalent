@@ -38,6 +38,13 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
 
+        if ($user && ($user->isBanned() || !$user->isActive())) {
+            \Illuminate\Support\Facades\Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            $user = null;
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),

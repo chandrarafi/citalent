@@ -7,6 +7,7 @@ use App\Models\Pelamar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,8 +23,30 @@ class PublicJobController extends Controller
             ->where('slug', $slug)
             ->firstOrFail();
 
-        $isClosed = $lowongan->status !== 'aktif' ||
-            ($lowongan->tgl_tutup && Carbon::parse($lowongan->tgl_tutup)->endOfDay()->isPast());
+        $candidateProfile = null;
+        if (Auth::check()) {
+            $user = Auth::user()->load('kandidatProfile');
+            $p = $user->kandidatProfile;
+            $candidateProfile = [
+                'nama_lengkap' => $user->name,
+                'email' => $user->email,
+                'nomor_kontak' => $user->phone ?? '',
+                'tempat_lahir' => $p?->tempat_lahir ?? '',
+                'tanggal_lahir' => $p?->tanggal_lahir?->format('Y-m-d') ?? '',
+                'jenis_kelamin' => $p?->jenis_kelamin ?? '',
+                'status_pernikahan' => $p?->status_pernikahan ?? '',
+                'agama' => $p?->agama ?? '',
+                'alamat' => $p?->alamat ?? '',
+                'domisili' => $p?->domisili ?? '',
+                'pendidikan_terakhir' => $p?->pendidikan_terakhir ?? '',
+                'nama_institusi' => $p?->nama_institusi ?? '',
+                'jurusan' => $p?->jurusan ?? '',
+                'tahun_lulus' => $p?->tahun_lulus ?? '',
+                'foto_url' => $p?->foto_url ?? null,
+                'cv_url' => $p?->cv_url ?? null,
+                'surat_lamaran_url' => $p?->surat_lamaran_url ?? null,
+            ];
+        }
 
         return Inertia::render('careers/Apply', [
             'lowongan' => [
@@ -44,6 +67,7 @@ class PublicJobController extends Controller
                 'is_closed' => $isClosed,
                 'status' => $lowongan->status,
             ],
+            'candidateProfile' => $candidateProfile,
         ]);
     }
 

@@ -42,8 +42,29 @@ interface LowonganData {
   status: string
 }
 
+interface CandidateProfileData {
+  nama_lengkap?: string
+  email?: string
+  nomor_kontak?: string
+  tempat_lahir?: string
+  tanggal_lahir?: string
+  jenis_kelamin?: string
+  status_pernikahan?: string
+  agama?: string
+  alamat?: string
+  domisili?: string
+  pendidikan_terakhir?: string
+  nama_institusi?: string
+  jurusan?: string
+  tahun_lulus?: string
+  foto_url?: string | null
+  cv_url?: string | null
+  surat_lamaran_url?: string | null
+}
+
 interface Props {
   lowongan: LowonganData
+  candidateProfile?: CandidateProfileData | null
 }
 
 const JENIS_KELAMIN_OPTIONS = [
@@ -75,28 +96,28 @@ const PENDIDIKAN_OPTIONS = [
   { value: 'S3', label: 'Doktoral (S3)' },
 ]
 
-export default function Apply({ lowongan }: Props) {
+export default function Apply({ lowongan, candidateProfile }: Props) {
   const { flash } = usePage<any>().props
   const applicationSuccess = flash?.application_success
 
   // Photo metadata & animation states
   const [fotoFileName, setFotoFileName] = useState<string>('')
   const [fotoFileSize, setFotoFileSize] = useState<string>('')
-  const [fotoPreviewUrl, setFotoPreviewUrl] = useState<string | null>(null)
+  const [fotoPreviewUrl, setFotoPreviewUrl] = useState<string | null>(candidateProfile?.foto_url || null)
   const [fotoProgress, setFotoProgress] = useState<number>(0)
   const [isUploadingFoto, setIsUploadingFoto] = useState<boolean>(false)
 
   // File metadata & animation states
   const [cvFileName, setCvFileName] = useState<string>('')
   const [cvFileSize, setCvFileSize] = useState<string>('')
-  const [cvPreviewUrl, setCvPreviewUrl] = useState<string | null>(null)
+  const [cvPreviewUrl, setCvPreviewUrl] = useState<string | null>(candidateProfile?.cv_url || null)
   const [cvProgress, setCvProgress] = useState<number>(0)
   const [isUploadingCv, setIsUploadingCv] = useState<boolean>(false)
   const [isDraggingCv, setIsDraggingCv] = useState<boolean>(false)
 
   const [suratFileName, setSuratFileName] = useState<string>('')
   const [suratFileSize, setSuratFileSize] = useState<string>('')
-  const [suratPreviewUrl, setSuratPreviewUrl] = useState<string | null>(null)
+  const [suratPreviewUrl, setSuratPreviewUrl] = useState<string | null>(candidateProfile?.surat_lamaran_url || null)
   const [suratProgress, setSuratProgress] = useState<number>(0)
   const [isUploadingSurat, setIsUploadingSurat] = useState<boolean>(false)
   const [isDraggingSurat, setIsDraggingSurat] = useState<boolean>(false)
@@ -301,20 +322,20 @@ export default function Apply({ lowongan }: Props) {
     surat_lamaran_file: File | null
     pernyataan_kebenaran: boolean
   }>({
-    nama_lengkap: '',
-    tempat_lahir: '',
-    tanggal_lahir: '',
-    jenis_kelamin: 'Laki-laki',
-    status_pernikahan: 'Belum Menikah',
-    agama: 'Islam',
-    alamat: '',
-    domisili: '',
-    nomor_kontak: '',
-    email: '',
-    pendidikan_terakhir: 'D4/S1',
-    nama_institusi: '',
-    jurusan: '',
-    tahun_lulus: '',
+    nama_lengkap: candidateProfile?.nama_lengkap || '',
+    tempat_lahir: candidateProfile?.tempat_lahir || '',
+    tanggal_lahir: candidateProfile?.tanggal_lahir || '',
+    jenis_kelamin: candidateProfile?.jenis_kelamin || 'Laki-laki',
+    status_pernikahan: candidateProfile?.status_pernikahan || 'Belum Menikah',
+    agama: candidateProfile?.agama || 'Islam',
+    alamat: candidateProfile?.alamat || '',
+    domisili: candidateProfile?.domisili || '',
+    nomor_kontak: candidateProfile?.nomor_kontak || '',
+    email: candidateProfile?.email || '',
+    pendidikan_terakhir: candidateProfile?.pendidikan_terakhir || 'D4/S1',
+    nama_institusi: candidateProfile?.nama_institusi || '',
+    jurusan: candidateProfile?.jurusan || '',
+    tahun_lulus: candidateProfile?.tahun_lulus || '',
     posisi_dilamar: lowongan.posisi_nama || lowongan.judul,
     foto_file: null,
     cv_file: null,

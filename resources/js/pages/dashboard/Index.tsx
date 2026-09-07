@@ -65,7 +65,6 @@ export default function DashboardPage() {
                             Selamat datang{auth?.user ? `, ${auth.user.name}` : ''}
                         </Heading>
                     </Stack>
-                    <Status label="All systems go" tone="up" at={Date.now()} />
                 </Row>
 
                 <Grid cols={3}>

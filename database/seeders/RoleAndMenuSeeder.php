@@ -41,6 +41,14 @@ class RoleAndMenuSeeder extends Seeder
             ]
         );
 
+        $kandidat = Role::firstOrCreate(
+            ['name' => 'kandidat'],
+            [
+                'label' => 'Kandidat',
+                'description' => 'Role untuk pelamar kerja / kandidat.',
+            ]
+        );
+
         // 2. Create Permissions
         $permissions = [
             ['name' => 'view-dashboard', 'label' => 'View Dashboard', 'group' => 'dashboard'],
@@ -49,6 +57,8 @@ class RoleAndMenuSeeder extends Seeder
             ['name' => 'manage-users', 'label' => 'Manage User Accounts', 'group' => 'user'],
             ['name' => 'manage-employees', 'label' => 'Manage Employee Records', 'group' => 'employee'],
             ['name' => 'manage-permintaan-rekrutmen', 'label' => 'Kelola Permintaan Rekrutmen', 'group' => 'rekrutmen'],
+            ['name' => 'view-lowongan-kandidat', 'label' => 'Lihat Lowongan Kerja Kandidat', 'group' => 'kandidat'],
+            ['name' => 'apply-lowongan-kandidat', 'label' => 'Lamar Lowongan Kerja', 'group' => 'kandidat'],
         ];
 
         $permissionModels = [];
@@ -72,6 +82,12 @@ class RoleAndMenuSeeder extends Seeder
         // Attach employee permissions
         $employee->permissions()->sync([
             $permissionModels['view-dashboard']->id,
+        ]);
+
+        // Attach kandidat permissions
+        $kandidat->permissions()->sync([
+            $permissionModels['view-lowongan-kandidat']->id,
+            $permissionModels['apply-lowongan-kandidat']->id,
         ]);
 
         // 3. Create Menus
@@ -139,6 +155,33 @@ class RoleAndMenuSeeder extends Seeder
                 'order' => 7,
                 'permission_name' => 'manage-menus',
             ],
+            [
+                'name' => 'kandidat-lowongan',
+                'label' => 'Lowongan Kerja',
+                'url' => '/kandidat/lowongan',
+                'icon' => 'target',
+                'tone' => 'purple',
+                'order' => 1,
+                'permission_name' => 'view-lowongan-kandidat',
+            ],
+            [
+                'name' => 'kandidat-profil',
+                'label' => 'Profil Biodata',
+                'url' => '/kandidat/profil',
+                'icon' => 'users',
+                'tone' => 'mint',
+                'order' => 2,
+                'permission_name' => 'view-lowongan-kandidat',
+            ],
+            [
+                'name' => 'kandidat-lamaran',
+                'label' => 'Riwayat Lamaran',
+                'url' => '/kandidat/lamaran',
+                'icon' => 'log',
+                'tone' => 'blue',
+                'order' => 3,
+                'permission_name' => 'view-lowongan-kandidat',
+            ],
         ];
 
         foreach ($menusData as $m) {
@@ -153,6 +196,10 @@ class RoleAndMenuSeeder extends Seeder
             // General menus accessible to all roles
             if (in_array($m['name'], ['overview', 'inbox', 'board', 'messages', 'settings'])) {
                 $menu->roles()->syncWithoutDetaching([$hrManager->id, $employee->id]);
+            }
+
+            if (in_array($m['name'], ['kandidat-lowongan', 'kandidat-profil', 'kandidat-lamaran'])) {
+                $menu->roles()->syncWithoutDetaching([$kandidat->id]);
             }
         }
 

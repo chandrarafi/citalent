@@ -40,16 +40,19 @@ function InertiaLink({
   className,
   'aria-current': ariaCurrent,
   children,
+  title,
 }: {
   href: string
   className?: string
   'aria-current'?: 'page'
   children: ReactNode
+  title?: string
 }) {
   return (
     <a
       href={href}
       className={className}
+      title={title}
       aria-current={ariaCurrent}
       onClick={(e) => {
         e.preventDefault()
@@ -63,8 +66,7 @@ function InertiaLink({
 
 export function AppLayout({ children }: AppLayoutProps) {
   const { auth } = usePage<{ auth: SharedAuth }>().props
-  const currentPath = window.location.pathname
-
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
   const menus: SharedMenu[] = auth?.menus ?? []
 
   const navItems: NavItem[] = menus.map((m) => ({
@@ -73,6 +75,14 @@ export function AppLayout({ children }: AppLayoutProps) {
     icon: (m.icon || 'overview') as IconLike,
     tone: (m.tone || 'purple') as Tone,
   }))
+
+  if (auth?.user?.role?.name === 'kandidat' && navItems.length === 0) {
+    navItems.push(
+      { href: '/kandidat/lowongan', label: 'Lowongan Kerja', icon: 'target', tone: 'purple' },
+      { href: '/kandidat/profil', label: 'Profil Biodata', icon: 'users', tone: 'mint' },
+      { href: '/kandidat/lamaran', label: 'Riwayat Lamaran', icon: 'log', tone: 'blue' },
+    )
+  }
 
   function logout() {
     router.post('/logout')
@@ -108,6 +118,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     currentPath={currentPath}
                     icon={item.icon}
                     tone={item.tone}
+                    title={item.label}
                     link={InertiaLink}
                   >
                     {item.label}
@@ -149,10 +160,10 @@ export function AppLayout({ children }: AppLayoutProps) {
         </main>
       </Shell>
 
-      {/* Mobile bottom nav */}
+      {/* Mobile bottom nav (icon-only mode) */}
       {navItems.length > 0 && (
         <BottomNav
-          primary={navItems.slice(0, 4)}
+          primary={navItems.length <= 5 ? navItems : navItems.slice(0, 4)}
           groups={[{ title: 'Menu', items: navItems }]}
           currentPath={currentPath}
           link={InertiaLink}
