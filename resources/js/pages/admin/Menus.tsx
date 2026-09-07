@@ -231,20 +231,22 @@ export default function Menus({ menus, allRoles }: Props) {
       key: 'url',
       header: 'URL Path',
       mono: true,
-      render: (m: MenuItem) => <Text size="sm" mono>{m.url}</Text>,
+      minWidth: '140px',
+      render: (m: MenuItem) => <Text size="sm" mono className="whitespace-nowrap">{m.url}</Text>,
       sort: (a: MenuItem, b: MenuItem) => a.url.localeCompare(b.url),
     },
     {
       key: 'roles',
       header: 'Role Akses',
+      minWidth: '180px',
       render: (m: MenuItem) => {
         if (!m.roles || m.roles.length === 0) {
-          return <Badge tone="blue">Semua Role</Badge>
+          return <Badge tone="blue" className="whitespace-nowrap">Semua Role</Badge>
         }
         return (
           <div className="flex flex-wrap gap-1.5 items-center">
             {m.roles.map((r) => (
-              <Badge key={r} tone="purple">
+              <Badge key={r} tone="purple" className="whitespace-nowrap">
                 {r}
               </Badge>
             ))}
@@ -256,8 +258,9 @@ export default function Menus({ menus, allRoles }: Props) {
       key: 'status',
       header: 'Status',
       align: 'right' as const,
+      minWidth: '120px',
       render: (m: MenuItem) => (
-        <Row gap={2} justify="end" align="center" wrap={false}>
+        <Row gap={2} justify="end" align="center" wrap={false} className="shrink-0 whitespace-nowrap">
           <Dot tone={m.is_active ? 'mint' : 'pink'} />
           <Badge tone={m.is_active ? 'mint' : 'pink'}>
             {m.is_active ? 'Aktif' : 'Non-aktif'}
@@ -270,8 +273,9 @@ export default function Menus({ menus, allRoles }: Props) {
       key: 'actions',
       header: 'Aksi',
       align: 'right' as const,
+      minWidth: '140px',
       render: (m: MenuItem) => (
-        <Row gap={2} justify="end" wrap={false}>
+        <Row gap={2} justify="end" wrap={false} className="shrink-0 whitespace-nowrap">
           <Button size="sm" variant="quiet" onClick={() => openEdit(m)}>
             Edit
           </Button>
@@ -311,16 +315,16 @@ export default function Menus({ menus, allRoles }: Props) {
       <Head title="Manajemen Menu & Navigasi" />
       <Stack gap={5}>
         {/* Header Title & Actions */}
-        <Row justify="between" align="center">
-          <Stack gap={1}>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
+          <Stack gap={1} className="flex-1 min-w-0">
             <Eyebrow>Sistem Navigasi</Eyebrow>
             <Heading level={1}>Manajemen Menu</Heading>
             <Text size="sm" muted>
               Atur menu navigasi, urutan posisi, warna tone, dan hak akses peran
             </Text>
           </Stack>
-          <Button onClick={openCreate}>+ Tambah Menu</Button>
-        </Row>
+          <Button onClick={openCreate} className="w-full sm:w-auto shrink-0">+ Tambah Menu</Button>
+        </div>
 
         {/* Top KPI Stats */}
         <Grid cols={3}>

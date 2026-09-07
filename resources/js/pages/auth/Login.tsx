@@ -52,16 +52,8 @@ export default function Login({ errors: serverErrors }: LoginPageProps) {
   })
 
   return (
-    <div
-      style={{
-        display: 'grid',
-        placeItems: 'center',
-        minHeight: '100vh',
-        padding: 24,
-        background: 'var(--color-background)',
-      }}
-    >
-      <div style={{ width: '100%', maxWidth: 420 }}>
+    <div className="min-h-screen w-full flex items-center justify-center p-3 sm:p-6 bg-[var(--bg)]">
+      <div className="w-full max-w-[420px]">
         <form onSubmit={submit} noValidate>
           <Card>
             <Stack gap={5}>

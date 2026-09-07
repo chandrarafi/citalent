@@ -193,7 +193,7 @@ export function Dialog({ trigger, title, description, children, open, onOpenChan
                 )}
               </Stack>
               <RDialog.Close asChild>
-                <Button variant="quiet" size="sm" label="Close">
+                <Button tone="pink" size="sm" label="Close">
                   <Icon name="close" size="sm" />
                 </Button>
               </RDialog.Close>

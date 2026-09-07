@@ -149,6 +149,7 @@ const ICONS = {
   trophy: IconTrophy,
   flame: IconFlame,
   sparkle: IconSparkles,
+  sparkles: IconSparkles,
   music: IconMusic,
   cart: IconShoppingBag,
   tag: IconTag,
@@ -177,7 +178,8 @@ interface Props {
 }
 
 export function Icon({ name, size = 'md', label }: Props) {
-  const Glyph = ICONS[name] as ComponentType<IconProps>
+  const Glyph = (ICONS[name] ?? ICONS['overview'] ?? IconLayoutGrid) as ComponentType<IconProps>
+  if (!Glyph) return null
   return (
     <Glyph
       size={SIZES[size]}

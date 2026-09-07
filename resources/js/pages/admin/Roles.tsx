@@ -174,6 +174,7 @@ export default function Roles({ roles, allPermissions }: Props) {
     {
       key: 'permissions',
       header: 'Hak Akses (Permissions)',
+      minWidth: '240px',
       render: (r: Role) => {
         if (!r.permissions.length) {
           return <Text size="sm" muted>Tidak ada hak akses</Text>
@@ -183,11 +184,11 @@ export default function Roles({ roles, allPermissions }: Props) {
         return (
           <div className="flex flex-wrap gap-1.5 items-center">
             {visible.map((p) => (
-              <Badge key={p} tone="purple">
+              <Badge key={p} tone="purple" className="whitespace-nowrap">
                 {p}
               </Badge>
             ))}
-            {rest > 0 && <Badge tone="blue">+{rest} lainnya</Badge>}
+            {rest > 0 && <Badge tone="blue" className="whitespace-nowrap">+{rest} lainnya</Badge>}
           </div>
         )
       },
@@ -196,8 +197,9 @@ export default function Roles({ roles, allPermissions }: Props) {
       key: 'actions',
       header: 'Aksi',
       align: 'right' as const,
+      minWidth: '140px',
       render: (r: Role) => (
-        <Row gap={2} justify="end" wrap={false}>
+        <Row gap={2} justify="end" wrap={false} className="shrink-0 whitespace-nowrap">
           <Button size="sm" variant="quiet" onClick={() => openEdit(r)}>
             Edit
           </Button>
@@ -237,19 +239,19 @@ export default function Roles({ roles, allPermissions }: Props) {
       <Head title="Manajemen Role & RBAC" />
       <Stack gap={5}>
         {/* Header Title & Actions */}
-        <Row justify="between" align="center">
-          <Stack gap={1}>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
+          <Stack gap={1} className="flex-1 min-w-0">
             <Eyebrow>Sistem Hak Akses</Eyebrow>
             <Heading level={1}>Manajemen Role & RBAC</Heading>
             <Text size="sm" muted>
               Kelola peran pengguna dan konfigurasi izin akses fitur dalam aplikasi
             </Text>
           </Stack>
-          <Row gap={2}>
-            <Button variant="quiet" onClick={openCreatePerm}>+ Hak Akses Baru</Button>
-            <Button onClick={openCreate}>+ Tambah Role</Button>
-          </Row>
-        </Row>
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto shrink-0">
+            <Button variant="quiet" onClick={openCreatePerm} className="flex-1 sm:flex-none">+ Hak Akses Baru</Button>
+            <Button onClick={openCreate} className="flex-1 sm:flex-none">+ Tambah Role</Button>
+          </div>
+        </div>
 
         {/* Top KPI Stats */}
         <Grid cols={3}>

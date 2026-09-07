@@ -29,6 +29,7 @@ class Pelamar extends Model
         'jurusan',
         'tahun_lulus',
         'posisi_dilamar',
+        'foto_path',
         'cv_path',
         'surat_lamaran_path',
         'pernyataan_kebenaran',

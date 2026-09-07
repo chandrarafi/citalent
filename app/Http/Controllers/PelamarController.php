@@ -43,6 +43,7 @@ class PelamarController extends Controller
                 'jurusan' => $p->jurusan,
                 'tahun_lulus' => $p->tahun_lulus,
                 'posisi_dilamar' => $p->posisi_dilamar,
+                'foto_url' => $p->foto_path ? asset('storage/' . $p->foto_path) : null,
                 'cv_url' => $p->cv_path ? asset('storage/' . $p->cv_path) : null,
                 'surat_lamaran_url' => $p->surat_lamaran_path ? asset('storage/' . $p->surat_lamaran_path) : null,
                 'status' => $p->status,
@@ -93,6 +94,7 @@ class PelamarController extends Controller
                 'jurusan' => $pelamar->jurusan,
                 'tahun_lulus' => $pelamar->tahun_lulus,
                 'posisi_dilamar' => $pelamar->posisi_dilamar,
+                'foto_url' => $pelamar->foto_path ? asset('storage/' . $pelamar->foto_path) : null,
                 'cv_url' => $pelamar->cv_path ? asset('storage/' . $pelamar->cv_path) : null,
                 'surat_lamaran_url' => $pelamar->surat_lamaran_path ? asset('storage/' . $pelamar->surat_lamaran_path) : null,
                 'status' => $pelamar->status,
@@ -115,16 +117,31 @@ class PelamarController extends Controller
     public function updateStatus(Request $request, Pelamar $pelamar): RedirectResponse
     {
         $validated = $request->validate([
-            'status' => ['required', 'in:submitted,review,interview,accepted,rejected'],
+            'status' => ['required', 'in:submitted,screening_cv,interview_hr,skill_test,interview_user,final_discussion,accepted,rejected,review,interview'],
             'catatan' => ['nullable', 'string', 'max:1000'],
         ], [
-            'status.required' => 'Status seleksi wajib dipilih.',
-            'status.in' => 'Status seleksi tidak valid.',
+            'status.required' => 'Tahapan seleksi wajib dipilih.',
+            'status.in' => 'Tahapan seleksi tidak valid.',
         ]);
 
         $pelamar->update($validated);
 
-        return back()->with('success', "Status pelamar '{$pelamar->nama_lengkap}' berhasil diperbarui menjadi {$pelamar->status}.");
+        $stageLabels = [
+            'submitted' => 'Submit Lamaran',
+            'screening_cv' => 'Screening CV',
+            'interview_hr' => 'Interview HR',
+            'skill_test' => 'Skill Test',
+            'interview_user' => 'Interview User',
+            'final_discussion' => 'Final Discussion',
+            'accepted' => 'Diterima (Accepted)',
+            'rejected' => 'Ditolak (Rejected)',
+            'review' => 'Screening CV',
+            'interview' => 'Interview HR',
+        ];
+
+        $label = $stageLabels[$pelamar->status] ?? $pelamar->status;
+
+        return back()->with('success', "Tahapan seleksi '{$pelamar->nama_lengkap}' berhasil diperbarui menjadi {$label}.");
     }
 
     /**
@@ -133,6 +150,10 @@ class PelamarController extends Controller
     public function destroy(Pelamar $pelamar): RedirectResponse
     {
         $name = $pelamar->nama_lengkap;
+
+        if ($pelamar->foto_path && Storage::disk('public')->exists($pelamar->foto_path)) {
+            Storage::disk('public')->delete($pelamar->foto_path);
+        }
 
         if ($pelamar->cv_path && Storage::disk('public')->exists($pelamar->cv_path)) {
             Storage::disk('public')->delete($pelamar->cv_path);

@@ -9,12 +9,14 @@ import { Field, Input } from '@/components/pouf/Input'
 import { Table } from '@/components/pouf/table'
 import { Badge, Blob, Dot } from '@/components/pouf/media'
 import { Confirm, Select } from '@/components/pouf/controls'
+import { RichTextEditor } from '@/components/pouf/RichTextEditor'
 import type { Tone } from '@/components/pouf/tone'
 
 interface PelamarSummary {
   id: number
   no_pendaftaran: string
   nama_lengkap: string
+  foto_url?: string | null
   email: string
   nomor_kontak: string
   pendidikan_terakhir: string
@@ -146,7 +148,13 @@ export default function Show({ lowongan }: Props) {
       header: 'Nama Kandidat & Kontak',
       render: (p: PelamarSummary) => (
         <Row gap={2} wrap={false} align="center">
-          <Blob icon="user" tone="blue" size="sm" />
+          {p.foto_url ? (
+            <div className="w-8 h-10 rounded-[6px] overflow-hidden border border-[var(--color-line)] shrink-0 bg-black/5 shadow-xs">
+              <img src={p.foto_url} alt={p.nama_lengkap} className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <Blob icon="user" tone="blue" size="sm" />
+          )}
           <Stack gap={1}>
             <Text><strong>{p.nama_lengkap}</strong></Text>
             <Text size="sm" muted mono>{p.email} &bull; {p.nomor_kontak}</Text>
@@ -196,28 +204,19 @@ export default function Show({ lowongan }: Props) {
     <AppLayout>
       <Head title={`Detail Lowongan - ${lowongan.judul}`} />
       <Stack gap={5}>
-        {/* Navigation back and header */}
-        <Row justify="between" align="center">
-          <Stack gap={1}>
-            <Button
-              variant="quiet"
-              size="sm"
-              onClick={() => router.get('/lowongan')}
-            >
-              ← Kembali ke Daftar Lowongan
-            </Button>
-            <Heading level={1}>Detail Lowongan: {lowongan.judul}</Heading>
-            <Text size="sm" muted>
-              Kode: <strong>{lowongan.kode_lowongan}</strong> &bull; Departemen: <strong>{lowongan.departement?.deskripsi ?? '—'}</strong>
-            </Text>
-          </Stack>
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-end items-start md:items-center gap-4 w-full">
 
-          <Row gap={2} align="center">
-            <Badge tone={STATUS_TONE[lowongan.status] || 'yellow'}>
-              STATUS: {lowongan.status.toUpperCase()}
-            </Badge>
+          <Row gap={2} align="center" className="shrink-0 w-full md:w-auto justify-start md:justify-end">
+            <Button
+              tone="blue"
+              onClick={() => router.get('/lowongan')}
+              className="w-full sm:w-auto"
+            >
+              ← Kembali
+            </Button>
           </Row>
-        </Row>
+        </div>
 
         {/* Flash Notifications */}
         {(flash as any)?.success && (
@@ -232,43 +231,47 @@ export default function Show({ lowongan }: Props) {
         {/* 1. Public Shareable Link Card */}
         <Card variant="tight">
           <Stack gap={3}>
-            <Row justify="between" align="center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 w-full">
               <Row gap={2} align="center">
                 <Blob icon="target" tone="purple" size="sm" />
                 <Heading level={2}>Tautan Pendaftaran Lowongan (Publik)</Heading>
               </Row>
-              <Badge tone="blue">
-                {lowongan.pelamars_count} Pelamar Terdaftar / Kuota: {lowongan.jumlah_dibutuhkan} Posisi
-              </Badge>
-            </Row>
+
+            </div>
 
             <Text size="sm" muted>
               Bagikan link formulir ini kepada calon pelamar atau publik untuk mengumpulkan data pendaftaran secara otomatis.
             </Text>
 
-            <div className="bg-[var(--color-surface)] p-3 rounded-[12px] border border-[var(--color-line)]">
-              <Row gap={2} align="center">
-                <Input
-                  value={lowongan.share_url}
-                  onChange={() => {}}
-                  readOnly
-                  mono
-                />
-                <Button
-                  size="sm"
-                  variant="quiet"
-                  onClick={copyShareUrl}
-                >
-                  {copiedLink ? '✓ Tersalin!' : 'Salin URL'}
-                </Button>
-                <Button
-                  size="sm"
-                  tone="purple"
-                  onClick={() => window.open(lowongan.share_url, '_blank')}
-                >
-                  Buka Form Publik ↗
-                </Button>
-              </Row>
+            <div className="bg-[var(--color-surface)] p-3 rounded-[12px] ">
+              <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+                <div className="flex-1 min-w-0">
+                  <Input
+                    value={lowongan.share_url}
+                    onChange={() => {}}
+                    readOnly
+                    mono
+                  />
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="quiet"
+                    onClick={copyShareUrl}
+                    className="flex-1 sm:flex-none"
+                  >
+                    {copiedLink ? '✓ Tersalin!' : 'Salin URL'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    tone="mint"
+                    onClick={() => window.open(lowongan.share_url, '_blank')}
+                    className="flex-1 sm:flex-none"
+                  >
+                    Buka Form Publik ↗
+                  </Button>
+                </div>
+              </div>
             </div>
           </Stack>
         </Card>
@@ -390,22 +393,22 @@ export default function Show({ lowongan }: Props) {
 
             <Field label="Deskripsi Pekerjaan" error={errors.deskripsi || pageErrors?.deskripsi}>
               {() => (
-                <textarea
-                  className="w-full min-h-[90px] p-3 rounded-[12px] border border-[var(--color-line)] bg-[var(--color-surface)] text-[14px] text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-purple)]"
+                <RichTextEditor
                   value={form.deskripsi}
-                  onChange={(e) => setForm((f) => ({ ...f, deskripsi: e.target.value }))}
+                  onChange={(html) => setForm((f) => ({ ...f, deskripsi: html }))}
                   placeholder="Rincian tanggung jawab dan tugas posisi ini..."
+                  minHeight="140px"
                 />
               )}
             </Field>
 
             <Field label="Kualifikasi & Persyaratan" error={errors.kualifikasi || pageErrors?.kualifikasi}>
               {() => (
-                <textarea
-                  className="w-full min-h-[90px] p-3 rounded-[12px] border border-[var(--color-line)] bg-[var(--color-surface)] text-[14px] text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-purple)]"
+                <RichTextEditor
                   value={form.kualifikasi}
-                  onChange={(e) => setForm((f) => ({ ...f, kualifikasi: e.target.value }))}
+                  onChange={(html) => setForm((f) => ({ ...f, kualifikasi: html }))}
                   placeholder="Syarat pendidikan, pengalaman, dan keahlian yang dibutuhkan..."
+                  minHeight="140px"
                 />
               )}
             </Field>
@@ -427,7 +430,6 @@ export default function Show({ lowongan }: Props) {
                 <Heading level={2}>Daftar Pelamar Terdaftar ({lowongan.pelamars.length})</Heading>
               </Row>
               <Button
-                variant="quiet"
                 size="sm"
                 tone="purple"
                 onClick={() => router.get('/pelamar', { lowongan_id: lowongan.id })}
@@ -454,7 +456,6 @@ export default function Show({ lowongan }: Props) {
         <Card variant="tight">
           <Row justify="between" align="center">
             <Button
-              variant="quiet"
               tone={lowongan.status === 'aktif' ? 'pink' : 'mint'}
               onClick={toggleStatus}
             >
@@ -469,7 +470,7 @@ export default function Show({ lowongan }: Props) {
               tone="orange"
               onConfirm={destroy}
             >
-              <Button variant="quiet" tone="pink">
+              <Button tone="pink">
                 Hapus Lowongan
               </Button>
             </Confirm>

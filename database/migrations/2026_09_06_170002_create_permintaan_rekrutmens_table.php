@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -11,6 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('CREATE SCHEMA IF NOT EXISTS rekrutmen');
+        }
+
         Schema::create('rekrutmen.permintaan_rekrutmens', function (Blueprint $table) {
             $table->id();
             $table->string('kode_permintaan', 50)->unique();
@@ -30,6 +35,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('permintaan_rekrutmens');
+        Schema::dropIfExists('rekrutmen.permintaan_rekrutmens');
     }
 };

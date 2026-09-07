@@ -10,7 +10,7 @@ import { toneClass, type Tone } from './tone'
 interface ButtonProps
   extends Omit<
     ButtonHTMLAttributes<HTMLButtonElement>,
-    'children' | 'className' | 'style' | 'onClick' | 'type' | 'disabled'
+    'children' | 'style' | 'onClick' | 'type' | 'disabled'
   > {
   children: ReactNode
   onClick?: MouseEventHandler<HTMLButtonElement>
@@ -28,6 +28,7 @@ interface ButtonProps
   type?: 'button' | 'submit'
   /** Required when the label alone isn't descriptive (icon-only buttons). */
   label?: string
+  className?: string
 }
 
 /* 'pouf-btn' rides along as an unstyled MARKER class: it carries no rules of
@@ -41,7 +42,7 @@ interface ButtonProps
  * quiet (already flat) goes bare. */
 const button = cva(
   [
-    'pouf-btn relative items-center justify-center gap-(--s2) font-pouf font-black leading-none',
+    'pouf-btn relative items-center justify-center gap-(--s2) font-pouf font-black leading-none whitespace-nowrap shrink-0',
     /* Colour lives on the variants, not here: `solid` sits on a pastel accent
      * and must follow --on-accent (which stays dark in dark mode), while
      * `quiet` is transparent on the page and follows --ink. In light mode both
@@ -122,6 +123,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     loading,
     type = 'button',
     label,
+    className,
     ...nativeProps
   },
   ref,
@@ -131,7 +133,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       {...nativeProps}
       type={type}
-      className={buttonClasses({ tone, size, variant, block })}
+      className={cx(buttonClasses({ tone, size, variant, block }), className)}
       onClick={onClick}
       disabled={disabled || loading}
       aria-busy={loading || undefined}

@@ -20,16 +20,16 @@ import type { Tone } from './tone'
 export function Stat({ label, value, icon, tone }: { label: string; value: string; icon: IconLike; tone: Tone }) {
   return (
     <Card variant="tight">
-      <div className="pouf-stat flex items-center gap-(--s3)">
-        <Blob tone={tone} size="sm" icon={icon} />
-        <div className="pouf-stat__text flex flex-col gap-[2px] min-w-0">
-          <span className="pouf-stat__label text-[12px] font-extrabold tracking-[1.4px] uppercase text-muted whitespace-nowrap">
+      <div className="pouf-stat flex items-center gap-(--s3) min-w-0">
+        <Blob tone={tone} size="sm" icon={icon} className="shrink-0" />
+        <div className="pouf-stat__text flex flex-col gap-[2px] min-w-0 flex-1">
+          <span className="pouf-stat__label text-[11px] sm:text-[12px] font-extrabold tracking-[1px] sm:tracking-[1.4px] uppercase text-muted truncate block" title={label}>
             {label}
           </span>
           {/* dir="auto" for the same reason Text sets it: a value can be a
               non-Latin string (a person's name in a "top contributor" tile). */}
           <span
-            className='pouf-stat__value text-[26px] font-black leading-[1.05] tracking-[-0.5px] text-ink [font-variant-numeric:tabular-nums] [font-feature-settings:"tnum"]'
+            className='pouf-stat__value text-[clamp(19px,1.5vw+14px,26px)] font-black leading-[1.1] tracking-[-0.5px] text-ink [font-variant-numeric:tabular-nums] [font-feature-settings:"tnum"] truncate block'
             dir="auto"
           >
             {value}

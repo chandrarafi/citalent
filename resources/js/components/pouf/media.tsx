@@ -13,6 +13,7 @@ interface BlobProps {
   /** Decorative by default — a blob beside a visible label is noise to a
    *  screen reader. Pass a label only when the icon is the sole meaning. */
   label?: string
+  className?: string
 }
 
 /* Optically centred, not geometrically centred: the blob carries a 4px white
@@ -39,10 +40,10 @@ const blob = cva(
 )
 
 /** The reference's icon tile. */
-export function Blob({ icon, tone = 'purple', size = 'lg', label }: BlobProps) {
+export function Blob({ icon, tone = 'purple', size = 'lg', label, className }: BlobProps) {
   return (
     <span
-      className={cx(blob({ size }), toneClass(tone))}
+      className={cx(blob({ size }), toneClass(tone), className)}
       role={label ? 'img' : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}
@@ -58,7 +59,7 @@ export function Blob({ icon, tone = 'purple', size = 'lg', label }: BlobProps) {
  * borrow that depth devalues the signal for every real button on screen.
  * flex-none + self-start: never squashed by a long neighbour, and never
  * stretched into a banner by a flex column. A badge hugs its own text. */
-export function Badge({ children, tone = 'purple' }: { children: ReactNode; tone?: Tone }) {
+export function Badge({ children, tone = 'purple', className }: { children: ReactNode; tone?: Tone; className?: string }) {
   return (
     <span
       className={cx(
@@ -66,6 +67,7 @@ export function Badge({ children, tone = 'purple' }: { children: ReactNode; tone
         'text-[var(--on-accent)] bg-[var(--tone,var(--purple))] rounded-pill px-3 py-[5px] [box-shadow:none]',
         'flex-none whitespace-nowrap self-start',
         toneClass(tone),
+        className,
       )}
     >
       {children}

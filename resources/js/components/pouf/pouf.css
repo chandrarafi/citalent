@@ -38,6 +38,8 @@
    * 'Nunito' is kept behind it for anyone on the static @fontsource/nunito
    * package, which does register that name. */
   --font-pouf: 'Nunito Variable', 'Nunito', 'SF Pro Rounded', 'Helvetica Neue', system-ui, sans-serif;
+  --font-sans: 'Nunito Variable', 'Nunito', 'SF Pro Rounded', 'Helvetica Neue', system-ui, sans-serif;
+  --font-display: 'Fredoka Variable', 'Fredoka', 'Nunito Variable', 'Nunito', system-ui, sans-serif;
 
   /* -- Radii: verbatim (card 32, control 20, blob 24) -------------------- */
   --radius-card: 32px;
@@ -61,10 +63,18 @@
   --orange: var(--color-orange);
   --surface: var(--color-surface);
   --font: var(--font-pouf);
+  --display: var(--font-display);
   --r-card: var(--radius-card);
   --r-control: var(--radius-control);
   --r-blob: var(--radius-blob);
   --r-pill: var(--radius-pill);
+
+html,
+body {
+  font-family: var(--font-pouf);
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+}
 
   /* -- Ink that sits ON a pastel accent fill (a solid Button, a Badge, a Blob,
    *    an active NavLink) rather than on the page.
@@ -1698,9 +1708,11 @@
 .pouf-table__wrap {
   width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .pouf-table {
   width: 100%;
+  min-width: 960px;
   border-collapse: separate;
   border-spacing: 0;
 }
@@ -1709,12 +1721,14 @@
   border-bottom: 2px solid rgba(201, 168, 255, 0.3);
   text-align: left;
   font-weight: 800;
+  white-space: nowrap;
 }
 .pouf-table__h--right {
   text-align: right;
 }
 .pouf-table td {
   padding: var(--s3);
+  vertical-align: middle;
 }
 .pouf-table__row td {
   border-bottom: 1px solid rgba(201, 168, 255, 0.15);
@@ -1932,3 +1946,114 @@ th[aria-sort='descending'] .pouf-table__caret {
 
 /* The right-click surface for ContextMenu — a plain block wrapper. */
 .pouf-context-anchor { display: block; }
+
+/* ------------------------------------------------------------------ */
+/* Rich Text Editor & Content Viewer Styles (Pouf Claymorphic Theme)  */
+/* ------------------------------------------------------------------ */
+
+.ProseMirror {
+  outline: none !important;
+  font-family: var(--font-pouf, inherit);
+  color: var(--ink, #2d2638);
+  line-height: 1.65;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #a8a29e;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  font-style: italic;
+}
+
+.ProseMirror p,
+.rich-text-content p {
+  margin-bottom: 0.65rem;
+}
+
+.ProseMirror p:last-child,
+.rich-text-content p:last-child {
+  margin-bottom: 0;
+}
+
+.ProseMirror h2,
+.rich-text-content h2 {
+  font-family: var(--font-display, inherit);
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin-top: 1rem;
+  margin-bottom: 0.45rem;
+  color: #4c1d95;
+  letter-spacing: -0.01em;
+}
+
+.ProseMirror h3,
+.rich-text-content h3 {
+  font-family: var(--font-display, inherit);
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-top: 0.85rem;
+  margin-bottom: 0.35rem;
+  color: #6d28d9;
+}
+
+.ProseMirror ul,
+.rich-text-content ul {
+  list-style-type: disc !important;
+  padding-left: 1.6rem !important;
+  margin-top: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.ProseMirror ul li::marker,
+.rich-text-content ul li::marker {
+  color: #7c3aed;
+}
+
+.ProseMirror ol,
+.rich-text-content ol {
+  list-style-type: decimal !important;
+  padding-left: 1.6rem !important;
+  margin-top: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.ProseMirror ol li::marker,
+.rich-text-content ol li::marker {
+  color: #7c3aed;
+  font-weight: 700;
+}
+
+.ProseMirror li,
+.rich-text-content li {
+  margin-bottom: 0.3rem;
+  padding-left: 0.2rem;
+}
+
+.ProseMirror blockquote,
+.rich-text-content blockquote {
+  border-left: 4px solid #7c3aed;
+  background: #faf5ff;
+  border-radius: 12px;
+  padding: 0.65rem 0.95rem;
+  margin-top: 0.65rem;
+  margin-bottom: 0.65rem;
+  color: #5b21b6;
+  font-style: italic;
+}
+
+.ProseMirror strong,
+.rich-text-content strong {
+  color: var(--ink, #2d2638);
+  font-weight: 750;
+}
+
+.ProseMirror mark,
+.rich-text-content mark {
+  border-radius: 6px;
+  padding: 0.15em 0.35em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+

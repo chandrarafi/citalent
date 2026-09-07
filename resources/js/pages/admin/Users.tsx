@@ -181,18 +181,20 @@ export default function Users({ users, roles }: Props) {
     {
       key: 'user',
       header: 'Pengguna',
+      minWidth: '220px',
       render: (u: UserItem) => (
-        <Row gap={3} wrap={false} align="center">
+        <Row gap={3} wrap={false} align="center" className="min-w-[190px]">
           <Blob
             icon={u.role?.name === 'super-admin' ? 'star' : 'user'}
             tone={ROLE_TONE[u.role?.name ?? ''] || 'blue'}
             size="sm"
+            className="shrink-0"
           />
-          <Stack gap={1}>
-            <Text>
+          <Stack gap={1} className="min-w-0">
+            <Text className="whitespace-nowrap">
               <strong>{u.name}</strong>
             </Text>
-            <Text size="sm" muted mono>
+            <Text size="sm" muted mono className="whitespace-nowrap">
               {u.email}
             </Text>
           </Stack>
@@ -203,8 +205,9 @@ export default function Users({ users, roles }: Props) {
     {
       key: 'role',
       header: 'Peran (Role)',
+      minWidth: '150px',
       render: (u: UserItem) => (
-        <Badge tone={ROLE_TONE[u.role?.name ?? ''] || 'purple'}>
+        <Badge tone={ROLE_TONE[u.role?.name ?? ''] || 'purple'} className="whitespace-nowrap">
           {u.role?.label ?? 'Tanpa Role'}
         </Badge>
       ),
@@ -215,8 +218,9 @@ export default function Users({ users, roles }: Props) {
       key: 'created_at',
       header: 'Terdaftar',
       mono: true,
+      minWidth: '130px',
       render: (u: UserItem) => (
-        <Text size="sm" muted mono>
+        <Text size="sm" muted mono className="whitespace-nowrap">
           {u.created_at ?? '—'}
         </Text>
       ),
@@ -227,10 +231,11 @@ export default function Users({ users, roles }: Props) {
       key: 'actions',
       header: 'Aksi',
       align: 'right' as const,
+      minWidth: '140px',
       render: (u: UserItem) => {
         const isSelf = auth?.user?.id === u.id
         return (
-          <Row gap={2} justify="end" wrap={false}>
+          <Row gap={2} justify="end" wrap={false} className="shrink-0 whitespace-nowrap">
             <Button size="sm" variant="quiet" onClick={() => openEdit(u)}>
               Edit
             </Button>
@@ -271,16 +276,16 @@ export default function Users({ users, roles }: Props) {
       <Head title="Manajemen Pengguna" />
       <Stack gap={5}>
         {/* Header Title & Actions */}
-        <Row justify="between" align="center">
-          <Stack gap={1}>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
+          <Stack gap={1} className="flex-1 min-w-0">
             <Eyebrow>Sistem Pengguna</Eyebrow>
             <Heading level={1}>Manajemen Pengguna</Heading>
             <Text size="sm" muted>
               Kelola akun pengguna, penetapan peran (role), dan kredensial login ke sistem
             </Text>
           </Stack>
-          <Button onClick={openCreate}>+ Tambah Pengguna</Button>
-        </Row>
+          <Button onClick={openCreate} className="w-full sm:w-auto shrink-0">+ Tambah Pengguna</Button>
+        </div>
 
         {/* Top KPI Stats */}
         <Grid cols={3}>
@@ -327,8 +332,8 @@ export default function Users({ users, roles }: Props) {
         <Card>
           <Stack gap={4}>
             {/* Search & Filter Toolbar */}
-            <Row justify="between" align="center">
-              <div style={{ maxWidth: 360, width: '100%' }}>
+            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 w-full">
+              <div className="w-full sm:max-w-[360px]">
                 <Input
                   value={search}
                   onChange={(v) => {
@@ -339,8 +344,8 @@ export default function Users({ users, roles }: Props) {
                 />
               </div>
 
-              <Row gap={3} align="center">
-                <div style={{ width: 180 }}>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                <div className="flex-1 sm:flex-none min-w-[140px] sm:w-[180px]">
                   <Select
                     value={roleFilter}
                     onChange={(v) => {
@@ -354,7 +359,7 @@ export default function Users({ users, roles }: Props) {
                   />
                 </div>
 
-                <div style={{ width: 130 }}>
+                <div className="w-[110px]">
                   <Select
                     value={pageSize}
                     onChange={(v) => {
@@ -364,8 +369,8 @@ export default function Users({ users, roles }: Props) {
                     options={PAGE_SIZE_OPTIONS}
                   />
                 </div>
-              </Row>
-            </Row>
+              </div>
+            </div>
 
             {/* Pouf Table */}
             <Table
@@ -375,8 +380,8 @@ export default function Users({ users, roles }: Props) {
             />
 
             {/* Pagination Controls */}
-            <Row justify="between" align="center">
-              <Text size="sm" muted>
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 w-full pt-2">
+              <Text size="sm" muted className="text-center sm:text-left">
                 Menampilkan {startIndex}-{endIndex} dari {filteredUsers.length} pengguna (Halaman {page} dari {totalPages})
               </Text>
               <Pagination
@@ -384,7 +389,7 @@ export default function Users({ users, roles }: Props) {
                 total={totalPages}
                 onChange={(p) => setPage(p)}
               />
-            </Row>
+            </div>
           </Stack>
         </Card>
       </Stack>

@@ -75,8 +75,9 @@ class PublicJobController extends Controller
             'jurusan' => ['required', 'string', 'max:255'],
             'tahun_lulus' => ['required', 'string', 'max:10'],
             'posisi_dilamar' => ['required', 'string', 'max:255'],
-            'cv_file' => ['required', 'file', 'mimes:pdf', 'max:5120'], // Max 5MB PDF
-            'surat_lamaran_file' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
+            'foto_file' => ['required', 'file', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'], // Max 2MB Image
+            'cv_file' => ['required', 'file', 'mimes:pdf', 'max:2048'], // Max 2MB PDF
+            'surat_lamaran_file' => ['nullable', 'file', 'mimes:pdf', 'max:2048'],
             'pernyataan_kebenaran' => ['required', 'accepted'],
         ], [
             'nama_lengkap.required' => 'Nama lengkap wajib diisi.',
@@ -96,13 +97,20 @@ class PublicJobController extends Controller
             'jurusan.required' => 'Jurusan pendidikan wajib diisi.',
             'tahun_lulus.required' => 'Tahun kelulusan wajib diisi.',
             'posisi_dilamar.required' => 'Posisi yang dilamar wajib diisi.',
+            'foto_file.required' => 'Pas foto formal kandidat wajib diunggah.',
+            'foto_file.image' => 'File pas foto harus berupa file gambar.',
+            'foto_file.mimes' => 'Format file pas foto harus JPG, JPEG, PNG, atau WEBP.',
+            'foto_file.max' => 'Ukuran file pas foto maksimal 2 MB.',
             'cv_file.required' => 'File CV (Curriculum Vitae) dalam format PDF wajib diunggah.',
             'cv_file.mimes' => 'Format file CV harus berupa PDF (.pdf).',
-            'cv_file.max' => 'Ukuran file CV maksimal 5 MB.',
+            'cv_file.max' => 'Ukuran file CV maksimal 2 MB.',
             'surat_lamaran_file.mimes' => 'Format file Surat Lamaran harus berupa PDF (.pdf).',
-            'surat_lamaran_file.max' => 'Ukuran file Surat Lamaran maksimal 5 MB.',
+            'surat_lamaran_file.max' => 'Ukuran file Surat Lamaran maksimal 2 MB.',
             'pernyataan_kebenaran.accepted' => 'Anda wajib menyetujui pernyataan kebenaran data.',
         ]);
+
+        // Upload Pas Foto
+        $fotoPath = $request->file('foto_file')->store('rekrutmen/foto', 'public');
 
         // Upload CV
         $cvPath = $request->file('cv_file')->store('rekrutmen/cv', 'public');
@@ -136,6 +144,7 @@ class PublicJobController extends Controller
             'jurusan' => $validated['jurusan'],
             'tahun_lulus' => $validated['tahun_lulus'],
             'posisi_dilamar' => $validated['posisi_dilamar'],
+            'foto_path' => $fotoPath,
             'cv_path' => $cvPath,
             'surat_lamaran_path' => $suratLamaranPath,
             'pernyataan_kebenaran' => true,

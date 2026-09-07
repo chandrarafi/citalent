@@ -5,34 +5,41 @@ import { toneClass, type Tone } from './tone'
 interface HeadingProps {
   children: ReactNode
   level?: 1 | 2 | 3
+  className?: string
+  display?: boolean
 }
 
 const heading = cva('font-black [text-wrap:balance]', {
   variants: {
     level: {
-      1: 'pouf-h1 text-[48px] tracking-[-1px] leading-[1.1]',
-      2: 'pouf-h2 text-[28px] tracking-[-0.5px] leading-[1.2]',
+      1: 'pouf-h1 font-display text-[clamp(1.75rem,3.2vw+0.6rem,2.75rem)] tracking-[-0.03em] leading-[1.1]',
+      2: 'pouf-h2 font-display text-[clamp(1.25rem,2vw+0.4rem,1.75rem)] tracking-[-0.02em] leading-[1.2]',
       /* h1/h2 set 1.1/1.2; without this h3 inherits the body's 1.5 and its line
          box towers over the 44px blob it commonly sits beside. */
-      3: 'pouf-h3 text-[19px] tracking-[-0.2px] leading-[1.2]',
+      3: 'pouf-h3 text-[clamp(1.05rem,1.2vw+0.3rem,1.25rem)] tracking-[-0.01em] leading-[1.25]',
     },
   },
   defaultVariants: { level: 2 },
 })
 
-export function Heading({ children, level = 2 }: HeadingProps) {
+export function Heading({ children, level = 2, className, display }: HeadingProps) {
   const Tag = `h${level}` as const
-  return <Tag className={heading({ level })}>{children}</Tag>
+  return (
+    <Tag className={cx(heading({ level }), display && 'font-display', className)}>
+      {children}
+    </Tag>
+  )
 }
 
 /** The reference's yellow highlight-swatch behind a word. */
-export function Highlight({ children, tone = 'yellow' }: { children: ReactNode; tone?: Tone }) {
+export function Highlight({ children, tone = 'yellow', className }: { children: ReactNode; tone?: Tone; className?: string }) {
   return (
     <span
       className={cx(
         'pouf-highlight inline-block px-[14px] rounded-control text-[var(--on-accent)] bg-[var(--tone,var(--yellow))]',
         '[box-shadow:inset_0_-6px_0_rgba(0,0,0,0.08)]',
         toneClass(tone),
+        className,
       )}
     >
       {children}
@@ -42,9 +49,9 @@ export function Highlight({ children, tone = 'yellow' }: { children: ReactNode; 
 
 /** The reference's compact uppercase section eyebrow. The muted token clears
  * AA contrast on both the page background and white surfaces. */
-export function Eyebrow({ children }: { children: ReactNode }) {
+export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className="pouf-eyebrow text-[14px] tracking-[2px] uppercase font-extrabold text-muted">
+    <div className={cx('pouf-eyebrow text-[clamp(11px,0.8vw+8px,13px)] tracking-[2px] uppercase font-extrabold text-muted', className)}>
       {children}
     </div>
   )
@@ -58,6 +65,7 @@ interface TextProps {
   num?: boolean
   mono?: boolean
   truncate?: boolean
+  className?: string
 }
 
 const text = cva('pouf-text font-bold [overflow-wrap:anywhere]', {
@@ -74,21 +82,9 @@ const text = cva('pouf-text font-bold [overflow-wrap:anywhere]', {
   defaultVariants: { size: 'md' },
 })
 
-export function Text({ children, size, muted, num, mono, truncate }: TextProps) {
+export function Text({ children, size, muted, num, mono, truncate, className }: TextProps) {
   return (
-    // dir="auto" by default, and deliberately not opt-in.
-    //
-    // Almost everything an app renders is user-generated: names, titles and
-    // raw message text, in whatever language the person writes. Without this,
-    // a Persian or Arabic title renders with its emoji and punctuation on the
-    // wrong side — visibly wrong, and easy to miss if your own test data is
-    // all English.
-    //
-    // Safe as a blanket default: dir="auto" resolves from the first STRONG
-    // character, and digits/punctuation are neutral — so "+2.41%" and "SKU-1420"
-    // stay LTR. Opting in per call site would mean remembering it at every one,
-    // which is how the bug comes back.
-    <span dir="auto" className={text({ size, muted, num, mono, truncate })}>
+    <span dir="auto" className={cx(text({ size, muted, num, mono, truncate }), className)}>
       {children}
     </span>
   )

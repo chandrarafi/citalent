@@ -1,15 +1,17 @@
-import { cva } from 'class-variance-authority'
+import { cva, cx } from 'class-variance-authority'
 import type { ReactNode } from 'react'
 
 /* Vertical padding is biased by half the lip on every padded variant: the
  * cushion's floor inset paints INSIDE the box, so symmetric padding reads
  * bottom-heavy. Same total height, optically centred content. */
-const card = cva('pouf-card bg-surface rounded-card cushion-card', {
+const card = cva('pouf-card bg-surface rounded-[24px] sm:rounded-card cushion-card min-w-0', {
   variants: {
     variant: {
-      default: 'px-(--s7) pt-[calc(var(--s7)-var(--lip)/2)] pb-[calc(var(--s7)+var(--lip)/2)]',
+      default:
+        'p-4 sm:p-6 lg:px-(--s7) lg:pt-[calc(var(--s7)-var(--lip)/2)] lg:pb-[calc(var(--s7)+var(--lip)/2)]',
       flush: 'p-0',
-      tight: 'px-(--s4) pt-[calc(var(--s4)-var(--lip)/2)] pb-[calc(var(--s4)+var(--lip)/2)]',
+      tight:
+        'p-3 sm:px-(--s4) sm:pt-[calc(var(--s4)-var(--lip)/2)] sm:pb-[calc(var(--s4)+var(--lip)/2)]',
     },
     motion: {
       none: '',
@@ -31,10 +33,11 @@ interface CardProps {
   variant?: 'default' | 'flush' | 'tight'
   /** Playful, composited hover motion for linked or featured cards. */
   motion?: 'none' | 'lift' | 'tilt-left' | 'tilt-right'
+  className?: string
 }
 
-export function Card({ children, variant, motion }: CardProps) {
-  return <div className={card({ variant, motion })}>{children}</div>
+export function Card({ children, variant, motion, className }: CardProps) {
+  return <div className={cx(card({ variant, motion }), className)}>{children}</div>
 }
 
 interface RowCardProps {

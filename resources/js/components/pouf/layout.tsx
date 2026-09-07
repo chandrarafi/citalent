@@ -1,4 +1,4 @@
-import { cva } from 'class-variance-authority'
+import { cva, cx } from 'class-variance-authority'
 import type { ReactNode } from 'react'
 
 /** Layout primitives exist so a screen never writes `display:flex` itself.
@@ -32,7 +32,7 @@ const gapVariant = {
  * on every wrapper" is exactly the kind of rule that gets forgotten once and
  * then looks like a mysterious layout bug. */
 
-const stack = cva('pouf-stack flex flex-col min-w-0', {
+const stack = cva('pouf-stack flex flex-col min-w-0 w-full', {
   variants: { gap: gapVariant },
   defaultVariants: { gap: 4 },
 })
@@ -40,16 +40,17 @@ const stack = cva('pouf-stack flex flex-col min-w-0', {
 interface StackProps {
   children: ReactNode
   gap?: Gap
+  className?: string
 }
 
-export function Stack({ children, gap }: StackProps) {
-  return <div className={stack({ gap })}>{children}</div>
+export function Stack({ children, gap, className }: StackProps) {
+  return <div className={cx(stack({ gap }), className)}>{children}</div>
 }
 
 const row = cva('pouf-row flex flex-row min-w-0', {
   variants: {
     gap: gapVariant,
-    align: { center: 'items-center', top: 'items-start' },
+    align: { center: 'items-center', top: 'items-start', stretch: 'items-stretch' },
     justify: { start: '', center: 'justify-center', between: 'justify-between', end: 'justify-end' },
     wrap: { true: 'flex-wrap', false: 'flex-nowrap' },
   },
@@ -59,16 +60,14 @@ const row = cva('pouf-row flex flex-row min-w-0', {
 interface RowProps {
   children: ReactNode
   gap?: Gap
-  align?: 'center' | 'top'
-  /** `center` exists because without it a screen has no way to centre anything
-   *  and reaches for an inline style — which is how the QR code ended up
-   *  left-aligned in its dialog. */
+  align?: 'center' | 'top' | 'stretch'
   justify?: 'start' | 'center' | 'between' | 'end'
   wrap?: boolean
+  className?: string
 }
 
-export function Row({ children, gap, align, justify, wrap }: RowProps) {
-  return <div className={row({ gap, align, justify, wrap })}>{children}</div>
+export function Row({ children, gap, align, justify, wrap, className }: RowProps) {
+  return <div className={cx(row({ gap, align, justify, wrap }), className)}>{children}</div>
 }
 
 export function Spacer() {
@@ -76,15 +75,15 @@ export function Spacer() {
 }
 
 /* Column counts are variants, not a --cols override, so a screen never needs an
- * inline style to lay out. Every variant collapses to one column under 900px. */
-const grid = cva('pouf-grid grid', {
+ * inline style to lay out. Breakpoints adapt smoothly from mobile to widescreen. */
+const grid = cva('pouf-grid grid w-full min-w-0', {
   variants: {
     cols: {
-      2: 'grid-cols-2 max-[900px]:grid-cols-1',
-      3: 'grid-cols-3 max-[900px]:grid-cols-1',
-      4: 'grid-cols-4 max-[900px]:grid-cols-1',
+      2: 'grid-cols-1 sm:grid-cols-2',
+      3: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
+      4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
       sidebar:
-        '[grid-template-columns:minmax(0,2fr)_minmax(0,1fr)] max-[900px]:[grid-template-columns:minmax(0,1fr)]',
+        'grid-cols-1 lg:[grid-template-columns:minmax(0,2fr)_minmax(0,1fr)]',
     },
     gap: gapVariant,
   },
@@ -95,10 +94,11 @@ interface GridProps {
   children: ReactNode
   cols?: 2 | 3 | 4 | 'sidebar'
   gap?: Gap
+  className?: string
 }
 
-export function Grid({ children, cols, gap }: GridProps) {
-  return <div className={grid({ cols, gap })}>{children}</div>
+export function Grid({ children, cols, gap, className }: GridProps) {
+  return <div className={cx(grid({ cols, gap }), className)}>{children}</div>
 }
 
 export function Shell({
@@ -110,14 +110,12 @@ export function Shell({
 }) {
   return (
     <div
-      className={[
-        'pouf-shell grid [grid-template-columns:260px_minmax(0,1fr)] gap-(--s6) p-6 lg:p-8 w-full min-h-screen [align-items:start]',
-        /* Below 900px: single column, tighter padding, and clearance for the
-         * fixed bottom bar plus the home-indicator inset on iOS. */
-        'max-[900px]:[grid-template-columns:minmax(0,1fr)] max-[900px]:p-(--s4)',
-        'max-[900px]:pb-[calc(96px+env(safe-area-inset-bottom,0px))]',
+      className={cx(
+        'pouf-shell grid [grid-template-columns:260px_minmax(0,1fr)] gap-(--s5) lg:gap-(--s6) p-4 sm:p-6 lg:p-8 w-full max-w-[1600px] mx-auto min-h-screen [align-items:start]',
+        'max-[1024px]:[grid-template-columns:minmax(0,1fr)] max-[1024px]:p-4',
+        'max-[1024px]:pb-[calc(96px+env(safe-area-inset-bottom,0px))]',
         className,
-      ].filter(Boolean).join(' ')}
+      )}
     >
       {children}
     </div>
@@ -127,17 +125,20 @@ export function Shell({
 export function Sidebar({
   children,
   mobile = 'show',
+  className,
 }: {
   children: ReactNode
   /** Hide desktop sidebar chrome when the screen supplies BottomNav on phones. */
   mobile?: 'show' | 'hide'
+  className?: string
 }) {
   return (
     <aside
-      className={[
-        'pouf-sidebar sticky top-(--s8) flex flex-col gap-(--s2)',
-        mobile === 'hide' ? 'max-[900px]:hidden' : 'max-[900px]:static',
-      ].join(' ')}
+      className={cx(
+        'pouf-sidebar sticky top-4 lg:top-(--s8) flex flex-col gap-(--s3)',
+        mobile === 'hide' ? 'max-[1024px]:hidden' : 'max-[1024px]:static',
+        className,
+      )}
     >
       {children}
     </aside>

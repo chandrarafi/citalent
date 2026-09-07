@@ -140,9 +140,10 @@ export default function Index({ lowongans, departements }: Props) {
   const stats = useMemo(() => {
     const total = lowongans.length
     const aktif = lowongans.filter((l) => l.status === 'aktif').length
+    const draft = lowongans.filter((l) => l.status === 'draft').length
     const ditutup = lowongans.filter((l) => l.status === 'ditutup').length
     const totalPelamar = lowongans.reduce((sum, l) => sum + (l.pelamars_count || 0), 0)
-    return { total, aktif, ditutup, totalPelamar }
+    return { total, aktif, draft, ditutup, totalPelamar }
   }, [lowongans])
 
   const columns = [
@@ -156,16 +157,17 @@ export default function Index({ lowongans, departements }: Props) {
       sort: (a: LowonganItem, b: LowonganItem) => a.kode_lowongan.localeCompare(b.kode_lowongan),
     },
     {
-      key: 'judul_posisi',
+      key: 'lowongan_posisi',
       header: 'Lowongan & Posisi',
+      minWidth: '220px',
       render: (item: LowonganItem) => (
-        <Row gap={3} wrap={false} align="center">
-          <Blob icon="target" tone="purple" size="sm" />
-          <Stack gap={1}>
-            <Text>
+        <Row gap={3} wrap={false} align="center" className="min-w-[190px]">
+          <Blob icon="target" tone="purple" size="sm" className="shrink-0" />
+          <Stack gap={1} className="min-w-0">
+            <Text className="whitespace-nowrap">
               <strong>{item.judul}</strong>
             </Text>
-            <Text size="sm" muted>
+            <Text size="sm" muted className="whitespace-nowrap">
               Posisi: {item.jabatan?.nama_jabatan ?? '—'} &bull; Permintaan: {item.permintaan_rekrutmen?.kode_permintaan ?? '—'}
             </Text>
           </Stack>
@@ -176,8 +178,9 @@ export default function Index({ lowongans, departements }: Props) {
     {
       key: 'departemen',
       header: 'Departemen',
+      minWidth: '150px',
       render: (item: LowonganItem) => (
-        <Text size="sm">
+        <Text size="sm" className="whitespace-nowrap">
           <strong>{item.departement?.deskripsi ?? `Dept #${item.kd_departement}`}</strong>
         </Text>
       ),
@@ -189,8 +192,9 @@ export default function Index({ lowongans, departements }: Props) {
       header: 'Pelamar / Kuota',
       align: 'right' as const,
       mono: true,
+      minWidth: '150px',
       render: (item: LowonganItem) => (
-        <Badge tone={item.pelamars_count > 0 ? 'mint' : 'blue'}>
+        <Badge tone={item.pelamars_count > 0 ? 'mint' : 'blue'} className="whitespace-nowrap">
           {item.pelamars_count} Pelamar / {item.jumlah_dibutuhkan} Kuota
         </Badge>
       ),
@@ -199,8 +203,9 @@ export default function Index({ lowongans, departements }: Props) {
     {
       key: 'tipe_lokasi',
       header: 'Tipe & Lokasi',
+      minWidth: '130px',
       render: (item: LowonganItem) => (
-        <Stack gap={1}>
+        <Stack gap={1} className="whitespace-nowrap">
           <Text size="sm"><strong>{item.tipe_pekerjaan}</strong></Text>
           <Text size="sm" muted truncate>{item.lokasi_kerja}</Text>
         </Stack>
@@ -209,8 +214,9 @@ export default function Index({ lowongans, departements }: Props) {
     {
       key: 'jadwal',
       header: 'Periode Buka',
+      minWidth: '140px',
       render: (item: LowonganItem) => (
-        <Stack gap={1}>
+        <Stack gap={1} className="whitespace-nowrap">
           <Text size="sm"><span className="text-muted">Buka:</span> {item.tgl_buka ?? '—'}</Text>
           <Text size="sm"><span className="text-muted">Tutup:</span> <strong>{item.tgl_tutup ?? 'Seterusnya'}</strong></Text>
         </Stack>
@@ -220,8 +226,9 @@ export default function Index({ lowongans, departements }: Props) {
       key: 'status',
       header: 'Status',
       align: 'right' as const,
+      minWidth: '120px',
       render: (item: LowonganItem) => (
-        <Row gap={2} justify="end" align="center" wrap={false}>
+        <Row gap={2} justify="end" align="center" wrap={false} className="shrink-0 whitespace-nowrap">
           <Dot tone={STATUS_TONE[item.status] || 'yellow'} />
           <Badge tone={STATUS_TONE[item.status] || 'yellow'}>
             {item.status.toUpperCase()}
@@ -234,15 +241,23 @@ export default function Index({ lowongans, departements }: Props) {
       key: 'actions',
       header: 'Aksi',
       align: 'right' as const,
+      minWidth: '180px',
       render: (item: LowonganItem) => (
-        <Row gap={2} justify="end" wrap={false}>
+        <Row gap={2} justify="end" wrap={false} className="shrink-0 whitespace-nowrap">
           <Button
             size="sm"
             variant="quiet"
             tone="purple"
             onClick={() => router.get(`/lowongan/${item.id}`)}
           >
-            Detail Lowongan ↗
+            Detail ↗
+          </Button>
+          <Button
+            size="sm"
+            variant="quiet"
+            onClick={() => router.get(`/lowongan/${item.id}/edit`)}
+          >
+            Edit
           </Button>
         </Row>
       ),
@@ -253,16 +268,19 @@ export default function Index({ lowongans, departements }: Props) {
     <AppLayout>
       <Head title="Manajemen Lowongan Pekerjaan" />
       <Stack gap={5}>
-        {/* Header Title */}
-        <Row justify="between" align="center">
-          <Stack gap={1}>
+        {/* Header Title & Action */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
+          <Stack gap={1} className="flex-1 min-w-0">
             <Eyebrow>Modul Rekrutmen & Talenta</Eyebrow>
             <Heading level={1}>Manajemen Lowongan Pekerjaan</Heading>
             <Text size="sm" muted>
-              Kelola publikasi lowongan kerja dari permintaan rekrutmen yang telah disetujui, salin tautan pendaftaran, dan kelola periode aktif
+              Kelola publikasi lowongan kerja dari permintaan rekrutmen yang telah disetujui, draf lowongan, dan tautan pendaftaran kandidat
             </Text>
           </Stack>
-        </Row>
+          <Button onClick={() => router.get('/lowongan/create')} className="w-full sm:w-auto shrink-0">
+            + Publikasikan Lowongan
+          </Button>
+        </div>
 
         {/* Top KPI Stats */}
         <Grid cols={4}>
@@ -274,15 +292,15 @@ export default function Index({ lowongans, departements }: Props) {
           />
           <Stat
             label="Lowongan Aktif"
-            value={`${stats.aktif} Lowongan`}
+            value={`${stats.aktif} Aktif`}
             icon="ok"
             tone="mint"
           />
           <Stat
-            label="Lowongan Ditutup"
-            value={`${stats.ditutup} Lowongan`}
-            icon="fail"
-            tone="pink"
+            label="Draft Lowongan"
+            value={`${stats.draft} Draft`}
+            icon="clock"
+            tone="yellow"
           />
           <Stat
             label="Total Pelamar Masuk"
@@ -306,8 +324,8 @@ export default function Index({ lowongans, departements }: Props) {
         <Card>
           <Stack gap={4}>
             {/* Search & Filter Toolbar */}
-            <Row justify="between" align="center">
-              <div style={{ maxWidth: 320, width: '100%' }}>
+            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 w-full">
+              <div className="w-full lg:max-w-[320px]">
                 <Input
                   value={search}
                   onChange={(v) => {
@@ -318,9 +336,9 @@ export default function Index({ lowongans, departements }: Props) {
                 />
               </div>
 
-              <Row gap={3} align="center">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
                 {/* Departement Filter */}
-                <div style={{ width: 170 }}>
+                <div className="flex-1 sm:flex-none min-w-[140px] sm:w-[170px]">
                   <Select
                     value={deptFilter}
                     onChange={(v) => {
@@ -338,7 +356,7 @@ export default function Index({ lowongans, departements }: Props) {
                 </div>
 
                 {/* Tipe Filter */}
-                <div style={{ width: 150 }}>
+                <div className="flex-1 sm:flex-none min-w-[130px] sm:w-[150px]">
                   <Select
                     value={tipeFilter}
                     onChange={(v) => {
@@ -350,7 +368,7 @@ export default function Index({ lowongans, departements }: Props) {
                 </div>
 
                 {/* Status Filter */}
-                <div style={{ width: 160 }}>
+                <div className="flex-1 sm:flex-none min-w-[140px] sm:w-[160px]">
                   <Select
                     value={statusFilter}
                     onChange={(v) => {
@@ -362,7 +380,7 @@ export default function Index({ lowongans, departements }: Props) {
                 </div>
 
                 {/* Page Size */}
-                <div style={{ width: 120 }}>
+                <div className="w-[110px]">
                   <Select
                     value={pageSize}
                     onChange={(v) => {
@@ -372,8 +390,8 @@ export default function Index({ lowongans, departements }: Props) {
                     options={PAGE_SIZE_OPTIONS}
                   />
                 </div>
-              </Row>
-            </Row>
+              </div>
+            </div>
 
             {/* Pouf Table */}
             <Table
@@ -383,8 +401,8 @@ export default function Index({ lowongans, departements }: Props) {
             />
 
             {/* Pagination Controls */}
-            <Row justify="between" align="center">
-              <Text size="sm" muted>
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 w-full pt-2">
+              <Text size="sm" muted className="text-center sm:text-left">
                 Menampilkan {startIndex}-{endIndex} dari {filteredLowongans.length} data (Halaman {page} dari {totalPages})
               </Text>
               <Pagination
@@ -392,7 +410,7 @@ export default function Index({ lowongans, departements }: Props) {
                 total={totalPages}
                 onChange={(p) => setPage(p)}
               />
-            </Row>
+            </div>
           </Stack>
         </Card>
       </Stack>

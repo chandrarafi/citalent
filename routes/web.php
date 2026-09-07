@@ -51,8 +51,20 @@ Route::middleware('auth')->group(function () {
         ->name('lowongan.index')
         ->middleware('permission:manage-permintaan-rekrutmen');
 
+    Route::get('/lowongan/create', [LowonganController::class, 'create'])
+        ->name('lowongan.create')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::post('/lowongan', [LowonganController::class, 'store'])
+        ->name('lowongan.store')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
     Route::get('/lowongan/{lowongan}', [LowonganController::class, 'show'])
         ->name('lowongan.show')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::get('/lowongan/{lowongan}/edit', [LowonganController::class, 'edit'])
+        ->name('lowongan.edit')
         ->middleware('permission:manage-permintaan-rekrutmen');
 
     Route::put('/lowongan/{lowongan}', [LowonganController::class, 'update'])

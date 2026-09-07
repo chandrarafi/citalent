@@ -6,6 +6,7 @@ import { BottomNav, type NavItem } from '@/components/pouf/BottomNav'
 import { Heading, Text } from '@/components/pouf/text'
 import { Blob } from '@/components/pouf/media'
 import { Button } from '@/components/pouf/Button'
+import { Card } from '@/components/pouf/surface'
 import type { Tone } from '@/components/pouf/tone'
 import type { IconLike } from '@/components/pouf/Icon'
 
@@ -81,43 +82,71 @@ export function AppLayout({ children }: AppLayoutProps) {
     <>
       <Shell>
         <Sidebar mobile="hide">
-          {/* Brand / User */}
-          <Row gap={2} wrap={false} align="center">
-            <Blob icon="user" tone="purple" size="sm" />
-            <Stack gap={1}>
-              <Heading level={3}>Citalent</Heading>
-              {auth?.user && (
-                <Text size="sm" muted truncate>
-                  {auth.user.role?.label ?? auth.user.name}
-                </Text>
-              )}
+          <Card variant="tight">
+            <Stack gap={4}>
+              {/* Brand / User */}
+              <Row gap={2} wrap={false} align="center">
+                <Blob icon="user" tone="purple" size="sm" />
+                <Stack gap={1}>
+                  <Heading level={3}>CITALENT</Heading>
+                  {auth?.user && (
+                    <Text size="sm" muted truncate>
+                      {auth.user.role?.label ?? auth.user.name}
+                    </Text>
+                  )}
+                </Stack>
+              </Row>
+
+              <div className="h-[2px] bg-[var(--purple)] opacity-10 my-0.5" />
+
+              {/* Navigation */}
+              <div className="flex flex-col gap-(--s2)">
+                {navItems.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    href={item.href}
+                    currentPath={currentPath}
+                    icon={item.icon}
+                    tone={item.tone}
+                    link={InertiaLink}
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+
+              {/* Logout */}
+              <div style={{ paddingTop: 8 }}>
+                <Button variant="quiet" block onClick={logout}>
+                  Keluar
+                </Button>
+              </div>
             </Stack>
-          </Row>
-
-          {/* Navigation */}
-          {navItems.map((item) => (
-            <NavLink
-              key={item.href}
-              href={item.href}
-              currentPath={currentPath}
-              icon={item.icon}
-              tone={item.tone}
-              link={InertiaLink}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-
-          {/* Logout */}
-          <div style={{ marginTop: 'auto', paddingTop: 16 }}>
-            <Button variant="quiet" block onClick={logout}>
-              Keluar
-            </Button>
-          </div>
+          </Card>
         </Sidebar>
 
         {/* Main content */}
-        {children}
+        <main className="min-w-0 w-full flex flex-col gap-5">
+          {/* Mobile Top Bar (visible only below 1024px) */}
+          <div className="flex lg:hidden items-center justify-between w-full pb-1">
+            <Row gap={2} wrap={false} align="center">
+              <Blob icon="user" tone="purple" size="sm" />
+              <Stack gap={1}>
+                <Heading level={3}>CITALENT</Heading>
+                {auth?.user && (
+                  <Text size="sm" muted truncate>
+                    {auth.user.role?.label ?? auth.user.name}
+                  </Text>
+                )}
+              </Stack>
+            </Row>
+            <Button size="sm" variant="quiet" onClick={logout}>
+              Keluar
+            </Button>
+          </div>
+
+          {children}
+        </main>
       </Shell>
 
       {/* Mobile bottom nav */}
