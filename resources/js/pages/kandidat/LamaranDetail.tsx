@@ -49,6 +49,8 @@ interface ApplicationDetail {
   step: number
   catatan?: string | null
   applied_at: string
+  formulir_submitted?: boolean
+  has_formulir?: boolean
   lowongan?: {
     id: number
     kode_lowongan: string
@@ -162,20 +164,65 @@ export default function LamaranDetail({ application }: Props) {
                 </Text>
               </Stack>
 
-              {application.lowongan && (
-                <Button
-                  variant="quiet"
-                  size="sm"
-                  tone="purple"
-                  onClick={() => router.visit('/kandidat/lowongan')}
-                  className="w-full sm:w-auto shrink-0"
-                >
-                  <IconBriefcase size={15} />
-                  Lihat Lowongan Lain
-                </Button>
-              )}
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto shrink-0">
+                {(normalizedStatus === 'lengkapi_formulir' || application.has_formulir) && (
+                  <Button
+                    tone={normalizedStatus === 'lengkapi_formulir' && !application.formulir_submitted ? 'mint' : 'purple'}
+                    size="sm"
+                    onClick={() => router.visit(`/kandidat/lamaran/${application.no_pendaftaran}/formulir`)}
+                  >
+                    <IconFileText size={16} />
+                    {application.formulir_submitted
+                      ? 'Lihat / Edit Formulir Lamaran'
+                      : 'Lengkapi Formulir Lamaran Kerja'}
+                  </Button>
+                )}
+
+                {application.lowongan && (
+                  <Button
+                    variant="quiet"
+                    size="sm"
+                    tone="purple"
+                    onClick={() => router.visit('/kandidat/lowongan')}
+                  >
+                    <IconBriefcase size={15} />
+                    Lihat Lowongan Lain
+                  </Button>
+                )}
+              </div>
             </div>
           </Card>
+
+          {/* Action Alert for Lengkapi Formulir Stage */}
+          {normalizedStatus === 'lengkapi_formulir' && (
+            <div className="p-5 rounded-2xl bg-purple-50 border-2 border-purple-300 text-purple-950 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-200 text-purple-800 flex items-center justify-center shrink-0 mt-0.5">
+                  <IconFileText size={22} />
+                </div>
+                <div>
+                  <span className="font-black text-base text-purple-950 block">
+                    Tahap 3: Lengkapi Formulir Lamaran Kerja
+                  </span>
+                  <p className="text-xs sm:text-sm text-purple-800 mt-1 leading-relaxed">
+                    {application.formulir_submitted
+                      ? 'Formulir lamaran kerja Anda telah terkirim. Anda dapat meninjau atau memperbarui data kembali jika diperlukan.'
+                      : 'Silakan isi Formulir Lamaran Kerja resmi PT. Menara Agung secara lengkap untuk melanjutkan ke tahapan seleksi berikutnya.'}
+                  </p>
+                </div>
+              </div>
+
+              <Button
+                tone={application.formulir_submitted ? 'purple' : 'mint'}
+                size="md"
+                onClick={() => router.visit(`/kandidat/lamaran/${application.no_pendaftaran}/formulir`)}
+                className="w-full sm:w-auto shrink-0 font-bold shadow-sm"
+              >
+                <IconFileText size={18} />
+                {application.formulir_submitted ? 'Tinjau Formulir Lamaran' : 'Isi Formulir Sekarang →'}
+              </Button>
+            </div>
+          )}
 
           {/* 2. Timeline Tahapan Rekrutmen (Vertical Stepper Style - identical to Admin) */}
           <Card>
@@ -236,6 +283,9 @@ export default function LamaranDetail({ application }: Props) {
                     } else {
                       if (idx === 0) stepState = 'current'
                     }
+
+                    const isFormulirStep = stage.key === 'lengkapi_formulir'
+                    const canClickForm = isFormulirStep && (stepState === 'current' || stepState === 'completed' || application.has_formulir)
 
                     return (
                       <div key={stage.key} className="relative flex items-start gap-4 pb-7 last:pb-0">
@@ -305,6 +355,22 @@ export default function LamaranDetail({ application }: Props) {
                           <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
                             {stage.defaultDesc}
                           </p>
+
+                          {/* Interactive Button for Lengkapi Formulir step */}
+                          {canClickForm && (
+                            <div className="mt-2.5">
+                              <Button
+                                tone={stepState === 'current' && !application.formulir_submitted ? 'mint' : 'purple'}
+                                size="sm"
+                                onClick={() => router.visit(`/kandidat/lamaran/${application.no_pendaftaran}/formulir`)}
+                              >
+                                <IconFileText size={15} />
+                                {application.formulir_submitted
+                                  ? 'Lihat / Edit Formulir Lamaran'
+                                  : 'Isi Formulir Lamaran Kerja 📝'}
+                              </Button>
+                            </div>
+                          )}
 
                           {/* HR Notes on active stage */}
                           {stepState === 'current' && application.catatan && (
@@ -415,9 +481,23 @@ export default function LamaranDetail({ application }: Props) {
               <Separator />
 
               <div className="flex flex-wrap items-center gap-3">
+                {(normalizedStatus === 'lengkapi_formulir' || application.has_formulir) && (
+                  <Button
+                    tone="mint"
+                    size="sm"
+                    onClick={() => router.visit(`/kandidat/lamaran/${application.no_pendaftaran}/formulir`)}
+                  >
+                    <IconFileText size={15} />
+                    {application.formulir_submitted
+                      ? 'Lihat / Edit Formulir Lamaran Kerja ↗'
+                      : 'Lengkapi Formulir Lamaran Kerja 📝'}
+                  </Button>
+                )}
+
                 {application.cv_url ? (
                   <Button
                     tone="purple"
+                    variant="quiet"
                     size="sm"
                     onClick={() => window.open(application.cv_url!, '_blank')}
                   >

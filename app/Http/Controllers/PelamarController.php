@@ -74,7 +74,7 @@ class PelamarController extends Controller
      */
     public function show(Pelamar $pelamar): Response
     {
-        $pelamar->load(['lowongan.departement', 'lowongan.jabatan']);
+        $pelamar->load(['lowongan.departement', 'lowongan.jabatan', 'formulirLamaran']);
 
         return Inertia::render('pelamar/Show', [
             'pelamar' => [
@@ -98,6 +98,8 @@ class PelamarController extends Controller
                 'foto_url' => $pelamar->foto_path ? asset('storage/' . $pelamar->foto_path) : null,
                 'cv_url' => $pelamar->cv_path ? asset('storage/' . $pelamar->cv_path) : null,
                 'surat_lamaran_url' => $pelamar->surat_lamaran_path ? asset('storage/' . $pelamar->surat_lamaran_path) : null,
+                'has_formulir' => (bool) $pelamar->formulirLamaran,
+                'formulir_submitted' => (bool) $pelamar->formulirLamaran?->is_submitted,
                 'status' => $pelamar->status,
                 'catatan' => $pelamar->catatan,
                 'lowongan' => $pelamar->lowongan ? [

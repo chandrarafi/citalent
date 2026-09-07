@@ -46,4 +46,9 @@ class Pelamar extends Model
     {
         return $this->belongsTo(Lowongan::class, 'lowongan_id', 'id');
     }
+
+    public function formulirLamaran()
+    {
+        return $this->hasOne(FormulirLamaran::class, 'pelamar_id', 'id');
+    }
 }

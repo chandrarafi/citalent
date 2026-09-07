@@ -38,6 +38,8 @@ interface PelamarDetail {
   foto_url?: string | null
   cv_url?: string | null
   surat_lamaran_url?: string | null
+  has_formulir?: boolean
+  formulir_submitted?: boolean
   status: string
   catatan?: string | null
   lowongan?: {
@@ -385,9 +387,20 @@ export default function Show({ pelamar }: Props) {
             </Row>
 
             <Row gap={3} wrap={true}>
+              <Button
+                tone="mint"
+                onClick={() => router.visit(`/pelamar/${pelamar.id}/formulir`)}
+              >
+                <IconFileText size={16} />
+                {pelamar.formulir_submitted
+                  ? 'Lihat Formulir Lamaran Kerja (Lengkap) ↗'
+                  : 'Buka Formulir Lamaran Kerja ↗'}
+              </Button>
+
               {pelamar.cv_url ? (
                 <Button
                   tone="purple"
+                  variant="quiet"
                   onClick={() => window.open(pelamar.cv_url!, '_blank')}
                 >
                   Buka & Unduh CV Pelamar (PDF) ↗
@@ -399,6 +412,7 @@ export default function Show({ pelamar }: Props) {
               {pelamar.surat_lamaran_url && (
                 <Button
                   tone="mint"
+                  variant="quiet"
                   onClick={() => window.open(pelamar.surat_lamaran_url!, '_blank')}
                 >
                   Buka Surat Lamaran (PDF) ↗
@@ -554,6 +568,21 @@ export default function Show({ pelamar }: Props) {
                             <span className="text-[#a1a1aa]">Pending</span>
                           )}
                         </div>
+
+                        {stage.key === 'lengkapi_formulir' && (pelamar.has_formulir || stepState === 'current' || stepState === 'completed') && (
+                          <div className="mt-2">
+                            <Button
+                              tone="mint"
+                              size="sm"
+                              onClick={() => router.visit(`/pelamar/${pelamar.id}/formulir`)}
+                            >
+                              <IconFileText size={14} />
+                              {pelamar.formulir_submitted
+                                ? 'Tinjau Formulir Lamaran Kandidat'
+                                : 'Lihat Status Formulir Lamaran'}
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )

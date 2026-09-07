@@ -42,7 +42,6 @@ interface ProfileData {
   tahun_lulus?: string | null
   foto_url?: string | null
   cv_url?: string | null
-  surat_lamaran_url?: string | null
   is_complete?: boolean
 }
 
@@ -92,10 +91,6 @@ export default function Profile({ user, profile }: Props) {
   const [cvFileSize, setCvFileSize] = useState<string>('')
   const [cvPreviewUrl, setCvPreviewUrl] = useState<string | null>(profile?.cv_url || null)
 
-  const [suratFileName, setSuratFileName] = useState<string>('')
-  const [suratFileSize, setSuratFileSize] = useState<string>('')
-  const [suratPreviewUrl, setSuratPreviewUrl] = useState<string | null>(profile?.surat_lamaran_url || null)
-
   const [fileAlertDialog, setFileAlertDialog] = useState<{ open: boolean; message: string }>({
     open: false,
     message: '',
@@ -114,13 +109,11 @@ export default function Profile({ user, profile }: Props) {
 
   const fotoUrlRef = useRef<string | null>(null)
   const cvUrlRef = useRef<string | null>(null)
-  const suratUrlRef = useRef<string | null>(null)
 
   useEffect(() => {
     return () => {
       if (fotoUrlRef.current) URL.revokeObjectURL(fotoUrlRef.current)
       if (cvUrlRef.current) URL.revokeObjectURL(cvUrlRef.current)
-      if (suratUrlRef.current) URL.revokeObjectURL(suratUrlRef.current)
     }
   }, [])
 
@@ -147,7 +140,6 @@ export default function Profile({ user, profile }: Props) {
     tahun_lulus: string
     foto_file: File | null
     cv_file: File | null
-    surat_lamaran_file: File | null
   }>({
     nama_lengkap: user?.name || '',
     nomor_kontak: user?.phone || '',
@@ -164,7 +156,6 @@ export default function Profile({ user, profile }: Props) {
     tahun_lulus: profile?.tahun_lulus || new Date().getFullYear().toString(),
     foto_file: null,
     cv_file: null,
-    surat_lamaran_file: null,
   })
 
   function handleFotoChange(file: File | null) {
@@ -233,36 +224,6 @@ export default function Profile({ user, profile }: Props) {
     setCvFileName(file.name)
     setCvFileSize(formatFileSize(file.size))
     setCvPreviewUrl(url)
-  }
-
-  function handleSuratChange(file: File | null) {
-    if (suratUrlRef.current) {
-      URL.revokeObjectURL(suratUrlRef.current)
-      suratUrlRef.current = null
-    }
-
-    if (!file) {
-      setData('surat_lamaran_file', null)
-      setSuratFileName('')
-      setSuratFileSize('')
-      setSuratPreviewUrl(profile?.surat_lamaran_url || null)
-      return
-    }
-
-    if (file.size > 2 * 1024 * 1024) {
-      setFileAlertDialog({
-        open: true,
-        message: `Ukuran file surat lamaran "${file.name}" (${formatFileSize(file.size)}) melebihi batas maksimal 2 MB.`,
-      })
-      return
-    }
-
-    const url = URL.createObjectURL(file)
-    suratUrlRef.current = url
-    setData('surat_lamaran_file', file)
-    setSuratFileName(file.name)
-    setSuratFileSize(formatFileSize(file.size))
-    setSuratPreviewUrl(url)
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -576,7 +537,7 @@ export default function Profile({ user, profile }: Props) {
                   <Blob icon="menu" tone="mint" size="sm" />
                   <Stack gap={1}>
                     <Heading level={3}>3. Unggah Berkas & Dokumen</Heading>
-                    <Text size="sm" muted>Pas foto formal (wajib), CV/Resume, dan surat lamaran (maks. 2 MB per file)</Text>
+                    <Text size="sm" muted>Pas foto formal (wajib) dan CV/Resume (maks. 2 MB per file)</Text>
                   </Stack>
                 </Row>
 
@@ -723,69 +684,6 @@ export default function Profile({ user, profile }: Props) {
                   </div>
                   {errors.cv_file && (
                     <p className="text-xs font-semibold text-red-600 mt-1.5">{errors.cv_file}</p>
-                  )}
-                </div>
-
-                {/* Surat Lamaran / Dokumen Pendukung */}
-                <div>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-1">
-                    <label className="text-sm font-bold text-slate-800">
-                      Surat Lamaran / Portofolio (Opsional)
-                    </label>
-                    <span className="text-xs text-slate-500">Maks. 2 MB (PDF)</span>
-                  </div>
-
-                  <div className="p-3.5 sm:p-4 rounded-2xl border border-slate-200 bg-slate-50">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                          <IconFileTypePdf size={22} />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-slate-800 truncate">
-                            {suratFileName || (profile?.surat_lamaran_url ? 'Dokumen Surat Lamaran Terunggah' : 'Belum ada file surat lamaran')}
-                          </p>
-                          <p className="text-[11px] text-slate-500">
-                            {suratFileSize || (profile?.surat_lamaran_url ? 'Format PDF tersimpan' : 'Opsional')}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-2 shrink-0">
-                        <input
-                          type="file"
-                          id="surat_file_input"
-                          accept=".pdf,application/pdf"
-                          className="hidden"
-                          onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              handleSuratChange(e.target.files[0])
-                            }
-                          }}
-                        />
-                        {suratPreviewUrl && (
-                          <Button
-                            type="button"
-                            variant="solid"
-                            onClick={() => setPreviewModal({ open: true, title: 'Pratinjau Surat Lamaran', url: suratPreviewUrl })}
-                          >
-                            <IconEye size={16} />
-                            Lihat
-                          </Button>
-                        )}
-                        <Button
-                          type="button"
-                          variant="solid"
-                          onClick={() => document.getElementById('surat_file_input')?.click()}
-                        >
-                          <IconUpload size={16} />
-                          {suratPreviewUrl ? 'Ganti File' : 'Unggah File'}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                  {errors.surat_lamaran_file && (
-                    <p className="text-xs font-semibold text-red-600 mt-1.5">{errors.surat_lamaran_file}</p>
                   )}
                 </div>
               </Stack>

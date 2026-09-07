@@ -41,7 +41,6 @@ class KandidatProfileController extends Controller
                 'tahun_lulus' => $profile->tahun_lulus,
                 'foto_url' => $profile->foto_url,
                 'cv_url' => $profile->cv_url,
-                'surat_lamaran_url' => $profile->surat_lamaran_url,
                 'is_complete' => $profile->is_complete,
             ] : null,
         ]);
@@ -79,7 +78,6 @@ class KandidatProfileController extends Controller
                 'max:2048',
             ],
             'cv_file' => ['nullable', 'file', 'mimes:pdf', 'max:2048'],
-            'surat_lamaran_file' => ['nullable', 'file', 'mimes:pdf', 'max:2048'],
         ], [
             'nama_lengkap.required' => 'Nama lengkap wajib diisi.',
             'nomor_kontak.required' => 'Nomor HP / WhatsApp wajib diisi.',
@@ -97,7 +95,6 @@ class KandidatProfileController extends Controller
             'foto_file.required' => 'Pas foto formal wajib diunggah.',
             'foto_file.max' => 'Ukuran pas foto maksimal 2 MB.',
             'cv_file.max' => 'Ukuran file CV maksimal 2 MB.',
-            'surat_lamaran_file.max' => 'Ukuran file surat lamaran maksimal 2 MB.',
         ]);
 
         // 1. Update user core profile
@@ -123,14 +120,6 @@ class KandidatProfileController extends Controller
             $cvPath = $request->file('cv_file')->store('rekrutmen/cv', 'public');
         }
 
-        $suratPath = $profile?->surat_lamaran_path;
-        if ($request->hasFile('surat_lamaran_file')) {
-            if ($suratPath && Storage::disk('public')->exists($suratPath)) {
-                Storage::disk('public')->delete($suratPath);
-            }
-            $suratPath = $request->file('surat_lamaran_file')->store('rekrutmen/surat_lamaran', 'public');
-        }
-
         // 3. Update or create KandidatProfile
         KandidatProfile::updateOrCreate(
             ['user_id' => $user->id],
@@ -148,7 +137,6 @@ class KandidatProfileController extends Controller
                 'tahun_lulus' => $validated['tahun_lulus'],
                 'foto_path' => $fotoPath,
                 'cv_path' => $cvPath,
-                'surat_lamaran_path' => $suratPath,
                 'is_complete' => true,
             ]
         );

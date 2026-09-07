@@ -204,7 +204,7 @@ class KandidatLowonganController extends Controller
             'rejected' => ['label' => 'Ditolak (Rejected)', 'tone' => 'orange', 'step' => 0],
         ];
 
-        $applications = Pelamar::with(['lowongan.departement', 'lowongan.jabatan'])
+        $applications = Pelamar::with(['lowongan.departement', 'lowongan.jabatan', 'formulirLamaran'])
             ->where('email', $user->email)
             ->orderBy('id', 'desc')
             ->get()
@@ -234,6 +234,8 @@ class KandidatLowonganController extends Controller
                     'step' => $statusInfo['step'],
                     'catatan' => $p->catatan,
                     'applied_at' => $p->created_at ? $p->created_at->isoFormat('D MMMM Y, HH:mm') : null,
+                    'formulir_submitted' => (bool) $p->formulirLamaran?->is_submitted,
+                    'has_formulir' => (bool) $p->formulirLamaran,
                     'lowongan' => $p->lowongan ? [
                         'id' => $p->lowongan->id,
                         'kode_lowongan' => $p->lowongan->kode_lowongan,
@@ -260,7 +262,7 @@ class KandidatLowonganController extends Controller
             abort(403, 'Akses ditolak.');
         }
 
-        $pelamar->load(['lowongan.departement', 'lowongan.jabatan']);
+        $pelamar->load(['lowongan.departement', 'lowongan.jabatan', 'formulirLamaran']);
 
         $stageLabels = [
             'submitted' => ['label' => 'Submit Lamaran', 'tone' => 'purple', 'step' => 1],
@@ -309,6 +311,8 @@ class KandidatLowonganController extends Controller
             'step' => $statusInfo['step'],
             'catatan' => $pelamar->catatan,
             'applied_at' => $pelamar->created_at ? $pelamar->created_at->isoFormat('D MMMM Y, HH:mm') : null,
+            'formulir_submitted' => (bool) $pelamar->formulirLamaran?->is_submitted,
+            'has_formulir' => (bool) $pelamar->formulirLamaran,
             'lowongan' => $pelamar->lowongan ? [
                 'id' => $pelamar->lowongan->id,
                 'kode_lowongan' => $pelamar->lowongan->kode_lowongan,

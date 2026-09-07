@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\FormulirLamaranController;
 use App\Http\Controllers\KandidatLowonganController;
 use App\Http\Controllers\KandidatProfileController;
 use App\Http\Controllers\LowonganController;
@@ -43,6 +44,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/kandidat/lowongan/{lowongan}/apply', [KandidatLowonganController::class, 'apply'])->name('kandidat.lowongan.apply');
     Route::get('/kandidat/lamaran', [KandidatLowonganController::class, 'myApplications'])->name('kandidat.lamaran');
     Route::get('/kandidat/lamaran/{pelamar:no_pendaftaran}', [KandidatLowonganController::class, 'showApplication'])->name('kandidat.lamaran.show');
+    Route::get('/kandidat/lamaran/{pelamar:no_pendaftaran}/formulir', [FormulirLamaranController::class, 'edit'])->name('kandidat.formulir');
+    Route::post('/kandidat/lamaran/{pelamar:no_pendaftaran}/formulir', [FormulirLamaranController::class, 'save'])->name('kandidat.formulir.save');
     Route::get('/kandidat/profil', [KandidatProfileController::class, 'edit'])->name('kandidat.profile');
     Route::post('/kandidat/profil', [KandidatProfileController::class, 'update'])->name('kandidat.profile.update');
 
@@ -103,6 +106,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/pelamar/{pelamar}', [PelamarController::class, 'show'])
         ->name('pelamar.show')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::get('/pelamar/{pelamar}/formulir', [FormulirLamaranController::class, 'showForAdmin'])
+        ->name('pelamar.formulir')
         ->middleware('permission:manage-permintaan-rekrutmen');
 
     Route::put('/pelamar/{pelamar}/status', [PelamarController::class, 'updateStatus'])

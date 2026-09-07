@@ -32,6 +32,8 @@ interface ApplicationItem {
   step: number
   catatan?: string | null
   applied_at: string
+  formulir_submitted?: boolean
+  has_formulir?: boolean
   lowongan?: {
     id: number
     kode_lowongan: string
@@ -105,39 +107,62 @@ export default function Lamaran({ applications }: Props) {
             </Card>
           ) : (
             <div className="space-y-3.5">
-              {applications.map((app) => (
-                <Card key={app.id} className="hover:shadow-md transition-shadow">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <Stack gap={2} className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2.5">
-                        <Heading level={3} className="text-slate-900 leading-snug">
-                          {app.posisi_dilamar}
-                        </Heading>
-                        <Badge tone={app.status_tone}>{app.status_label}</Badge>
-                      </div>
+              {applications.map((app) => {
+                const isLengkapiFormulirStage = app.status === 'lengkapi_formulir'
+                const canAccessForm = isLengkapiFormulirStage || app.step >= 3 || app.has_formulir
 
-                      <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <span className="text-slate-400">&bull;</span>
-                        <span className="text-slate-500 flex items-center gap-1">
-                          <IconCalendar size={13} className="text-slate-400" />
-                          Diajukan: <strong>{app.applied_at}</strong>
-                        </span>
-                      </div>
-                    </Stack>
+                return (
+                  <Card key={app.id} className="hover:shadow-md transition-shadow">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <Stack gap={2} className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <Heading level={3} className="text-slate-900 leading-snug">
+                            {app.posisi_dilamar}
+                          </Heading>
+                          <Badge tone={app.status_tone}>{app.status_label}</Badge>
+                        </div>
 
-                    <Button
-                      tone="purple"
-                      size="sm"
-                      onClick={() => router.visit(`/kandidat/lamaran/${app.no_pendaftaran}`)}
-                      className="w-full sm:w-auto shrink-0"
-                    >
-                      <IconEye size={15} />
-                      Detail
-                      <IconChevronRight size={14} />
-                    </Button>
-                  </div>
-                </Card>
-              ))}
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          <span className="text-slate-500 font-mono">No. {app.no_pendaftaran}</span>
+                          <span className="text-slate-400">&bull;</span>
+                          <span className="text-slate-500 flex items-center gap-1">
+                            <IconCalendar size={13} className="text-slate-400" />
+                            Diajukan: <strong>{app.applied_at}</strong>
+                          </span>
+                        </div>
+                      </Stack>
+
+                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto shrink-0 justify-end">
+                        {canAccessForm && (
+                          <Button
+                            tone={isLengkapiFormulirStage && !app.formulir_submitted ? 'mint' : 'purple'}
+                            variant={isLengkapiFormulirStage && !app.formulir_submitted ? 'solid' : 'quiet'}
+                            size="sm"
+                            onClick={() => router.visit(`/kandidat/lamaran/${app.no_pendaftaran}/formulir`)}
+                            className="w-full sm:w-auto"
+                          >
+                            <IconFileText size={15} />
+                            {app.formulir_submitted
+                              ? 'Lihat Formulir'
+                              : 'Lengkapi Formulir Lamaran'}
+                          </Button>
+                        )}
+
+                        <Button
+                          tone="purple"
+                          size="sm"
+                          onClick={() => router.visit(`/kandidat/lamaran/${app.no_pendaftaran}`)}
+                          className="w-full sm:w-auto shrink-0"
+                        >
+                          <IconEye size={15} />
+                          Detail
+                          <IconChevronRight size={14} />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                )
+              })}
             </div>
           )}
         </Stack>
