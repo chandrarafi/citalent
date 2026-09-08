@@ -39,8 +39,8 @@ class KandidatLowonganController extends Controller
                     ->orWhere('deskripsi', 'like', "%{$kw}%")
                     ->orWhere('kualifikasi', 'like', "%{$kw}%")
                     ->orWhere('lokasi_kerja', 'like', "%{$kw}%")
-                    ->orWhereHas('departement', fn ($d) => $d->where('deskripsi', 'like', "%{$kw}%"))
-                    ->orWhereHas('jabatan', fn ($j) => $j->where('nama_jabatan', 'like', "%{$kw}%"));
+                    ->orWhereHas('departement', fn($d) => $d->where('deskripsi', 'like', "%{$kw}%"))
+                    ->orWhereHas('jabatan', fn($j) => $j->where('nama_jabatan', 'like', "%{$kw}%"));
             });
         }
 
@@ -50,7 +50,7 @@ class KandidatLowonganController extends Controller
         } elseif ($request->filled('nama_posisi')) {
             $query->where(function ($q) use ($request) {
                 $q->where('judul', 'like', "%{$request->nama_posisi}%")
-                    ->orWhereHas('jabatan', fn ($j) => $j->where('nama_jabatan', 'like', "%{$request->nama_posisi}%"));
+                    ->orWhereHas('jabatan', fn($j) => $j->where('nama_jabatan', 'like', "%{$request->nama_posisi}%"));
             });
         }
 
@@ -134,8 +134,10 @@ class KandidatLowonganController extends Controller
             return redirect()->route('kandidat.profile')->with('error', 'Harap lengkapi seluruh profil biodata dan dokumen Anda sebelum mengajukan lamaran.');
         }
 
-        if ($lowongan->status !== 'aktif' ||
-            ($lowongan->tgl_tutup && Carbon::parse($lowongan->tgl_tutup)->endOfDay()->isPast())) {
+        if (
+            $lowongan->status !== 'aktif' ||
+            ($lowongan->tgl_tutup && Carbon::parse($lowongan->tgl_tutup)->endOfDay()->isPast())
+        ) {
             return back()->with('error', 'Maaf, lowongan pekerjaan ini sudah tidak aktif atau telah ditutup.');
         }
 
@@ -153,6 +155,11 @@ class KandidatLowonganController extends Controller
         $countToday = Pelamar::where('no_pendaftaran', 'like', "{$todayPrefix}%")->count();
         $noPendaftaran = $todayPrefix . str_pad((string) ($countToday + 1), 4, '0', STR_PAD_LEFT);
 
+        $request->validate([
+            'sumber_informasi' => ['nullable', 'string', 'max:150'],
+        ]);
+
+        $lowongan->loadMissing(['jabatan', 'departement']);
         $posisiNama = $lowongan->jabatan?->nama_jabatan ?? $lowongan->judul;
 
         $pelamar = Pelamar::create([
@@ -173,6 +180,7 @@ class KandidatLowonganController extends Controller
             'jurusan' => $profile->jurusan ?? '-',
             'tahun_lulus' => $profile->tahun_lulus ?? date('Y'),
             'posisi_dilamar' => $posisiNama,
+            'sumber_informasi' => $request->input('sumber_informasi') ?: 'Website Karir Perusahaan',
             'foto_path' => $profile->foto_path,
             'cv_path' => $profile->cv_path,
             'surat_lamaran_path' => $profile->surat_lamaran_path,
@@ -180,7 +188,7 @@ class KandidatLowonganController extends Controller
             'status' => 'submitted',
         ]);
 
-        return back()->with('success', "Lamaran berhasil dikirim! Posisi{$pelamar->posisi_dilamar}");
+        return back()->with('success', "Lamaran berhasil dikirim untuk posisi {$pelamar->posisi_dilamar}. Terima kasih!");
     }
 
     /**
@@ -199,16 +207,26 @@ class KandidatLowonganController extends Controller
             'interview_hr' => ['label' => 'Interview HR', 'tone' => 'mint', 'step' => 5],
             'interview' => ['label' => 'Interview HR', 'tone' => 'mint', 'step' => 5],
             'interview_user' => ['label' => 'Interview User', 'tone' => 'mint', 'step' => 6],
-            'final_discussion' => ['label' => 'Final Discussion', 'tone' => 'purple', 'step' => 7],
-            'accepted' => ['label' => 'Diterima Bekerja (Accepted)', 'tone' => 'mint', 'step' => 8],
+            'interview_gm' => ['label' => 'Interview GM', 'tone' => 'purple', 'step' => 7],
+            'final_discussion' => ['label' => 'Final Discussion', 'tone' => 'purple', 'step' => 8],
+            'accepted' => ['label' => 'Diterima Bekerja (Accepted)', 'tone' => 'mint', 'step' => 9],
             'rejected' => ['label' => 'Ditolak (Rejected)', 'tone' => 'orange', 'step' => 0],
         ];
 
-        $applications = Pelamar::with(['lowongan.departement', 'lowongan.jabatan', 'formulirLamaran'])
+        $applications = Pelamar::with(['lowongan.departement', 'lowongan.jabatan', 'lowongan.permintaanRekrutmen', 'formulirLamaran'])
             ->where('email', $user->email)
             ->orderBy('id', 'desc')
             ->get()
             ->map(function (Pelamar $p) use ($stageLabels) {
+                if ($p->formulirLamaran?->is_submitted && in_array($p->status, ['submitted', 'screening_cv', 'review', 'lengkapi_formulir'])) {
+                    $kdJabatan = $p->lowongan?->jabatan?->kd_jabatan
+                        ?: ($p->lowongan?->permintaanRekrutmen?->kd_jabatan ?: '');
+                    $skillTestJabatanCodes = ['JBT-5', 'JBT-27', 'JBT-28', 'JBT-29', 'JBT-31', 'JBT-26'];
+                    $hasSkillTest = in_array($kdJabatan, $skillTestJabatanCodes);
+                    $p->status = $hasSkillTest ? 'skill_test' : 'interview_hr';
+                    $p->save();
+                }
+
                 $statusInfo = $stageLabels[$p->status] ?? ['label' => ucfirst($p->status), 'tone' => 'purple', 'step' => 1];
                 return [
                     'id' => $p->id,
@@ -262,7 +280,17 @@ class KandidatLowonganController extends Controller
             abort(403, 'Akses ditolak.');
         }
 
-        $pelamar->load(['lowongan.departement', 'lowongan.jabatan', 'formulirLamaran']);
+        $pelamar->load(['lowongan.departement', 'lowongan.jabatan', 'lowongan.permintaanRekrutmen', 'formulirLamaran', 'penilaianSkillTests']);
+
+        // Auto-advance status if candidate already submitted formulir
+        if ($pelamar->formulirLamaran?->is_submitted && in_array($pelamar->status, ['submitted', 'screening_cv', 'review', 'lengkapi_formulir'])) {
+            $kdJabatan = $pelamar->lowongan?->jabatan?->kd_jabatan
+                ?: ($pelamar->lowongan?->permintaanRekrutmen?->kd_jabatan ?: '');
+            $skillTestJabatanCodes = ['JBT-5', 'JBT-27', 'JBT-28', 'JBT-29', 'JBT-31', 'JBT-26'];
+            $hasSkillTest = in_array($kdJabatan, $skillTestJabatanCodes);
+            $pelamar->status = $hasSkillTest ? 'skill_test' : 'interview_hr';
+            $pelamar->save();
+        }
 
         $stageLabels = [
             'submitted' => ['label' => 'Submit Lamaran', 'tone' => 'purple', 'step' => 1],
@@ -273,8 +301,9 @@ class KandidatLowonganController extends Controller
             'interview_hr' => ['label' => 'Interview HR', 'tone' => 'mint', 'step' => 5],
             'interview' => ['label' => 'Interview HR', 'tone' => 'mint', 'step' => 5],
             'interview_user' => ['label' => 'Interview User', 'tone' => 'mint', 'step' => 6],
-            'final_discussion' => ['label' => 'Final Discussion', 'tone' => 'purple', 'step' => 7],
-            'accepted' => ['label' => 'Diterima Bekerja (Accepted)', 'tone' => 'mint', 'step' => 8],
+            'interview_gm' => ['label' => 'Interview GM', 'tone' => 'purple', 'step' => 7],
+            'final_discussion' => ['label' => 'Final Discussion', 'tone' => 'purple', 'step' => 8],
+            'accepted' => ['label' => 'Diterima Bekerja (Accepted)', 'tone' => 'mint', 'step' => 9],
             'rejected' => ['label' => 'Ditolak (Rejected)', 'tone' => 'orange', 'step' => 0],
         ];
 
@@ -306,6 +335,7 @@ class KandidatLowonganController extends Controller
             'lokasi_kerja' => $pelamar->lowongan?->lokasi_kerja ?? 'Padang, Sumatera Barat',
             'tipe_pekerjaan' => $pelamar->lowongan?->tipe_pekerjaan ?? 'Full Time',
             'status' => $pelamar->status,
+            'tahap_gagal' => $pelamar->effective_tahap_gagal,
             'status_label' => $statusInfo['label'],
             'status_tone' => $statusInfo['tone'],
             'step' => $statusInfo['step'],

@@ -28,4 +28,9 @@ class Jabatan extends Model
     {
         return $this->hasMany(PermintaanRekrutmen::class, 'posisi_id', 'id');
     }
+
+    public function parameterSkillTests()
+    {
+        return $this->hasMany(ParameterSkillTest::class, 'kd_jabatan', 'kd_jabatan')->orderBy('urutan');
+    }
 }

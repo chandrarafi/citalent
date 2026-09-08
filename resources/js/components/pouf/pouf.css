@@ -422,6 +422,9 @@ body {
 .pouf-dialog--lg {
   width: min(720px, calc(100vw - 32px));
 }
+.pouf-dialog--xl {
+  width: min(1080px, calc(100vw - 32px));
+}
 
 /* On a phone a centred modal is the wrong shape: it wastes the edges, and its
  * content (a 37-row list, a credential form) wants the full height. So
@@ -431,7 +434,8 @@ body {
  * navigation to a new one. */
 @media (max-width: 900px) {
   .pouf-dialog,
-  .pouf-dialog--lg {
+  .pouf-dialog--lg,
+  .pouf-dialog--xl {
     top: auto;
     bottom: 0;
     left: 0;

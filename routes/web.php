@@ -8,7 +8,9 @@ use App\Http\Controllers\FormulirLamaranController;
 use App\Http\Controllers\KandidatLowonganController;
 use App\Http\Controllers\KandidatProfileController;
 use App\Http\Controllers\LowonganController;
+use App\Http\Controllers\ParameterSkillTestController;
 use App\Http\Controllers\PelamarController;
+use App\Http\Controllers\PenilaianSkillTestController;
 use App\Http\Controllers\PermintaanRekrutmenController;
 use App\Http\Controllers\PublicJobController;
 use Illuminate\Support\Facades\Route;
@@ -45,6 +47,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/kandidat/lamaran', [KandidatLowonganController::class, 'myApplications'])->name('kandidat.lamaran');
     Route::get('/kandidat/lamaran/{pelamar:no_pendaftaran}', [KandidatLowonganController::class, 'showApplication'])->name('kandidat.lamaran.show');
     Route::get('/kandidat/lamaran/{pelamar:no_pendaftaran}/formulir', [FormulirLamaranController::class, 'edit'])->name('kandidat.formulir');
+    Route::get('/kandidat/lamaran/{pelamar:no_pendaftaran}/formulir/cetak', [FormulirLamaranController::class, 'cetakPdf'])->name('kandidat.formulir.cetak');
     Route::post('/kandidat/lamaran/{pelamar:no_pendaftaran}/formulir', [FormulirLamaranController::class, 'save'])->name('kandidat.formulir.save');
     Route::get('/kandidat/profil', [KandidatProfileController::class, 'edit'])->name('kandidat.profile');
     Route::post('/kandidat/profil', [KandidatProfileController::class, 'update'])->name('kandidat.profile.update');
@@ -99,6 +102,88 @@ Route::middleware('auth')->group(function () {
         ->name('lowongan.destroy')
         ->middleware('permission:manage-permintaan-rekrutmen');
 
+    // ─── Parameter Penilaian Rekrutmen ───────────────────────────────────────
+    $paramStages = [
+        'parameter-skill-test' => 'manage-parameter-skill-test',
+        'parameter-interview-hr' => 'manage-parameter-interview-hr',
+        'parameter-interview-user' => 'manage-parameter-interview-user',
+        'parameter-interview-gm' => 'manage-parameter-interview-gm',
+    ];
+
+    foreach ($paramStages as $prefix => $perm) {
+        Route::get("/{$prefix}", [ParameterSkillTestController::class, 'index'])
+            ->name("{$prefix}.index")
+            ->middleware("permission:{$perm}");
+
+        Route::post("/{$prefix}", [ParameterSkillTestController::class, 'store'])
+            ->name("{$prefix}.store")
+            ->middleware("permission:{$perm}");
+
+        Route::post("/{$prefix}/save-jabatan", [ParameterSkillTestController::class, 'saveJabatan'])
+            ->name("{$prefix}.save-jabatan")
+            ->middleware("permission:{$perm}");
+
+        Route::delete("/{$prefix}/jabatan/{kdJabatan}", [ParameterSkillTestController::class, 'destroyJabatan'])
+            ->name("{$prefix}.destroy-jabatan")
+            ->middleware("permission:{$perm}");
+
+        Route::put("/{$prefix}/{parameterSkillTest}", [ParameterSkillTestController::class, 'update'])
+            ->name("{$prefix}.update")
+            ->middleware("permission:{$perm}");
+
+        Route::post("/{$prefix}/{parameterSkillTest}/toggle-status", [ParameterSkillTestController::class, 'toggleStatus'])
+            ->name("{$prefix}.toggle-status")
+            ->middleware("permission:{$perm}");
+
+        Route::delete("/{$prefix}/{parameterSkillTest}", [ParameterSkillTestController::class, 'destroy'])
+            ->name("{$prefix}.destroy")
+            ->middleware("permission:{$perm}");
+    }
+
+    // ─── Penilaian & Evaluasi Kandidat ───────────────────────────────────────
+    $penilaianStages = [
+        'penilaian-skill-test' => ['manage-penilaian-skill-test', 'manage-parameter-skill-test'],
+        'penilaian-interview-hr' => ['manage-penilaian-interview-hr', 'manage-parameter-interview-hr'],
+        'penilaian-interview-user' => ['manage-penilaian-interview-user', 'manage-parameter-interview-user'],
+        'penilaian-interview-gm' => ['manage-penilaian-interview-gm', 'manage-parameter-interview-gm'],
+    ];
+
+    foreach ($penilaianStages as $prefix => $perms) {
+        $permString = implode(',', $perms);
+
+        Route::get("/{$prefix}", [PenilaianSkillTestController::class, 'index'])
+            ->name("{$prefix}.index")
+            ->middleware("permission:{$permString}");
+
+        Route::get("/{$prefix}/lowongan/{lowongan}", [PenilaianSkillTestController::class, 'showLowongan'])
+            ->name("{$prefix}.lowongan")
+            ->middleware("permission:{$permString}");
+
+        Route::get("/pelamar/{pelamar}/{$prefix}", [PenilaianSkillTestController::class, 'create'])
+            ->name("{$prefix}.create")
+            ->middleware("permission:{$permString}");
+
+        Route::post("/pelamar/{pelamar}/{$prefix}", [PenilaianSkillTestController::class, 'store'])
+            ->name("{$prefix}.store")
+            ->middleware("permission:{$permString}");
+
+        Route::get("/{$prefix}/{penilaian}", [PenilaianSkillTestController::class, 'show'])
+            ->name("{$prefix}.show")
+            ->middleware("permission:{$permString}");
+
+        Route::get("/{$prefix}/{penilaian}/edit", [PenilaianSkillTestController::class, 'edit'])
+            ->name("{$prefix}.edit")
+            ->middleware("permission:{$permString}");
+
+        Route::put("/{$prefix}/{penilaian}", [PenilaianSkillTestController::class, 'update'])
+            ->name("{$prefix}.update")
+            ->middleware("permission:{$permString}");
+
+        Route::delete("/{$prefix}/{penilaian}", [PenilaianSkillTestController::class, 'destroy'])
+            ->name("{$prefix}.destroy")
+            ->middleware("permission:{$permString}");
+    }
+
     // ─── Manajemen Pelamar / Kandidat ────────────────────────────────────────
     Route::get('/pelamar', [PelamarController::class, 'index'])
         ->name('pelamar.index')
@@ -112,8 +197,16 @@ Route::middleware('auth')->group(function () {
         ->name('pelamar.formulir')
         ->middleware('permission:manage-permintaan-rekrutmen');
 
+    Route::get('/pelamar/{pelamar}/formulir/cetak', [FormulirLamaranController::class, 'cetakPdfForAdmin'])
+        ->name('pelamar.formulir.cetak')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
     Route::put('/pelamar/{pelamar}/status', [PelamarController::class, 'updateStatus'])
         ->name('pelamar.update-status')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::post('/pelamar/bulk-status', [PelamarController::class, 'bulkUpdateStatus'])
+        ->name('pelamar.bulk-status')
         ->middleware('permission:manage-permintaan-rekrutmen');
 
     Route::delete('/pelamar/{pelamar}', [PelamarController::class, 'destroy'])

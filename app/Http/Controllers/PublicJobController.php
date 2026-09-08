@@ -168,6 +168,7 @@ class PublicJobController extends Controller
             'jurusan' => $validated['jurusan'],
             'tahun_lulus' => $validated['tahun_lulus'],
             'posisi_dilamar' => $validated['posisi_dilamar'],
+            'sumber_informasi' => $request->input('sumber_informasi') ?: 'Website Karir Perusahaan',
             'foto_path' => $fotoPath,
             'cv_path' => $cvPath,
             'surat_lamaran_path' => $suratLamaranPath,

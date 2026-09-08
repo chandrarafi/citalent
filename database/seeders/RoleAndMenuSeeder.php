@@ -49,6 +49,14 @@ class RoleAndMenuSeeder extends Seeder
             ]
         );
 
+        $penguji = Role::firstOrCreate(
+            ['name' => 'penguji'],
+            [
+                'label' => 'Penguji Skill Test & Interview',
+                'description' => 'Akses untuk tim penguji teknis & interviewer dalam menilai kemampuan skill test dan interview kandidat.',
+            ]
+        );
+
         // 2. Create Permissions
         $permissions = [
             ['name' => 'view-dashboard', 'label' => 'View Dashboard', 'group' => 'dashboard'],
@@ -57,6 +65,8 @@ class RoleAndMenuSeeder extends Seeder
             ['name' => 'manage-users', 'label' => 'Manage User Accounts', 'group' => 'user'],
             ['name' => 'manage-employees', 'label' => 'Manage Employee Records', 'group' => 'employee'],
             ['name' => 'manage-permintaan-rekrutmen', 'label' => 'Kelola Permintaan Rekrutmen', 'group' => 'rekrutmen'],
+            ['name' => 'manage-parameter-skill-test', 'label' => 'Kelola Parameter Skill Test', 'group' => 'rekrutmen'],
+            ['name' => 'manage-penilaian-skill-test', 'label' => 'Penilaian Skill Test & Interview', 'group' => 'rekrutmen'],
             ['name' => 'view-lowongan-kandidat', 'label' => 'Lihat Lowongan Kerja Kandidat', 'group' => 'kandidat'],
             ['name' => 'apply-lowongan-kandidat', 'label' => 'Lamar Lowongan Kerja', 'group' => 'kandidat'],
         ];
@@ -77,6 +87,14 @@ class RoleAndMenuSeeder extends Seeder
             $permissionModels['view-dashboard']->id,
             $permissionModels['manage-employees']->id,
             $permissionModels['manage-permintaan-rekrutmen']->id,
+            $permissionModels['manage-parameter-skill-test']->id,
+            $permissionModels['manage-penilaian-skill-test']->id,
+        ]);
+
+        // Attach penguji permissions
+        $penguji->permissions()->sync([
+            $permissionModels['view-dashboard']->id,
+            $permissionModels['manage-penilaian-skill-test']->id,
         ]);
 
         // Attach employee permissions
@@ -120,12 +138,30 @@ class RoleAndMenuSeeder extends Seeder
                 'permission_name' => 'manage-permintaan-rekrutmen',
             ],
             [
+                'name' => 'parameter-skill-test',
+                'label' => 'Parameter Skill Test',
+                'url' => '/parameter-skill-test',
+                'icon' => 'target',
+                'tone' => 'purple',
+                'order' => 4,
+                'permission_name' => 'manage-parameter-skill-test',
+            ],
+            [
+                'name' => 'penilaian-skill-test',
+                'label' => 'Penilaian Skill Test',
+                'url' => '/penilaian-skill-test',
+                'icon' => 'overview',
+                'tone' => 'mint',
+                'order' => 5,
+                'permission_name' => 'manage-penilaian-skill-test',
+            ],
+            [
                 'name' => 'pelamar',
                 'label' => 'Data Pelamar',
                 'url' => '/pelamar',
                 'icon' => 'users',
                 'tone' => 'blue',
-                'order' => 4,
+                'order' => 6,
                 'permission_name' => 'manage-permintaan-rekrutmen',
             ],
             [
@@ -195,7 +231,11 @@ class RoleAndMenuSeeder extends Seeder
 
             // General menus accessible to all roles
             if (in_array($m['name'], ['overview', 'inbox', 'board', 'messages', 'settings'])) {
-                $menu->roles()->syncWithoutDetaching([$hrManager->id, $employee->id]);
+                $menu->roles()->syncWithoutDetaching([$hrManager->id, $employee->id, $penguji->id]);
+            }
+
+            if ($m['name'] === 'penilaian-skill-test') {
+                $menu->roles()->syncWithoutDetaching([$hrManager->id, $penguji->id]);
             }
 
             if (in_array($m['name'], ['kandidat-lowongan', 'kandidat-profil', 'kandidat-lamaran'])) {
@@ -221,6 +261,27 @@ class RoleAndMenuSeeder extends Seeder
                 'name' => 'HR Specialist',
                 'password' => Hash::make('password'),
                 'role_id' => $hrManager->id,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        // Create Demo Penguji Users
+        User::updateOrCreate(
+            ['email' => 'penguji1@citalent.com'],
+            [
+                'name' => 'Penguji Skill Test 1 (Tech Lead)',
+                'password' => Hash::make('password'),
+                'role_id' => $penguji->id,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'penguji2@citalent.com'],
+            [
+                'name' => 'Penguji Skill Test 2 (Senior Engineer)',
+                'password' => Hash::make('password'),
+                'role_id' => $penguji->id,
                 'email_verified_at' => now(),
             ]
         );

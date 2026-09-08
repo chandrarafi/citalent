@@ -75,7 +75,7 @@ class AuthController extends Controller
             $sisa = 10 - $user->failed_login_attempts;
 
             return back()->withErrors([
-                'email' => "Password yang Anda masukkan salah. (Sisa kesempatan: {$sisa}x)",
+                'email' => "Password yang Anda masukkan salah",
             ])->onlyInput('email');
         }
 

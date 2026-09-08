@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\FormulirLamaran;
 use App\Models\Pelamar;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,9 +21,10 @@ class FormulirLamaranController extends Controller
     public function edit(Pelamar $pelamar): Response|RedirectResponse
     {
         $user = Auth::user()->load('kandidatProfile');
+        $isAdmin = $user->can('manage-permintaan-rekrutmen') || $user->hasRole('super-admin');
 
-        // Security check: Candidate can only edit their own application
-        if ($pelamar->email !== $user->email) {
+        // Security check: Candidate can only edit/view their own application, admin can access any
+        if (! $isAdmin && $pelamar->email !== $user->email) {
             abort(403, 'Akses ditolak.');
         }
 
@@ -198,6 +201,7 @@ class FormulirLamaranController extends Controller
             ],
             'initialForm' => $formData,
             'isSubmitted' => (bool) $formulir?->is_submitted,
+            'isAdmin' => $isAdmin,
         ]);
     }
 
@@ -207,9 +211,17 @@ class FormulirLamaranController extends Controller
     public function save(Request $request, Pelamar $pelamar): RedirectResponse
     {
         $user = Auth::user();
+        $isAdmin = $user->can('manage-permintaan-rekrutmen') || $user->hasRole('super-admin');
 
-        if ($pelamar->email !== $user->email) {
+        if (! $isAdmin && $pelamar->email !== $user->email) {
             abort(403, 'Akses ditolak.');
+        }
+
+        $formulir = FormulirLamaran::where('pelamar_id', $pelamar->id)->first();
+
+        // If candidate already submitted, block candidate from editing again
+        if (! $isAdmin && $formulir?->is_submitted) {
+            return back()->with('error', 'Formulir telah dikirim resmi dan tidak dapat diubah kembali.');
         }
 
         $isSubmit = (bool) $request->boolean('is_submit');
@@ -276,10 +288,10 @@ class FormulirLamaranController extends Controller
 
         $attributes = array_merge($validated, [
             'pelamar_id' => $pelamar->id,
-            'user_id' => $user->id,
+            'user_id' => $pelamar->email === $user->email ? $user->id : ($formulir?->user_id ?? $user->id),
             'no_lamaran' => $pelamar->no_pendaftaran,
-            'is_submitted' => $isSubmit,
-            'submitted_at' => $isSubmit ? now() : null,
+            'is_submitted' => $isSubmit || ($formulir?->is_submitted ?? false),
+            'submitted_at' => ($isSubmit && ! $formulir?->submitted_at) ? now() : ($formulir?->submitted_at ?? ($isSubmit ? now() : null)),
         ]);
 
         FormulirLamaran::updateOrCreate(
@@ -287,9 +299,31 @@ class FormulirLamaranController extends Controller
             $attributes
         );
 
+        if ($isSubmit) {
+            // Directly advance pelamar status to next timeline stage without waiting for HR review
+            $pelamar->loadMissing(['lowongan.jabatan', 'lowongan.permintaanRekrutmen']);
+            $kdJabatan = $pelamar->lowongan?->jabatan?->kd_jabatan
+                ?: ($pelamar->lowongan?->permintaanRekrutmen?->kd_jabatan ?: '');
+
+            $skillTestJabatanCodes = ['JBT-5', 'JBT-27', 'JBT-28', 'JBT-29', 'JBT-31', 'JBT-26'];
+            $hasSkillTest = in_array($kdJabatan, $skillTestJabatanCodes);
+
+            $nextStatus = $hasSkillTest ? 'skill_test' : 'interview_hr';
+
+            // Directly advance status if currently in early stages
+            if (in_array($pelamar->status, ['submitted', 'screening_cv', 'review', 'lengkapi_formulir'])) {
+                $pelamar->status = $nextStatus;
+                $pelamar->save();
+            }
+        }
+
         $message = $isSubmit
-            ? 'Formulir Lamaran Kerja berhasil dikirimkan secara resmi. Terima kasih!'
+            ? 'Formulir Lamaran Kerja berhasil dikirimkan secara resmi! Status lamaran Anda telah otomatis berlanjut ke tahap berikutnya.'
             : 'Draf Formulir Lamaran Kerja berhasil disimpan sementara.';
+
+        if (! $isSubmit) {
+            return back()->with('success', $message);
+        }
 
         return redirect()->route('kandidat.lamaran.show', $pelamar->no_pendaftaran)->with('success', $message);
     }
@@ -372,5 +406,59 @@ class FormulirLamaranController extends Controller
                 'submitted_at' => $formulir->submitted_at?->isoFormat('D MMMM Y, HH:mm'),
             ] : null,
         ]);
+    }
+
+    /**
+     * Download or stream Candidate Application Form PDF for Candidate.
+     */
+    public function cetakPdf(Pelamar $pelamar)
+    {
+        $user = Auth::user();
+
+        // Security check
+        if ($pelamar->email !== $user->email) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        return $this->generatePdfResponse($pelamar);
+    }
+
+    /**
+     * Download or stream Candidate Application Form PDF for Admin / HR.
+     */
+    public function cetakPdfForAdmin(Pelamar $pelamar)
+    {
+        return $this->generatePdfResponse($pelamar);
+    }
+
+    /**
+     * Helper to build and stream the PDF response.
+     */
+    protected function generatePdfResponse(Pelamar $pelamar)
+    {
+        $pelamar->load(['lowongan.departement', 'lowongan.jabatan', 'formulirLamaran']);
+        $formulir = $pelamar->formulirLamaran;
+
+        $fotoBase64 = null;
+        if ($pelamar->foto_path && Storage::disk('public')->exists($pelamar->foto_path)) {
+            $mime = Storage::disk('public')->mimeType($pelamar->foto_path) ?: 'image/jpeg';
+            $fotoBase64 = 'data:' . $mime . ';base64,' . base64_encode(Storage::disk('public')->get($pelamar->foto_path));
+        }
+
+        $pdf = Pdf::loadView('pdf.formulir_lamaran', [
+            'pelamar' => $pelamar,
+            'formulir' => $formulir,
+            'fotoBase64' => $fotoBase64,
+        ])
+            ->setPaper('a4', 'portrait')
+            ->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'defaultFont' => 'sans-serif',
+            ]);
+
+        $filename = 'Formulir_Lamaran_' . ($pelamar->no_pendaftaran ?: 'REG') . '_' . str_replace(' ', '_', $pelamar->nama_lengkap) . '.pdf';
+
+        return $pdf->stream($filename);
     }
 }

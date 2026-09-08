@@ -78,6 +78,18 @@ interface Props {
   }
 }
 
+const SUMBER_INFORMASI_OPTIONS = [
+  { value: 'Website Karir Perusahaan', label: 'Website Karir Perusahaan / Portal Resmi' },
+  { value: 'LinkedIn', label: 'LinkedIn' },
+  { value: 'JobStreet / Glints / Indeed', label: 'JobStreet / Glints / Indeed' },
+  { value: 'Instagram / Media Sosial', label: 'Instagram / Media Sosial Perusahaan' },
+  { value: 'Referensi Karyawan', label: 'Referensi Karyawan / Internal' },
+  { value: 'Bursa Kerja / Job Fair', label: 'Bursa Kerja / Job Fair' },
+  { value: 'Biro Kemahasiswaan Kampus', label: 'Biro Kemahasiswaan Kampus' },
+  { value: 'Teman / Kerabat', label: 'Teman / Kerabat' },
+  { value: 'Lainnya', label: 'Lainnya' },
+]
+
 export default function Lowongan({
   lowongans,
   appliedMap,
@@ -116,11 +128,13 @@ export default function Lowongan({
     lowongan: LowonganItem | null
     agreed: boolean
     submitting: boolean
+    sumber_informasi: string
   }>({
     open: false,
     lowongan: null,
     agreed: false,
     submitting: false,
+    sumber_informasi: 'Website Karir Perusahaan',
   })
 
   function handleFilter() {
@@ -146,10 +160,12 @@ export default function Lowongan({
 
     router.post(
       `/kandidat/lowongan/${applyModal.lowongan.id}/apply`,
-      {},
+      {
+        sumber_informasi: applyModal.sumber_informasi,
+      },
       {
         onFinish: () => {
-          setApplyModal({ open: false, lowongan: null, agreed: false, submitting: false })
+          setApplyModal({ open: false, lowongan: null, agreed: false, submitting: false, sumber_informasi: 'Website Karir Perusahaan' })
         },
       },
     )
@@ -298,7 +314,7 @@ export default function Lowongan({
                                 if (!isProfileComplete) {
                                   router.visit('/kandidat/profil')
                                 } else {
-                                  setApplyModal({ open: true, lowongan: job, agreed: false, submitting: false })
+                                  setApplyModal({ open: true, lowongan: job, agreed: false, submitting: false, sumber_informasi: 'Website Karir Perusahaan' })
                                 }
                               }}
                             >
@@ -387,7 +403,7 @@ export default function Lowongan({
                     if (!isProfileComplete) {
                       router.visit('/kandidat/profil')
                     } else if (job) {
-                      setApplyModal({ open: true, lowongan: job, agreed: false, submitting: false })
+                      setApplyModal({ open: true, lowongan: job, agreed: false, submitting: false, sumber_informasi: 'Website Karir Perusahaan' })
                     }
                   }}
                 >
@@ -403,7 +419,7 @@ export default function Lowongan({
       {/* Apply Confirmation Modal */}
       <Dialog
         open={applyModal.open}
-        onOpenChange={(open) => !open && setApplyModal({ open: false, lowongan: null, agreed: false, submitting: false })}
+        onOpenChange={(open) => !open && setApplyModal((prev) => ({ ...prev, open: false, lowongan: null, agreed: false, submitting: false }))}
         title="Konfirmasi Pengajuan Lamaran"
       >
         {applyModal.lowongan && candidateProfile && (
@@ -456,6 +472,21 @@ export default function Lowongan({
               </div>
             </div>
 
+            {/* Sumber Informasi Lamaran Select Box */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 block">
+                Sumber Informasi Lamaran <span className="text-red-500">*</span>
+              </label>
+              <Select
+                value={applyModal.sumber_informasi}
+                onChange={(val) => setApplyModal((prev) => ({ ...prev, sumber_informasi: val }))}
+                options={SUMBER_INFORMASI_OPTIONS}
+              />
+              <span className="text-[11px] text-slate-500 block">
+                Pilih dari mana Anda pertama kali mengetahui informasi lowongan kerja ini.
+              </span>
+            </div>
+
             {/* Checkbox Persetujuan */}
             <label className="flex items-start gap-2.5 cursor-pointer select-none">
               <input
@@ -474,7 +505,7 @@ export default function Lowongan({
             <div className="flex items-center justify-between gap-3">
               <Button
                 variant="quiet"
-                onClick={() => setApplyModal({ open: false, lowongan: null, agreed: false, submitting: false })}
+                onClick={() => setApplyModal((prev) => ({ ...prev, open: false, lowongan: null, agreed: false, submitting: false }))}
               >
                 Batal
               </Button>

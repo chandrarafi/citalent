@@ -56,10 +56,10 @@ export default function FormulirDetail({ pelamar, formulir }: Props) {
               <Button
                 tone="mint"
                 size="sm"
-                onClick={() => window.print()}
+                onClick={() => window.open(`/pelamar/${pelamar.id}/formulir/cetak`, '_blank')}
               >
                 <IconPrinter size={16} />
-                Cetak Formulir (A4)
+                Cetak Formulir (PDF)
               </Button>
             </div>
           </div>

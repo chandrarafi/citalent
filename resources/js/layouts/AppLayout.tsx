@@ -7,6 +7,7 @@ import { Heading, Text } from '@/components/pouf/text'
 import { Blob } from '@/components/pouf/media'
 import { Button } from '@/components/pouf/Button'
 import { Card } from '@/components/pouf/surface'
+import { Toaster } from '@/components/pouf/toaster'
 import type { Tone } from '@/components/pouf/tone'
 import type { IconLike } from '@/components/pouf/Icon'
 
@@ -169,6 +170,8 @@ export function AppLayout({ children }: AppLayoutProps) {
           link={InertiaLink}
         />
       )}
+
+      <Toaster />
     </>
   )
 }

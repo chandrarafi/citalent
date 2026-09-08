@@ -99,6 +99,7 @@ const ICONS = {
   settings: IconSettings,
   database: IconDatabase,
   menu: IconLayoutGrid,
+  form: IconClipboardList,
   // state
   up: IconArrowUp,
   down: IconArrowDown,

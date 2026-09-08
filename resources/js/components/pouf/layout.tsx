@@ -111,7 +111,7 @@ export function Shell({
   return (
     <div
       className={cx(
-        'pouf-shell grid [grid-template-columns:260px_minmax(0,1fr)] gap-(--s5) lg:gap-(--s6) p-4 sm:p-6 lg:p-8 w-full max-w-[1600px] mx-auto min-h-screen [align-items:start]',
+        'pouf-shell grid [grid-template-columns:320px_minmax(0,1fr)] gap-(--s5) lg:gap-(--s6) p-4 sm:p-6 lg:p-8 w-full max-w-[1600px] mx-auto min-h-screen [align-items:start]',
         'max-[1024px]:[grid-template-columns:minmax(0,1fr)] max-[1024px]:p-4',
         'max-[1024px]:pb-[calc(96px+env(safe-area-inset-bottom,0px))]',
         className,

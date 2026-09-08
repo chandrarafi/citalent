@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\StatusLamaranUpdatedMail;
 use App\Models\Lowongan;
 use App\Models\Pelamar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -74,7 +78,12 @@ class PelamarController extends Controller
      */
     public function show(Pelamar $pelamar): Response
     {
-        $pelamar->load(['lowongan.departement', 'lowongan.jabatan', 'formulirLamaran']);
+        $pelamar->load([
+            'lowongan.departement',
+            'lowongan.jabatan',
+            'formulirLamaran',
+            'latestPenilaianSkillTest.penguji',
+        ]);
 
         return Inertia::render('pelamar/Show', [
             'pelamar' => [
@@ -95,12 +104,14 @@ class PelamarController extends Controller
                 'jurusan' => $pelamar->jurusan,
                 'tahun_lulus' => $pelamar->tahun_lulus,
                 'posisi_dilamar' => $pelamar->posisi_dilamar,
+                'sumber_informasi' => $pelamar->sumber_informasi,
                 'foto_url' => $pelamar->foto_path ? asset('storage/' . $pelamar->foto_path) : null,
                 'cv_url' => $pelamar->cv_path ? asset('storage/' . $pelamar->cv_path) : null,
                 'surat_lamaran_url' => $pelamar->surat_lamaran_path ? asset('storage/' . $pelamar->surat_lamaran_path) : null,
                 'has_formulir' => (bool) $pelamar->formulirLamaran,
                 'formulir_submitted' => (bool) $pelamar->formulirLamaran?->is_submitted,
                 'status' => $pelamar->status,
+                'tahap_gagal' => $pelamar->effective_tahap_gagal,
                 'catatan' => $pelamar->catatan,
                 'lowongan' => $pelamar->lowongan ? [
                     'id' => $pelamar->lowongan->id,
@@ -109,6 +120,15 @@ class PelamarController extends Controller
                     'departemen_nama' => $pelamar->lowongan->departement?->deskripsi,
                     'posisi_nama' => $pelamar->lowongan->jabatan?->nama_jabatan,
                     'kd_jabatan' => $pelamar->lowongan->jabatan?->kd_jabatan,
+                ] : null,
+                'skill_test_assessment' => $pelamar->latestPenilaianSkillTest ? [
+                    'id' => $pelamar->latestPenilaianSkillTest->id,
+                    'total_skor' => (float) $pelamar->latestPenilaianSkillTest->total_skor,
+                    'nilai_akhir' => (float) $pelamar->latestPenilaianSkillTest->nilai_akhir,
+                    'rekomendasi' => $pelamar->latestPenilaianSkillTest->rekomendasi,
+                    'status' => $pelamar->latestPenilaianSkillTest->status,
+                    'tanggal_test' => $pelamar->latestPenilaianSkillTest->tanggal_test ? $pelamar->latestPenilaianSkillTest->tanggal_test->isoFormat('D MMMM Y') : null,
+                    'nama_penguji' => $pelamar->latestPenilaianSkillTest->nama_penguji ?: ($pelamar->latestPenilaianSkillTest->penguji?->name ?? 'Penguji'),
                 ] : null,
                 'created_at' => $pelamar->created_at ? $pelamar->created_at->format('Y-m-d H:i') : null,
             ],
@@ -121,14 +141,37 @@ class PelamarController extends Controller
     public function updateStatus(Request $request, Pelamar $pelamar): RedirectResponse
     {
         $validated = $request->validate([
-            'status' => ['required', 'in:submitted,screening_cv,lengkapi_formulir,interview_hr,skill_test,interview_user,final_discussion,accepted,rejected,review,interview'],
+            'status' => ['required', 'in:submitted,screening_cv,lengkapi_formulir,interview_hr,skill_test,interview_user,interview_gm,final_discussion,accepted,rejected,review,interview'],
             'catatan' => ['nullable', 'string', 'max:1000'],
         ], [
             'status.required' => 'Tahapan seleksi wajib dipilih.',
             'status.in' => 'Tahapan seleksi tidak valid.',
         ]);
 
-        $pelamar->update($validated);
+        $updateData = $validated;
+        if ($validated['status'] === 'rejected') {
+            if ($pelamar->status !== 'rejected') {
+                $updateData['tahap_gagal'] = $pelamar->status;
+            }
+        } else {
+            $updateData['tahap_gagal'] = null;
+        }
+
+        $pelamar->update($updateData);
+
+        if (!empty($pelamar->email)) {
+            try {
+                Mail::to($pelamar->email)->queue(
+                    new StatusLamaranUpdatedMail(
+                        $pelamar->fresh(['lowongan.departement', 'lowongan.jabatan']),
+                        $validated['status'],
+                        $validated['catatan'] ?? null
+                    )
+                );
+            } catch (\Throwable $e) {
+                Log::error("Gagal queue email status pelamar ID {$pelamar->id}: " . $e->getMessage());
+            }
+        }
 
         $stageLabels = [
             'submitted' => 'Submit Lamaran',
@@ -137,6 +180,7 @@ class PelamarController extends Controller
             'interview_hr' => 'Interview HR',
             'skill_test' => 'Skill Test',
             'interview_user' => 'Interview User',
+            'interview_gm' => 'Interview GM',
             'final_discussion' => 'Final Discussion',
             'accepted' => 'Diterima (Accepted)',
             'rejected' => 'Ditolak (Rejected)',
@@ -146,7 +190,69 @@ class PelamarController extends Controller
 
         $label = $stageLabels[$pelamar->status] ?? $pelamar->status;
 
-        return back()->with('success', "Tahapan seleksi '{$pelamar->nama_lengkap}' berhasil diperbarui menjadi {$label}.");
+        return back()->with('success', "Tahapan seleksi '{$pelamar->nama_lengkap}' berhasil diperbarui menjadi {$label} & notifikasi email telah diantrekan.");
+    }
+
+    /**
+     * Bulk update selection status of multiple candidates.
+     */
+    public function bulkUpdateStatus(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'pelamar_ids' => ['required', 'array', 'min:1'],
+            'pelamar_ids.*' => ['required', Rule::exists(Pelamar::class, 'id')],
+            'status' => ['required', 'in:submitted,screening_cv,lengkapi_formulir,interview_hr,skill_test,interview_user,interview_gm,final_discussion,accepted,rejected'],
+            'catatan' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $pelamars = Pelamar::with(['lowongan.departement', 'lowongan.jabatan'])
+            ->whereIn('id', $validated['pelamar_ids'])
+            ->get();
+
+        $count = 0;
+        foreach ($pelamars as $p) {
+            $updateData = [
+                'status' => $validated['status'],
+                'catatan' => $validated['catatan'] ?? null,
+            ];
+
+            if ($validated['status'] === 'rejected') {
+                if ($p->status !== 'rejected') {
+                    $updateData['tahap_gagal'] = $p->status;
+                }
+            } else {
+                $updateData['tahap_gagal'] = null;
+            }
+
+            $p->update($updateData);
+            $count++;
+
+            if (!empty($p->email)) {
+                try {
+                    Mail::to($p->email)->queue(
+                        new StatusLamaranUpdatedMail(
+                            $p,
+                            $validated['status'],
+                            $validated['catatan'] ?? null
+                        )
+                    );
+                } catch (\Throwable $e) {
+                    Log::error("Gagal queue email bulk status pelamar ID {$p->id}: " . $e->getMessage());
+                }
+            }
+        }
+
+        $stageLabels = [
+            'interview_hr' => 'Interview HR',
+            'interview_user' => 'Interview User',
+            'skill_test' => 'Skill Test',
+            'accepted' => 'Diterima',
+            'rejected' => 'Ditolak / Gagal',
+        ];
+
+        $label = $stageLabels[$validated['status']] ?? $validated['status'];
+
+        return back()->with('success', "Sebanyak {$count} kandidat berhasil diperbarui ke tahap: {$label} & notifikasi email telah diantrekan.");
     }
 
     /**

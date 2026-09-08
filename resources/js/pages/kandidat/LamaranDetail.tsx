@@ -44,6 +44,7 @@ interface ApplicationDetail {
   lokasi_kerja: string
   tipe_pekerjaan: string
   status: string
+  tahap_gagal?: string | null
   status_label: string
   status_tone: Tone
   step: number
@@ -64,6 +65,7 @@ interface Props {
 }
 
 const SKILL_TEST_JABATAN_CODES = ['JBT-5', 'JBT-27', 'JBT-28', 'JBT-29', 'JBT-31', 'JBT-26']
+const INTERVIEW_GM_JABATAN_CODES = ['JBT-6', 'JBT-37']
 
 const TIMELINE_STAGES = [
   {
@@ -97,6 +99,11 @@ const TIMELINE_STAGES = [
     defaultDesc: 'Wawancara dengan calon atasan / User',
   },
   {
+    key: 'interview_gm',
+    title: 'Interview GM',
+    defaultDesc: 'Wawancara dengan General Manager (GM)',
+  },
+  {
     key: 'final_discussion',
     title: 'Final Discussion',
     defaultDesc: 'Diskusi offering letter & kesepakatan join',
@@ -108,9 +115,16 @@ export default function LamaranDetail({ application }: Props) {
     ? SKILL_TEST_JABATAN_CODES.includes(application.kd_jabatan)
     : false
 
+  const hasInterviewGm = application.kd_jabatan
+    ? INTERVIEW_GM_JABATAN_CODES.includes(application.kd_jabatan)
+    : false
+
   const activeStages = TIMELINE_STAGES.filter((stage) => {
     if (stage.key === 'skill_test') {
       return hasSkillTest
+    }
+    if (stage.key === 'interview_gm') {
+      return hasInterviewGm
     }
     return true
   }).map((stage, idx) => ({
@@ -127,6 +141,14 @@ export default function LamaranDetail({ application }: Props) {
   const currentStageIndex = activeStages.findIndex((s) => s.key === normalizedStatus)
   const isRejected = normalizedStatus === 'rejected'
   const isAccepted = normalizedStatus === 'accepted'
+
+  const failedStageKey = isRejected
+    ? application.tahap_gagal || (application.has_formulir ? (hasSkillTest ? 'skill_test' : 'screening_cv') : 'submitted')
+    : null
+  const failedStageIndex = failedStageKey
+    ? activeStages.findIndex((s) => s.key === failedStageKey)
+    : -1
+  const failedStageObj = failedStageIndex >= 0 ? activeStages[failedStageIndex] : null
 
   return (
     <AppLayout>
@@ -173,16 +195,15 @@ export default function LamaranDetail({ application }: Props) {
                   >
                     <IconFileText size={16} />
                     {application.formulir_submitted
-                      ? 'Lihat / Edit Formulir Lamaran'
+                      ? 'Lihat Formulir Lamaran'
                       : 'Lengkapi Formulir Lamaran Kerja'}
                   </Button>
                 )}
 
                 {application.lowongan && (
                   <Button
-                    variant="quiet"
                     size="sm"
-                    tone="purple"
+                    tone="mint"
                     onClick={() => router.visit('/kandidat/lowongan')}
                   >
                     <IconBriefcase size={15} />
@@ -257,9 +278,13 @@ export default function LamaranDetail({ application }: Props) {
                 <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs sm:text-sm flex items-start gap-3">
                   <IconAlertCircle size={24} className="text-rose-600 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold text-base block text-rose-950">Lamaran Tidak Dapat Dilanjutkan</span>
+                    <span className="font-bold text-base block text-rose-950">
+                      Lamaran Tidak Dapat Dilanjutkan {failedStageObj ? `(Gagal pada Tahap: ${failedStageObj.title})` : ''}
+                    </span>
                     <p className="text-rose-800 mt-1 leading-relaxed">
-                      Terima kasih atas partisipasi dan antusiasme Anda. Saat ini kualifikasi belum sesuai dengan kriteria yang dibutuhkan.
+                      {application.catatan
+                        ? application.catatan
+                        : 'Terima kasih atas partisipasi dan antusiasme Anda. Saat ini kualifikasi belum sesuai dengan kriteria yang dibutuhkan pada tahapan ini.'}
                     </p>
                   </div>
                 </div>
@@ -273,7 +298,14 @@ export default function LamaranDetail({ application }: Props) {
                     let stepState: 'completed' | 'current' | 'upcoming' | 'rejected' = 'upcoming'
 
                     if (isRejected) {
-                      stepState = idx <= (currentStageIndex >= 0 ? currentStageIndex : 0) ? 'rejected' : 'upcoming'
+                      const targetFailedIdx = failedStageIndex >= 0 ? failedStageIndex : 0
+                      if (idx < targetFailedIdx) {
+                        stepState = 'completed'
+                      } else if (idx === targetFailedIdx) {
+                        stepState = 'rejected'
+                      } else {
+                        stepState = 'upcoming'
+                      }
                     } else if (isAccepted) {
                       stepState = 'completed'
                     } else if (currentStageIndex >= 0) {
@@ -308,7 +340,7 @@ export default function LamaranDetail({ application }: Props) {
                               : stepState === 'current'
                               ? 'border-2 border-emerald-600 bg-emerald-50 text-emerald-700 ring-4 ring-emerald-100 shadow-xs'
                               : stepState === 'rejected'
-                              ? 'border-2 border-red-500 bg-red-50 text-red-600'
+                              ? 'border-2 border-red-500 bg-red-50 text-red-600 ring-4 ring-red-100 shadow-xs'
                               : 'border-2 border-[#d4d4d8] bg-white text-transparent'
                           }`}
                         >
@@ -333,7 +365,7 @@ export default function LamaranDetail({ application }: Props) {
                                   : stepState === 'completed'
                                   ? 'text-slate-900'
                                   : stepState === 'rejected'
-                                  ? 'text-red-700'
+                                  ? 'text-red-700 font-bold'
                                   : 'text-slate-400'
                               }`}
                             >
@@ -348,6 +380,11 @@ export default function LamaranDetail({ application }: Props) {
                             {stepState === 'completed' && (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700">
                                 ✓ Selesai
+                              </span>
+                            )}
+                            {stepState === 'rejected' && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                                ✕ Gagal di Tahap Ini
                               </span>
                             )}
                           </div>
@@ -366,8 +403,8 @@ export default function LamaranDetail({ application }: Props) {
                               >
                                 <IconFileText size={15} />
                                 {application.formulir_submitted
-                                  ? 'Lihat / Edit Formulir Lamaran'
-                                  : 'Isi Formulir Lamaran Kerja 📝'}
+                                  ? 'Lihat Formulir Lamaran'
+                                  : 'Isi Formulir Lamaran Kerja'}
                               </Button>
                             </div>
                           )}
@@ -489,8 +526,8 @@ export default function LamaranDetail({ application }: Props) {
                   >
                     <IconFileText size={15} />
                     {application.formulir_submitted
-                      ? 'Lihat / Edit Formulir Lamaran Kerja ↗'
-                      : 'Lengkapi Formulir Lamaran Kerja 📝'}
+                      ? 'Lihat Formulir Lamaran Kerja ↗'
+                      : 'Lengkapi Formulir Lamaran Kerja'}
                   </Button>
                 )}
 

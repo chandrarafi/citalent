@@ -15,6 +15,7 @@ import {
   IconArrowRight,
   IconAward,
   IconNotes,
+  IconFileText,
 } from '@tabler/icons-react'
 
 interface PelamarDetail {
@@ -35,12 +36,14 @@ interface PelamarDetail {
   jurusan: string
   tahun_lulus: string
   posisi_dilamar: string
+  sumber_informasi?: string | null
   foto_url?: string | null
   cv_url?: string | null
   surat_lamaran_url?: string | null
   has_formulir?: boolean
   formulir_submitted?: boolean
   status: string
+  tahap_gagal?: string | null
   catatan?: string | null
   lowongan?: {
     id: number
@@ -50,6 +53,15 @@ interface PelamarDetail {
     posisi_nama?: string
     kd_jabatan?: string
   } | null
+  skill_test_assessment?: {
+    id: number
+    total_skor: number
+    nilai_akhir: number
+    rekomendasi: 'disarankan' | 'dipertimbangkan' | 'tidak_disarankan'
+    status: 'draft' | 'final'
+    tanggal_test?: string | null
+    nama_penguji?: string | null
+  } | null
   created_at?: string | null
 }
 
@@ -58,6 +70,7 @@ interface Props {
 }
 
 const SKILL_TEST_JABATAN_CODES = ['JBT-5', 'JBT-27', 'JBT-28', 'JBT-29', 'JBT-31', 'JBT-26']
+const INTERVIEW_GM_JABATAN_CODES = ['JBT-6', 'JBT-37']
 
 const TIMELINE_STAGES = [
   {
@@ -91,6 +104,11 @@ const TIMELINE_STAGES = [
     defaultDesc: 'Wawancara dengan calon atasan / User',
   },
   {
+    key: 'interview_gm',
+    title: 'Interview GM',
+    defaultDesc: 'Wawancara dengan General Manager (GM)',
+  },
+  {
     key: 'final_discussion',
     title: 'Final Discussion',
     defaultDesc: 'Diskusi offering letter & kesepakatan join',
@@ -104,7 +122,8 @@ const STATUS_SELECT_OPTIONS = [
   { value: 'skill_test', label: '4. Skill Test' },
   { value: 'interview_hr', label: '5. Interview HR' },
   { value: 'interview_user', label: '6. Interview User' },
-  { value: 'final_discussion', label: '7. Final Discussion' },
+  { value: 'interview_gm', label: '7. Interview GM' },
+  { value: 'final_discussion', label: '8. Final Discussion' },
   { value: 'accepted', label: '✓ Lolos / Diterima Bekerja (Accepted)' },
   { value: 'rejected', label: '✗ Ditolak (Rejected)' },
 ]
@@ -116,6 +135,7 @@ const STATUS_TONE: Record<string, Tone> = {
   interview_hr: 'purple',
   skill_test: 'orange',
   interview_user: 'blue',
+  interview_gm: 'purple',
   final_discussion: 'mint',
   accepted: 'mint',
   rejected: 'pink',
@@ -130,6 +150,7 @@ const STATUS_LABEL: Record<string, string> = {
   interview_hr: 'Interview HR',
   skill_test: 'Skill Test',
   interview_user: 'Interview User',
+  interview_gm: 'Interview GM',
   final_discussion: 'Final Discussion',
   accepted: 'Diterima Bekerja',
   rejected: 'Ditolak',
@@ -145,10 +166,18 @@ export default function Show({ pelamar }: Props) {
     ? SKILL_TEST_JABATAN_CODES.includes(pelamar.lowongan.kd_jabatan)
     : false
 
+  // Check if position requires interview GM (JBT-6, JBT-37)
+  const hasInterviewGm = pelamar.lowongan?.kd_jabatan
+    ? INTERVIEW_GM_JABATAN_CODES.includes(pelamar.lowongan.kd_jabatan)
+    : false
+
   // Dynamic active stages
   const activeStages = TIMELINE_STAGES.filter((stage) => {
     if (stage.key === 'skill_test') {
       return hasSkillTest
+    }
+    if (stage.key === 'interview_gm') {
+      return hasInterviewGm
     }
     return true
   }).map((stage, idx) => ({
@@ -159,6 +188,9 @@ export default function Show({ pelamar }: Props) {
   const statusSelectOptions = STATUS_SELECT_OPTIONS.filter((opt) => {
     if (opt.value === 'skill_test') {
       return hasSkillTest
+    }
+    if (opt.value === 'interview_gm') {
+      return hasInterviewGm
     }
     return true
   }).map((opt, idx) => {
@@ -185,6 +217,14 @@ export default function Show({ pelamar }: Props) {
   const currentStageIndex = activeStages.findIndex((s) => s.key === normalizedStatus)
   const isRejected = normalizedStatus === 'rejected'
   const isAccepted = normalizedStatus === 'accepted'
+
+  const failedStageKey = isRejected
+    ? pelamar.tahap_gagal || (pelamar.skill_test_assessment ? 'skill_test' : (pelamar.has_formulir ? (hasSkillTest ? 'skill_test' : 'screening_cv') : 'submitted'))
+    : null
+  const failedStageIndex = failedStageKey
+    ? activeStages.findIndex((s) => s.key === failedStageKey)
+    : -1
+  const failedStageObj = failedStageIndex >= 0 ? activeStages[failedStageIndex] : null
 
   // Next stage calculation based on activeStages
   const nextStage = !isRejected && !isAccepted && currentStageIndex >= 0 && currentStageIndex < activeStages.length - 1
@@ -261,7 +301,7 @@ export default function Show({ pelamar }: Props) {
               <Eyebrow>{pelamar.lowongan?.departemen_nama ?? 'Departemen'}</Eyebrow>
               <Heading level={2}>Posisi Dilamar: {pelamar.posisi_dilamar}</Heading>
               <Text size="sm" muted>
-                Lowongan: <strong>{pelamar.lowongan?.judul ?? '—'}</strong> ({pelamar.lowongan?.kode_lowongan ?? '—'}) &bull; Tanggal Melamar: <strong>{pelamar.created_at ?? '—'}</strong>
+                Lowongan: <strong>{pelamar.lowongan?.judul ?? '—'}</strong> ({pelamar.lowongan?.kode_lowongan ?? '—'}) &bull; Tanggal Melamar: <strong>{pelamar.created_at ?? '—'}</strong> &bull; Sumber Informasi: <strong className="text-purple-700">{pelamar.sumber_informasi || 'Website Karir Perusahaan'}</strong>
               </Text>
             </Stack>
             {pelamar.lowongan && (
@@ -279,6 +319,54 @@ export default function Show({ pelamar }: Props) {
         </Card>
 
 
+
+        {/* Skill Test Assessment Banner */}
+        <Card variant="tight" className="border border-purple-100 bg-purple-50/30">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 w-full">
+            <Row gap={3} align="center">
+              <Blob icon="target" tone="purple" size="sm" />
+              <div>
+                <Heading level={3} className="text-slate-900">
+                  Evaluasi Skill Test Kandidat
+                </Heading>
+                <Text size="sm" muted>
+                  {pelamar.skill_test_assessment
+                    ? `Nilai Akhir: ${pelamar.skill_test_assessment.nilai_akhir.toFixed(1)} / 100 (Skor: ${pelamar.skill_test_assessment.total_skor.toFixed(2)}) • Status: ${pelamar.skill_test_assessment.status.toUpperCase()}`
+                    : 'Kandidat dapat dinilai kemampuan teknisnya sesuai parameter jabatan yang dilamar.'}
+                </Text>
+              </div>
+            </Row>
+
+            <Row gap={2} align="center" className="w-full sm:w-auto shrink-0">
+              {pelamar.skill_test_assessment ? (
+                <>
+                  <Button
+                    size="sm"
+                    tone="blue"
+                    onClick={() => router.visit(`/penilaian-skill-test/${pelamar.skill_test_assessment!.id}`)}
+                  >
+                    <IconAward size={14} /> Lihat Rekap Nilai
+                  </Button>
+                  <Button
+                    size="sm"
+                    tone="mint"
+                    onClick={() => router.visit(`/penilaian-skill-test/${pelamar.skill_test_assessment!.id}/edit`)}
+                  >
+                    Edit Nilai
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  size="sm"
+                  tone="purple"
+                  onClick={() => router.visit(`/pelamar/${pelamar.id}/penilaian-skill-test`)}
+                >
+                  <IconAward size={14} /> Input Nilai Skill Test
+                </Button>
+              )}
+            </Row>
+          </div>
+        </Card>
 
         {/* 3. Data Pribadi Kandidat */}
         <Card>
@@ -482,7 +570,14 @@ export default function Show({ pelamar }: Props) {
                   let stepState: 'completed' | 'current' | 'upcoming' | 'rejected' = 'upcoming'
 
                   if (isRejected) {
-                    stepState = idx <= (currentStageIndex >= 0 ? currentStageIndex : 0) ? 'rejected' : 'upcoming'
+                    const targetFailedIdx = failedStageIndex >= 0 ? failedStageIndex : 0
+                    if (idx < targetFailedIdx) {
+                      stepState = 'completed'
+                    } else if (idx === targetFailedIdx) {
+                      stepState = 'rejected'
+                    } else {
+                      stepState = 'upcoming'
+                    }
                   } else if (isAccepted) {
                     stepState = 'completed'
                   } else if (currentStageIndex >= 0) {
@@ -514,7 +609,7 @@ export default function Show({ pelamar }: Props) {
                             : stepState === 'current'
                             ? 'border-2 border-emerald-600 bg-emerald-50 text-emerald-700 ring-4 ring-emerald-100 shadow-xs'
                             : stepState === 'rejected'
-                            ? 'border-2 border-red-500 bg-red-50 text-red-600'
+                            ? 'border-2 border-red-500 bg-red-50 text-red-600 ring-4 ring-red-100 shadow-xs'
                             : 'border-2 border-[#d4d4d8] bg-white text-transparent'
                         }`}
                       >
@@ -539,7 +634,7 @@ export default function Show({ pelamar }: Props) {
                                 : stepState === 'completed'
                                 ? 'text-[#18181b]'
                                 : stepState === 'rejected'
-                                ? 'text-red-700'
+                                ? 'text-red-700 font-bold'
                                 : 'text-[#71717a]'
                             }`}
                           >
@@ -553,7 +648,7 @@ export default function Show({ pelamar }: Props) {
                             <Badge tone="mint">Selesai</Badge>
                           )}
                           {stepState === 'rejected' && (
-                            <Badge tone="pink">Ditolak</Badge>
+                            <Badge tone="pink">Gagal di Tahap Ini</Badge>
                           )}
                         </div>
 

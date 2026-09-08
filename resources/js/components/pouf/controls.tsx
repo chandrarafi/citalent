@@ -151,7 +151,7 @@ interface DialogProps {
    *  something inside it (picking an item), not just the close button. */
   open?: boolean
   onOpenChange?: (open: boolean) => void
-  size?: 'md' | 'lg'
+  size?: 'md' | 'lg' | 'xl'
 }
 
 /** A plain modal (Radix Dialog), distinct from Confirm (Radix AlertDialog).
@@ -173,7 +173,15 @@ export function Dialog({ trigger, title, description, children, open, onOpenChan
             framer's inline transform, the CSS translate(-50%,-50%) centring holds
             through both. (prefers-reduced-motion is honoured globally in pouf.css.) */}
         <RDialog.Overlay className="pouf-overlay" />
-        <RDialog.Content className={size === 'lg' ? 'pouf-dialog pouf-dialog--lg' : 'pouf-dialog'}>
+        <RDialog.Content
+          className={
+            size === 'xl'
+              ? 'pouf-dialog pouf-dialog--xl'
+              : size === 'lg'
+              ? 'pouf-dialog pouf-dialog--lg'
+              : 'pouf-dialog'
+          }
+        >
           <Stack gap={4}>
             <div className="pouf-dialog__head">
               <Stack gap={1}>
