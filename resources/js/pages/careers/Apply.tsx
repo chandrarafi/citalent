@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Head, useForm, usePage } from '@inertiajs/react'
+import { Head, router, useForm, usePage } from '@inertiajs/react'
 import { Card } from '@/components/pouf/surface'
 import { Stack, Row, Grid } from '@/components/pouf/layout'
 import { Heading, Text, Eyebrow } from '@/components/pouf/text'
@@ -21,6 +21,7 @@ import {
   IconSparkles,
   IconCopy,
   IconCheck,
+  IconLock,
 } from '@tabler/icons-react'
 
 interface LowonganData {
@@ -40,6 +41,13 @@ interface LowonganData {
   tgl_tutup: string | null
   is_closed: boolean
   status: string
+}
+
+interface ExistingApplication {
+  id: number
+  no_pendaftaran: string
+  status: string
+  created_at?: string | null
 }
 
 interface CandidateProfileData {
@@ -64,6 +72,8 @@ interface CandidateProfileData {
 
 interface Props {
   lowongan: LowonganData
+  isAuthenticated?: boolean
+  existingApplication?: ExistingApplication | null
   candidateProfile?: CandidateProfileData | null
 }
 
@@ -96,7 +106,7 @@ const PENDIDIKAN_OPTIONS = [
   { value: 'S3', label: 'Doktoral (S3)' },
 ]
 
-export default function Apply({ lowongan, candidateProfile }: Props) {
+export default function Apply({ lowongan, isAuthenticated = false, existingApplication, candidateProfile }: Props) {
   const { flash } = usePage<any>().props
   const applicationSuccess = flash?.application_success
 
@@ -437,10 +447,93 @@ export default function Apply({ lowongan, candidateProfile }: Props) {
                 </Text>
               </div>
             </Card>
+          ) : !isAuthenticated ? (
+            /* If user is not logged in */
+            <Card className="border-2 border-[var(--color-purple)]/30 bg-gradient-to-b from-white to-[#faf5ff] shadow-sm">
+              <Stack gap={5} className="py-2">
+                  <Row gap={3} align="center" justify="end" wrap={true}>
+                    <Button
+                      tone="purple"
+                      size="md"
+                      onClick={() => router.get('/login')}
+                    >
+                      Apply Lowongan 
+                    </Button>
+                  </Row>
+              </Stack>
+            </Card>
+          ) : existingApplication ? (
+            /* If candidate has already applied */
+            <Card className="border-2 border-emerald-200 bg-emerald-50/30">
+              <Stack gap={4} className="py-2">
+                <Row gap={3} align="center">
+                  <Blob icon="ok" tone="mint" size="md" />
+                  <Stack gap={1}>
+                    <Heading level={2}>Lamaran Sudah Terkirim</Heading>
+                    <Text size="sm" muted>
+                      Anda telah mengirimkan lamaran untuk posisi <strong>{lowongan.judul}</strong>.
+                    </Text>
+                  </Stack>
+                </Row>
+
+                <div className="p-4 rounded-2xl bg-white border border-emerald-100 shadow-2xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <span className="text-muted block">No. Pendaftaran:</span>
+                      <span className="font-mono font-bold text-sm text-[var(--color-ink)]">{existingApplication.no_pendaftaran}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted block">Status Saat Ini:</span>
+                      <Badge tone="mint" className="mt-0.5">{existingApplication.status.toUpperCase()}</Badge>
+                    </div>
+                    <div>
+                      <span className="text-muted block">Tanggal Pengiriman:</span>
+                      <span className="font-medium text-[var(--color-ink)]">{existingApplication.created_at || '-'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <Row gap={3} align="center">
+                  <Button
+                    tone="blue"
+                    size="md"
+                    onClick={() => router.get(`/kandidat/lamaran/${existingApplication.no_pendaftaran}`)}
+                  >
+                    Buka Detail Lamaran di Portal ↗
+                  </Button>
+                  <Button
+                    variant="quiet"
+                    tone="purple"
+                    size="md"
+                    onClick={() => router.get('/kandidat/lowongan')}
+                  >
+                    Lihat Lowongan Lainnya
+                  </Button>
+                </Row>
+              </Stack>
+            </Card>
           ) : (
-            /* Application Form */
+            /* Application Form for Authenticated User */
             <form onSubmit={handleSubmit}>
               <Stack gap={6}>
+                {/* Notice that candidate is logged in */}
+                <div className="p-3.5 rounded-2xl bg-purple-50 border border-purple-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <Text size="sm" className="text-purple-950">
+                      Login sebagai: <strong>{candidateProfile?.nama_lengkap}</strong> ({candidateProfile?.email})
+                    </Text>
+                  </div>
+                  <Button
+                    variant="quiet"
+                    tone="purple"
+                    size="sm"
+                    onClick={() => router.get('/kandidat/lowongan')}
+                  >
+                    Buka di Portal Kandidat ↗
+                  </Button>
+                </div>
+
                 {/* 1. Data Diri */}
                 <Card>
                   <Stack gap={4}>

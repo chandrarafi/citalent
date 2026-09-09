@@ -248,7 +248,7 @@ class LowonganController extends Controller
                     'id' => $p->id,
                     'no_pendaftaran' => $p->no_pendaftaran,
                     'nama_lengkap' => $p->nama_lengkap,
-                    'foto_url' => $p->foto_path ? asset('storage/' . $p->foto_path) : null,
+                    'foto_url' => $p->foto_url,
                     'email' => $p->email,
                     'nomor_kontak' => $p->nomor_kontak,
                     'pendidikan_terakhir' => $p->pendidikan_terakhir,

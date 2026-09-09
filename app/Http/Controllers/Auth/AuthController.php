@@ -23,6 +23,9 @@ class AuthController extends Controller
     public function showLogin(): Response|RedirectResponse
     {
         if (Auth::check()) {
+            if (Auth::user()->hasRole('kandidat')) {
+                return redirect()->route('kandidat.lowongan');
+            }
             return redirect()->intended('/');
         }
 
@@ -107,6 +110,10 @@ class AuthController extends Controller
         Auth::login($user, $remember);
         $request->session()->regenerate();
 
+        if ($user->hasRole('kandidat')) {
+            return redirect()->intended('/kandidat/lowongan');
+        }
+
         return redirect()->intended('/');
     }
 
@@ -116,6 +123,9 @@ class AuthController extends Controller
     public function showRegister(): Response|RedirectResponse
     {
         if (Auth::check()) {
+            if (Auth::user()->hasRole('kandidat')) {
+                return redirect()->route('kandidat.lowongan');
+            }
             return redirect()->intended('/');
         }
 
@@ -267,8 +277,11 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        if ($user->hasRole('kandidat') && !$user->isProfileComplete()) {
-            return redirect()->route('kandidat.profile')->with('success', 'Selamat! Akun Anda berhasil diverifikasi dan aktif. Silakan lengkapi profil biodata Anda untuk keperluan melamar pekerjaan.');
+        if ($user->hasRole('kandidat')) {
+            if (!$user->isProfileComplete()) {
+                return redirect()->route('kandidat.profile')->with('success', 'Selamat! Akun Anda berhasil diverifikasi dan aktif. Silakan lengkapi profil biodata Anda untuk keperluan melamar pekerjaan.');
+            }
+            return redirect()->route('kandidat.lowongan')->with('success', 'Selamat! Akun Anda berhasil diverifikasi dan aktif.');
         }
 
         return redirect()->intended('/')->with('success', 'Selamat! Akun Anda berhasil diverifikasi dan aktif.');

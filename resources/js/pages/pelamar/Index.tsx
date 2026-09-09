@@ -177,23 +177,26 @@ export default function Index({ pelamars, lowongans, selectedLowonganId }: Props
     },
     {
       key: 'kandidat',
-      header: 'Nama Kandidat & Kontak',
+      header: 'Nama Kandidat',
       minWidth: '220px',
       render: (p: PelamarItem) => (
         <Row gap={2} wrap={false} align="center" className="min-w-[190px]">
-          {p.foto_url ? (
-            <div className="w-8 h-10 rounded-[6px] overflow-hidden border border-[var(--color-line)] shrink-0 bg-black/5 shadow-xs">
-              <img src={p.foto_url} alt={p.nama_lengkap} className="w-full h-full object-cover" />
-            </div>
-          ) : (
-            <Blob icon="user" tone="blue" size="sm" className="shrink-0" />
-          )}
+          <div className="w-9 h-9 rounded-full overflow-hidden border border-[var(--color-line)] shrink-0 bg-black/5 shadow-xs">
+            <img
+              src={p.foto_url || '/assets/images/user.png'}
+              alt={p.nama_lengkap}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = '/assets/images/user.png'
+              }}
+            />
+          </div>
           <Stack gap={1} className="min-w-0">
             <Text className="whitespace-nowrap">
               <strong>{p.nama_lengkap}</strong>
             </Text>
             <Text size="sm" muted mono className="whitespace-nowrap">
-              {p.email} &bull; {p.nomor_kontak}
+              {p.email}
             </Text>
           </Stack>
         </Row>

@@ -21,6 +21,10 @@ class UserController extends Controller
     public function index(): Response
     {
         $users = User::with('role')
+            ->where(function ($q) {
+                $q->whereHas('role', fn ($r) => $r->where('name', '!=', 'kandidat'))
+                    ->orWhereNull('role_id');
+            })
             ->orderBy('id', 'desc')
             ->get()
             ->map(fn (User $u) => [
@@ -36,7 +40,7 @@ class UserController extends Controller
                 'created_at' => $u->created_at ? $u->created_at->format('Y-m-d H:i') : null,
             ]);
 
-        $roles = Role::orderBy('id')->get(['id', 'name', 'label']);
+        $roles = Role::where('name', '!=', 'kandidat')->orderBy('id')->get(['id', 'name', 'label']);
 
         return Inertia::render('admin/Users', [
             'users' => $users,

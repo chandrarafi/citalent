@@ -44,6 +44,33 @@ class Pelamar extends Model
         'pernyataan_kebenaran' => 'boolean',
     ];
 
+    protected $appends = [
+        'foto_url',
+        'cv_url',
+    ];
+
+    public function getFotoUrlAttribute(): string
+    {
+        if (empty($this->foto_path)) {
+            return asset('assets/images/user.png');
+        }
+
+        return str_starts_with($this->foto_path, 'http')
+            ? $this->foto_path
+            : asset('storage/' . $this->foto_path);
+    }
+
+    public function getCvUrlAttribute(): ?string
+    {
+        if (empty($this->cv_path)) {
+            return null;
+        }
+
+        return str_starts_with($this->cv_path, 'http')
+            ? $this->cv_path
+            : asset('storage/' . $this->cv_path);
+    }
+
     public function lowongan()
     {
         return $this->belongsTo(Lowongan::class, 'lowongan_id', 'id');

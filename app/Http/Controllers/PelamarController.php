@@ -22,6 +22,9 @@ class PelamarController extends Controller
     public function index(Request $request): Response
     {
         $query = Pelamar::with(['lowongan.departement', 'lowongan.jabatan'])
+            ->whereHas('lowongan', function ($q) {
+                $q->where('status', 'aktif');
+            })
             ->orderBy('id', 'desc');
 
         if ($request->filled('lowongan_id')) {
@@ -47,8 +50,8 @@ class PelamarController extends Controller
                 'jurusan' => $p->jurusan,
                 'tahun_lulus' => $p->tahun_lulus,
                 'posisi_dilamar' => $p->posisi_dilamar,
-                'foto_url' => $p->foto_path ? asset('storage/' . $p->foto_path) : null,
-                'cv_url' => $p->cv_path ? asset('storage/' . $p->cv_path) : null,
+                'foto_url' => $p->foto_url,
+                'cv_url' => $p->cv_url,
                 'surat_lamaran_url' => $p->surat_lamaran_path ? asset('storage/' . $p->surat_lamaran_path) : null,
                 'status' => $p->status,
                 'catatan' => $p->catatan,
@@ -64,7 +67,9 @@ class PelamarController extends Controller
             ];
         });
 
-        $lowongans = Lowongan::orderBy('id', 'desc')->get(['id', 'kode_lowongan', 'judul']);
+        $lowongans = Lowongan::where('status', 'aktif')
+            ->orderBy('id', 'desc')
+            ->get(['id', 'kode_lowongan', 'judul']);
 
         return Inertia::render('pelamar/Index', [
             'pelamars' => $pelamars,
@@ -105,8 +110,8 @@ class PelamarController extends Controller
                 'tahun_lulus' => $pelamar->tahun_lulus,
                 'posisi_dilamar' => $pelamar->posisi_dilamar,
                 'sumber_informasi' => $pelamar->sumber_informasi,
-                'foto_url' => $pelamar->foto_path ? asset('storage/' . $pelamar->foto_path) : null,
-                'cv_url' => $pelamar->cv_path ? asset('storage/' . $pelamar->cv_path) : null,
+                'foto_url' => $pelamar->foto_url,
+                'cv_url' => $pelamar->cv_url,
                 'surat_lamaran_url' => $pelamar->surat_lamaran_path ? asset('storage/' . $pelamar->surat_lamaran_path) : null,
                 'has_formulir' => (bool) $pelamar->formulirLamaran,
                 'formulir_submitted' => (bool) $pelamar->formulirLamaran?->is_submitted,

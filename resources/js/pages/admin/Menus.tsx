@@ -26,6 +26,7 @@ interface MenuItem {
   id: number
   name: string
   label: string
+  kelompok?: string | null
   url: string
   icon: string
   tone: string
@@ -71,6 +72,7 @@ const PAGE_SIZE_OPTIONS = [
 const emptyForm = () => ({
   name: '',
   label: '',
+  kelompok: '',
   url: '',
   icon: 'overview',
   tone: 'purple',
@@ -100,6 +102,7 @@ export default function Menus({ menus, allRoles }: Props) {
         !q ||
         m.label.toLowerCase().includes(q) ||
         m.name.toLowerCase().includes(q) ||
+        (m.kelompok && m.kelompok.toLowerCase().includes(q)) ||
         m.url.toLowerCase().includes(q) ||
         m.roles.some((r) => r.toLowerCase().includes(q))
 
@@ -125,10 +128,7 @@ export default function Menus({ menus, allRoles }: Props) {
 
   function openCreate() {
     setEditing(null)
-    setForm({
-      ...emptyForm(),
-      order: String((menus.length ? Math.max(...menus.map((m) => m.order)) : 0) + 1),
-    })
+    setForm(emptyForm())
     setDialogOpen(true)
   }
 
@@ -137,6 +137,7 @@ export default function Menus({ menus, allRoles }: Props) {
     setForm({
       name: menu.name,
       label: menu.label,
+      kelompok: menu.kelompok || '',
       url: menu.url,
       icon: menu.icon || 'overview',
       tone: menu.tone || 'purple',
@@ -174,6 +175,7 @@ export default function Menus({ menus, allRoles }: Props) {
     setLoading(true)
     const data = {
       ...form,
+      kelompok: form.kelompok.trim() || null,
       order: parseInt(form.order, 10) || 0,
       permission_name: form.permission_name.trim() || null,
     }
@@ -212,11 +214,11 @@ export default function Menus({ menus, allRoles }: Props) {
       header: 'Menu & Icon',
       render: (m: MenuItem) => (
         <Row gap={3} wrap={false} align="center">
-          <Blob
+          {/* <Blob
             icon={(m.icon || 'overview') as IconLike}
             tone={(m.tone || 'purple') as Tone}
             size="sm"
-          />
+          /> */}
           <Stack gap={1}>
             <Text>{m.label}</Text>
             <Text size="sm" mono muted>
@@ -446,17 +448,31 @@ export default function Menus({ menus, allRoles }: Props) {
         }
       >
         <Stack gap={5}>
-          <Field label="Label Menu" hint="Nama yang akan tampil di sidebar">
-            {(id, describedBy) => (
-              <Input
-                id={id}
-                describedBy={describedBy}
-                value={form.label}
-                onChange={(v) => setForm((f) => ({ ...f, label: v }))}
-                placeholder="contoh: Data Karyawan"
-              />
-            )}
-          </Field>
+          <Grid cols={2} gap={3}>
+            <Field label="Label Menu" hint="Nama yang akan tampil di sidebar">
+              {(id, describedBy) => (
+                <Input
+                  id={id}
+                  describedBy={describedBy}
+                  value={form.label}
+                  onChange={(v) => setForm((f) => ({ ...f, label: v }))}
+                  placeholder="contoh: Data Karyawan"
+                />
+              )}
+            </Field>
+
+            <Field label="Kelompok Menu" hint="Header grup di sidebar (opsional)">
+              {(id, describedBy) => (
+                <Input
+                  id={id}
+                  describedBy={describedBy}
+                  value={form.kelompok}
+                  onChange={(v) => setForm((f) => ({ ...f, kelompok: v }))}
+                  placeholder="contoh: Rekrutmen & Seleksi"
+                />
+              )}
+            </Field>
+          </Grid>
 
           <Grid cols={2} gap={3}>
             <Field label="Slug (Kode Unik)" hint="Identifier unik menu">

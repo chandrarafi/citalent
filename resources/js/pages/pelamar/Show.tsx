@@ -379,20 +379,16 @@ export default function Show({ pelamar }: Props) {
             <div className="flex flex-col sm:flex-row gap-5 items-start">
               {/* Pas Foto Pelamar */}
               <div className="shrink-0 flex flex-col items-center">
-                {pelamar.foto_url ? (
-                  <div className="w-28 h-36 rounded-[14px] overflow-hidden border-2 border-[#a855f7] shadow-sm bg-black/5">
-                    <img
-                      src={pelamar.foto_url}
-                      alt={pelamar.nama_lengkap}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-28 h-36 rounded-[14px] border-2 border-dashed border-[var(--color-line)] bg-[var(--color-surface)] flex flex-col items-center justify-center text-center p-2 text-muted">
-                    <Blob icon="user" tone="purple" size="sm" />
-                    <span className="text-[10px] mt-1 font-semibold">Tanpa Foto</span>
-                  </div>
-                )}
+                <div className="w-28 h-36 rounded-[14px] overflow-hidden border-2 border-[#a855f7] shadow-sm bg-black/5">
+                  <img
+                    src={pelamar.foto_url || '/assets/images/user.png'}
+                    alt={pelamar.nama_lengkap}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = '/assets/images/user.png'
+                    }}
+                  />
+                </div>
                 <span className="text-[11px] font-semibold text-muted mt-1.5">Pas Foto Formal</span>
               </div>
 

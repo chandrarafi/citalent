@@ -196,7 +196,7 @@ class FormulirLamaranController extends Controller
                 'id' => $pelamar->id,
                 'no_pendaftaran' => $pelamar->no_pendaftaran,
                 'posisi_dilamar' => $pelamar->posisi_dilamar,
-                'foto_url' => $pelamar->foto_path ? asset('storage/' . $pelamar->foto_path) : ($profile?->foto_url ?? null),
+                'foto_url' => $pelamar->foto_url,
                 'status' => $pelamar->status,
             ],
             'initialForm' => $formData,
@@ -344,8 +344,8 @@ class FormulirLamaranController extends Controller
                 'nama_lengkap' => $pelamar->nama_lengkap,
                 'email' => $pelamar->email,
                 'nomor_kontak' => $pelamar->nomor_kontak,
-                'foto_url' => $pelamar->foto_path ? asset('storage/' . $pelamar->foto_path) : null,
-                'cv_url' => $pelamar->cv_path ? asset('storage/' . $pelamar->cv_path) : null,
+                'foto_url' => $pelamar->foto_url,
+                'cv_url' => $pelamar->cv_url,
                 'status' => $pelamar->status,
                 'created_at' => $pelamar->created_at ? $pelamar->created_at->isoFormat('D MMMM Y, HH:mm') : null,
             ],
@@ -440,9 +440,13 @@ class FormulirLamaranController extends Controller
         $formulir = $pelamar->formulirLamaran;
 
         $fotoBase64 = null;
-        if ($pelamar->foto_path && Storage::disk('public')->exists($pelamar->foto_path)) {
-            $mime = Storage::disk('public')->mimeType($pelamar->foto_path) ?: 'image/jpeg';
-            $fotoBase64 = 'data:' . $mime . ';base64,' . base64_encode(Storage::disk('public')->get($pelamar->foto_path));
+        if (extension_loaded('gd')) {
+            if ($pelamar->foto_path && Storage::disk('public')->exists($pelamar->foto_path)) {
+                $mime = Storage::disk('public')->mimeType($pelamar->foto_path) ?: 'image/jpeg';
+                $fotoBase64 = 'data:' . $mime . ';base64,' . base64_encode(Storage::disk('public')->get($pelamar->foto_path));
+            } elseif (file_exists(public_path('assets/images/user.png'))) {
+                $fotoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents(public_path('assets/images/user.png')));
+            }
         }
 
         $pdf = Pdf::loadView('pdf.formulir_lamaran', [

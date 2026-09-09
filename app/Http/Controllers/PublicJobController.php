@@ -23,8 +23,14 @@ class PublicJobController extends Controller
             ->where('slug', $slug)
             ->firstOrFail();
 
+        $isClosed = $lowongan->status !== 'aktif' ||
+            ($lowongan->tgl_tutup && Carbon::parse($lowongan->tgl_tutup)->endOfDay()->isPast());
+
+        $existingApplication = null;
         $candidateProfile = null;
-        if (Auth::check()) {
+        $isAuthenticated = Auth::check();
+
+        if ($isAuthenticated) {
             $user = Auth::user()->load('kandidatProfile');
             $p = $user->kandidatProfile;
             $candidateProfile = [
@@ -46,6 +52,19 @@ class PublicJobController extends Controller
                 'cv_url' => $p?->cv_url ?? null,
                 'surat_lamaran_url' => $p?->surat_lamaran_url ?? null,
             ];
+
+            $app = Pelamar::where('lowongan_id', $lowongan->id)
+                ->where('email', $user->email)
+                ->first();
+
+            if ($app) {
+                $existingApplication = [
+                    'id' => $app->id,
+                    'no_pendaftaran' => $app->no_pendaftaran,
+                    'status' => $app->status,
+                    'created_at' => $app->created_at ? $app->created_at->isoFormat('D MMMM Y, HH:mm') : null,
+                ];
+            }
         }
 
         return Inertia::render('careers/Apply', [
@@ -67,6 +86,8 @@ class PublicJobController extends Controller
                 'is_closed' => $isClosed,
                 'status' => $lowongan->status,
             ],
+            'isAuthenticated' => $isAuthenticated,
+            'existingApplication' => $existingApplication,
             'candidateProfile' => $candidateProfile,
         ]);
     }
@@ -76,6 +97,10 @@ class PublicJobController extends Controller
      */
     public function apply(Request $request, string $slug): RedirectResponse
     {
+        if (!Auth::check()) {
+            return redirect()->route('login')->with('warning', 'Silakan masuk (login) ke akun Anda terlebih dahulu untuk mengirimkan lamaran.');
+        }
+
         $lowongan = Lowongan::where('slug', $slug)->firstOrFail();
 
         if ($lowongan->status !== 'aktif' ||

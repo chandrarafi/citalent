@@ -23,6 +23,7 @@ class MenuController extends Controller
                     'id' => $m->id,
                     'name' => $m->name,
                     'label' => $m->label,
+                    'kelompok' => $m->kelompok,
                     'url' => $m->url,
                     'icon' => $m->icon,
                     'tone' => $m->tone,
@@ -44,6 +45,7 @@ class MenuController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'label' => ['required', 'string', 'max:150'],
+            'kelompok' => ['nullable', 'string', 'max:100'],
             'url' => ['required', 'string', 'max:255'],
             'icon' => ['nullable', 'string', 'max:100'],
             'tone' => ['nullable', 'string', 'max:50'],
@@ -57,6 +59,7 @@ class MenuController extends Controller
         $menu = Menu::create([
             'name' => $data['name'],
             'label' => $data['label'],
+            'kelompok' => $data['kelompok'] ?? null,
             'url' => $data['url'],
             'icon' => $data['icon'] ?? null,
             'tone' => $data['tone'] ?? 'default',
@@ -78,6 +81,7 @@ class MenuController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'label' => ['required', 'string', 'max:150'],
+            'kelompok' => ['nullable', 'string', 'max:100'],
             'url' => ['required', 'string', 'max:255'],
             'icon' => ['nullable', 'string', 'max:100'],
             'tone' => ['nullable', 'string', 'max:50'],
@@ -91,6 +95,7 @@ class MenuController extends Controller
         $menu->update([
             'name' => $data['name'],
             'label' => $data['label'],
+            'kelompok' => $data['kelompok'] ?? null,
             'url' => $data['url'],
             'icon' => $data['icon'] ?? null,
             'tone' => $data['tone'] ?? 'default',

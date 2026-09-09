@@ -47,24 +47,36 @@ class KandidatProfile extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function getFotoUrlAttribute(): ?string
+    public function getFotoUrlAttribute(): string
     {
-        return $this->foto_path && Storage::disk('public')->exists($this->foto_path)
-            ? Storage::disk('public')->url($this->foto_path)
-            : null;
+        if (empty($this->foto_path)) {
+            return asset('assets/images/user.png');
+        }
+
+        return str_starts_with($this->foto_path, 'http')
+            ? $this->foto_path
+            : asset('storage/' . $this->foto_path);
     }
 
     public function getCvUrlAttribute(): ?string
     {
-        return $this->cv_path && Storage::disk('public')->exists($this->cv_path)
-            ? Storage::disk('public')->url($this->cv_path)
-            : null;
+        if (empty($this->cv_path)) {
+            return null;
+        }
+
+        return str_starts_with($this->cv_path, 'http')
+            ? $this->cv_path
+            : asset('storage/' . $this->cv_path);
     }
 
     public function getSuratLamaranUrlAttribute(): ?string
     {
-        return $this->surat_lamaran_path && Storage::disk('public')->exists($this->surat_lamaran_path)
-            ? Storage::disk('public')->url($this->surat_lamaran_path)
-            : null;
+        if (empty($this->surat_lamaran_path)) {
+            return null;
+        }
+
+        return str_starts_with($this->surat_lamaran_path, 'http')
+            ? $this->surat_lamaran_path
+            : asset('storage/' . $this->surat_lamaran_path);
     }
 }

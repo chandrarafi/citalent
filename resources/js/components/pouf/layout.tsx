@@ -135,7 +135,7 @@ export function Sidebar({
   return (
     <aside
       className={cx(
-        'pouf-sidebar sticky top-4 lg:top-(--s8) flex flex-col gap-(--s3)',
+        'pouf-sidebar sticky top-4 sm:top-6 lg:top-8 max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3rem)] lg:max-h-[calc(100vh-4rem)] flex flex-col gap-(--s3) self-start',
         mobile === 'hide' ? 'max-[1024px]:hidden' : 'max-[1024px]:static',
         className,
       )}

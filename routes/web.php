@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FormulirLamaranController;
 use App\Http\Controllers\KandidatLowonganController;
 use App\Http\Controllers\KandidatProfileController;
@@ -37,9 +38,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 
 // ─── App ─────────────────────────────────────────────────────────────────────
 Route::middleware('auth')->group(function () {
-    Route::get('/', function () {
-        return Inertia::render('dashboard/Index');
-    })->name('dashboard');
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     // ─── Fitur Kandidat ──────────────────────────────────────────────────────
     Route::get('/kandidat/lowongan', [KandidatLowonganController::class, 'index'])->name('kandidat.lowongan');

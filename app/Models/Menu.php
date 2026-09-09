@@ -17,6 +17,7 @@ class Menu extends Model
     protected $fillable = [
         'name',
         'label',
+        'kelompok',
         'url',
         'icon',
         'tone',
@@ -54,7 +55,7 @@ class Menu extends Model
     /**
      * Get authorized menus for the given user, formatted for 1st-Pouf navigation.
      *
-     * @return array<int, array{href: string, label: string, icon: string, tone: string, name: string}>
+     * @return array<int, array{id: int, name: string, href: string, label: string, icon: string, tone: string, kelompok: ?string}>
      */
     public static function getAuthorizedMenusFor(?User $user): array
     {
@@ -74,6 +75,7 @@ class Menu extends Model
                     'label' => $m->label,
                     'icon' => $m->icon,
                     'tone' => $m->tone,
+                    'kelompok' => $m->kelompok,
                 ])
                 ->all();
         }
@@ -106,6 +108,7 @@ class Menu extends Model
                 'label' => $m->label,
                 'icon' => $m->icon,
                 'tone' => $m->tone,
+                'kelompok' => $m->kelompok,
             ])
             ->all();
     }
