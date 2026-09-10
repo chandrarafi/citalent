@@ -530,58 +530,45 @@ export default function CandidateSatisfactionIndex({
               </Text>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 my-auto py-1">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-auto">
               {contoh_komentar.map((item) => {
                 const styles = {
                   blue: {
-                    card: 'bg-[#EEF6FF] border-[#CDE2FE]',
-                    quote: 'text-[#2563EB]',
-                    author: 'text-slate-700',
-                    line: 'border-[#BFDBFE]/60',
+                    card: 'bg-blue-600/90 dark:bg-blue-700/85 border-blue-400/40 text-white',
+                    quote: 'text-blue-100 fill-blue-100/30',
+                    borderTop: 'border-white/20',
                   },
                   pink: {
-                    card: 'bg-[#FFF0F3] border-[#FDCED7]',
-                    quote: 'text-[#E11D48]',
-                    author: 'text-slate-700',
-                    line: 'border-[#FECDD3]/60',
+                    card: 'bg-rose-600/85 dark:bg-rose-700/80 border-rose-400/40 text-white',
+                    quote: 'text-pink-100 fill-pink-100/30',
+                    borderTop: 'border-white/20',
                   },
                   mint: {
-                    card: 'bg-[#EDFAF3] border-[#C3EED9]',
-                    quote: 'text-[#059669]',
-                    author: 'text-slate-700',
-                    line: 'border-[#A7F3D0]/60',
+                    card: 'bg-emerald-600/85 dark:bg-emerald-700/80 border-emerald-400/40 text-white',
+                    quote: 'text-emerald-100 fill-emerald-100/30',
+                    borderTop: 'border-white/20',
                   },
-                }[item.tone] || {
-                  card: 'bg-[#EEF6FF] border-[#CDE2FE]',
-                  quote: 'text-[#2563EB]',
-                  author: 'text-slate-700',
-                  line: 'border-[#BFDBFE]/60',
-                }
+                }[item.tone]
 
                 return (
                   <div
                     key={item.id}
-                    className={`p-4 rounded-2xl border ${styles.card} shadow-2xs flex flex-col justify-between hover:shadow-md hover:translate-y-[-2px] transition-all duration-200`}
+                    className={`p-3.5 rounded-2xl border ${styles.card} shadow-sm flex flex-col justify-between hover:translate-y-[-2px] transition-all duration-200`}
                   >
                     <div>
-                      {/* Typographic Double Quote Icon */}
-                      <svg
-                        className={`w-5 h-5 mb-2.5 ${styles.quote}`}
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
-                      </svg>
-                      <p className="text-xs text-slate-800 leading-relaxed font-medium">
+                      <div className="mb-2">
+                        <IconQuote size={24} className={styles.quote} />
+                      </div>
+                      <p className="text-xs text-white leading-relaxed font-medium">
                         &ldquo;{item.text}&rdquo;
                       </p>
                     </div>
 
-                    <div className={`mt-3.5 pt-2.5 border-t ${styles.line} flex items-center justify-between text-[11px]`}>
-                      <span className={`font-bold ${styles.author}`}>
+                    <div className={`mt-3 pt-2.5 border-t ${styles.borderTop} flex flex-col gap-0.5`}>
+                      <span className="text-[11px] font-bold text-white">
                         – {item.kandidat}
                       </span>
-                      <span className="text-slate-500 font-medium text-[10px]">
+                      <span className="text-[10px] text-white/80">
                         {item.tanggal}
                       </span>
                     </div>
