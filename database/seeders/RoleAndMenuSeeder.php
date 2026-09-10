@@ -41,6 +41,14 @@ class RoleAndMenuSeeder extends Seeder
             ]
         );
 
+        $hr = Role::firstOrCreate(
+            ['name' => 'hr'],
+            [
+                'label' => 'HR Staff',
+                'description' => 'Akses staf Human Resources untuk operasional rekrutmen.',
+            ]
+        );
+
         $kandidat = Role::firstOrCreate(
             ['name' => 'kandidat'],
             [
@@ -67,6 +75,8 @@ class RoleAndMenuSeeder extends Seeder
             ['name' => 'manage-permintaan-rekrutmen', 'label' => 'Kelola Permintaan Rekrutmen', 'group' => 'rekrutmen'],
             ['name' => 'manage-parameter-skill-test', 'label' => 'Kelola Parameter Skill Test', 'group' => 'rekrutmen'],
             ['name' => 'manage-penilaian-skill-test', 'label' => 'Penilaian Skill Test & Interview', 'group' => 'rekrutmen'],
+            ['name' => 'manage-candidate-satisfaction', 'label' => 'Kelola & Lihat Candidate Satisfaction', 'group' => 'rekrutmen'],
+            ['name' => 'fill-candidate-survey', 'label' => 'Mengisi Survey Kepuasan Kandidat', 'group' => 'kandidat'],
             ['name' => 'view-lowongan-kandidat', 'label' => 'Lihat Lowongan Kerja Kandidat', 'group' => 'kandidat'],
             ['name' => 'apply-lowongan-kandidat', 'label' => 'Lamar Lowongan Kerja', 'group' => 'kandidat'],
         ];
@@ -89,6 +99,18 @@ class RoleAndMenuSeeder extends Seeder
             $permissionModels['manage-permintaan-rekrutmen']->id,
             $permissionModels['manage-parameter-skill-test']->id,
             $permissionModels['manage-penilaian-skill-test']->id,
+            $permissionModels['manage-candidate-satisfaction']->id,
+            $permissionModels['fill-candidate-survey']->id,
+        ]);
+
+        // Attach permissions to hr
+        $hr->permissions()->sync([
+            $permissionModels['view-dashboard']->id,
+            $permissionModels['manage-permintaan-rekrutmen']->id,
+            $permissionModels['manage-parameter-skill-test']->id,
+            $permissionModels['manage-penilaian-skill-test']->id,
+            $permissionModels['manage-candidate-satisfaction']->id,
+            $permissionModels['fill-candidate-survey']->id,
         ]);
 
         // Attach penguji permissions
@@ -106,6 +128,7 @@ class RoleAndMenuSeeder extends Seeder
         $kandidat->permissions()->sync([
             $permissionModels['view-lowongan-kandidat']->id,
             $permissionModels['apply-lowongan-kandidat']->id,
+            $permissionModels['fill-candidate-survey']->id,
         ]);
 
         // 3. Create Menus
@@ -151,13 +174,23 @@ class RoleAndMenuSeeder extends Seeder
                 'permission_name' => 'manage-permintaan-rekrutmen',
             ],
             [
+                'name' => 'penjadwalan-interview',
+                'label' => 'Penjadwalan Interview',
+                'kelompok' => 'Rekrutmen & Seleksi',
+                'url' => '/penjadwalan-interview',
+                'icon' => 'calendar',
+                'tone' => 'blue',
+                'order' => 5,
+                'permission_name' => 'manage-permintaan-rekrutmen',
+            ],
+            [
                 'name' => 'parameter-skill-test',
                 'label' => 'Parameter Skill Test',
                 'kelompok' => 'Rekrutmen & Seleksi',
                 'url' => '/parameter-skill-test',
                 'icon' => 'target',
                 'tone' => 'purple',
-                'order' => 5,
+                'order' => 6,
                 'permission_name' => 'manage-parameter-skill-test',
             ],
             [
@@ -167,8 +200,18 @@ class RoleAndMenuSeeder extends Seeder
                 'url' => '/penilaian-skill-test',
                 'icon' => 'overview',
                 'tone' => 'mint',
-                'order' => 6,
+                'order' => 7,
                 'permission_name' => 'manage-penilaian-skill-test',
+            ],
+            [
+                'name' => 'candidate-satisfaction',
+                'label' => 'Candidate Satisfaction',
+                'kelompok' => 'Rekrutmen & Seleksi',
+                'url' => '/candidate-satisfaction',
+                'icon' => 'star',
+                'tone' => 'purple',
+                'order' => 8,
+                'permission_name' => 'manage-candidate-satisfaction',
             ],
             [
                 'name' => 'users',
@@ -229,6 +272,16 @@ class RoleAndMenuSeeder extends Seeder
                 'tone' => 'blue',
                 'order' => 3,
                 'permission_name' => 'view-lowongan-kandidat',
+            ],
+            [
+                'name' => 'kandidat-survey',
+                'label' => 'Survey Kepuasan',
+                'kelompok' => 'Portal Kandidat',
+                'url' => '/kandidat/survey',
+                'icon' => 'star',
+                'tone' => 'yellow',
+                'order' => 4,
+                'permission_name' => 'fill-candidate-survey',
             ],
         ];
 

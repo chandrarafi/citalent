@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\DetailPenilaianSkillTest;
 use App\Models\Lowongan;
 use App\Models\Pelamar;
+use App\Models\PenjadwalanInterview;
 use App\Models\PenilaianSkillTest;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -279,37 +280,65 @@ class DashboardController extends Controller
         }
 
         // ─── 10. Jadwal Interview Hari Ini ───────────────────────────────────
-        $interviewPelamars = Pelamar::whereIn('status', ['interview_hr', 'interview_user', 'skill_test'])
-            ->orderBy('id', 'desc')
-            ->take(4)
+        $realSchedules = PenjadwalanInterview::with(['pelamar.lowongan', 'lowongan'])
+            ->whereDate('tanggal_interview', '>=', today())
+            ->whereIn('status_kehadiran', ['scheduled', 'reschedule', 'hadir'])
+            ->orderBy('tanggal_interview', 'asc')
+            ->orderBy('jam_mulai', 'asc')
+            ->take(5)
             ->get();
 
-        $times = ['08.00', '10.00', '13.00', '15.00'];
         $jadwalInterview = [];
 
-        if ($interviewPelamars->isNotEmpty()) {
-            foreach ($interviewPelamars as $i => $p) {
-                $stageLabels = [
-                    'interview_hr' => 'Interview HR',
-                    'interview_user' => 'Interview User',
-                    'skill_test' => 'Skill Test',
-                ];
+        if ($realSchedules->isNotEmpty()) {
+            foreach ($realSchedules as $s) {
+                $p = $s->pelamar;
                 $jadwalInterview[] = [
-                    'id' => $p->id,
-                    'jam' => $times[$i % count($times)],
-                    'nama' => $p->nama_lengkap,
-                    'posisi' => $p->posisi_dilamar ?: 'Staff',
-                    'tahap' => $stageLabels[$p->status] ?? 'Interview',
-                    'avatar' => $p->foto_url,
+                    'id' => $s->id,
+                    'pelamar_id' => $s->pelamar_id,
+                    'jam' => $s->jam_mulai,
+                    'nama' => $p?->nama_lengkap ?? 'Kandidat',
+                    'posisi' => $p?->posisi_dilamar ?: ($s->lowongan?->judul ?? 'Lowongan'),
+                    'tahap' => $s->tahap_label,
+                    'tipe' => $s->tipe_interview,
+                    'avatar' => $p?->foto_url ?? asset('assets/images/user.png'),
                 ];
             }
         } else {
-            $jadwalInterview = [
-                ['id' => 1, 'jam' => '08.00', 'nama' => 'Ahmad Rizky', 'posisi' => 'IT Programmer', 'tahap' => 'Interview HR', 'avatar' => asset('assets/images/user.png')],
-                ['id' => 2, 'jam' => '10.00', 'nama' => 'Nadia Putri', 'posisi' => 'Marketing SPV', 'tahap' => 'Interview User', 'avatar' => asset('assets/images/user.png')],
-                ['id' => 3, 'jam' => '13.00', 'nama' => 'Dimas Saputra', 'posisi' => 'Service Advisor', 'tahap' => 'Interview HR', 'avatar' => asset('assets/images/user.png')],
-                ['id' => 4, 'jam' => '15.00', 'nama' => 'Laily Rahma', 'posisi' => 'Admin Dealer', 'tahap' => 'Interview User', 'avatar' => asset('assets/images/user.png')],
-            ];
+            // Fallback to active candidates in interview stages if no schedule is set yet
+            $interviewPelamars = Pelamar::whereIn('status', ['interview_hr', 'interview_user', 'interview_gm'])
+                ->orderBy('id', 'desc')
+                ->take(4)
+                ->get();
+
+            $times = ['08.00', '10.00', '13.00', '15.00'];
+
+            if ($interviewPelamars->isNotEmpty()) {
+                foreach ($interviewPelamars as $i => $p) {
+                    $stageLabels = [
+                        'interview_hr' => 'Interview HR',
+                        'interview_user' => 'Interview User',
+                        'interview_gm' => 'Interview GM',
+                    ];
+                    $jadwalInterview[] = [
+                        'id' => $p->id,
+                        'pelamar_id' => $p->id,
+                        'jam' => $times[$i % count($times)],
+                        'nama' => $p->nama_lengkap,
+                        'posisi' => $p->posisi_dilamar ?: 'Staff',
+                        'tahap' => $stageLabels[$p->status] ?? 'Interview',
+                        'tipe' => 'offline',
+                        'avatar' => $p->foto_url ?? asset('assets/images/user.png'),
+                    ];
+                }
+            } else {
+                $jadwalInterview = [
+                    ['id' => 1, 'pelamar_id' => 1, 'jam' => '08.00', 'nama' => 'Ahmad Rizky', 'posisi' => 'IT Programmer', 'tahap' => 'Interview HR', 'tipe' => 'online', 'avatar' => asset('assets/images/user.png')],
+                    ['id' => 2, 'pelamar_id' => 2, 'jam' => '10.00', 'nama' => 'Nadia Putri', 'posisi' => 'Marketing SPV', 'tahap' => 'Interview User', 'tipe' => 'offline', 'avatar' => asset('assets/images/user.png')],
+                    ['id' => 3, 'pelamar_id' => 3, 'jam' => '13.00', 'nama' => 'Dimas Saputra', 'posisi' => 'Service Advisor', 'tahap' => 'Interview HR', 'tipe' => 'offline', 'avatar' => asset('assets/images/user.png')],
+                    ['id' => 4, 'pelamar_id' => 4, 'jam' => '15.00', 'nama' => 'Laily Rahma', 'posisi' => 'Admin Dealer', 'tahap' => 'Interview GM', 'tipe' => 'online', 'avatar' => asset('assets/images/user.png')],
+                ];
+            }
         }
 
         return Inertia::render('dashboard/Index', [

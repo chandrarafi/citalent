@@ -69,13 +69,6 @@
   --r-blob: var(--radius-blob);
   --r-pill: var(--radius-pill);
 
-html,
-body {
-  font-family: var(--font-pouf);
-  background-color: var(--color-bg);
-  color: var(--color-ink);
-}
-
   /* -- Ink that sits ON a pastel accent fill (a solid Button, a Badge, a Blob,
    *    an active NavLink) rather than on the page.
    *

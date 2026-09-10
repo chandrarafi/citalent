@@ -88,6 +88,7 @@ class PelamarController extends Controller
             'lowongan.jabatan',
             'formulirLamaran',
             'latestPenilaianSkillTest.penguji',
+            'penjadwalanInterviews.creator',
         ]);
 
         return Inertia::render('pelamar/Show', [
@@ -135,6 +136,23 @@ class PelamarController extends Controller
                     'tanggal_test' => $pelamar->latestPenilaianSkillTest->tanggal_test ? $pelamar->latestPenilaianSkillTest->tanggal_test->isoFormat('D MMMM Y') : null,
                     'nama_penguji' => $pelamar->latestPenilaianSkillTest->nama_penguji ?: ($pelamar->latestPenilaianSkillTest->penguji?->name ?? 'Penguji'),
                 ] : null,
+                'penjadwalan_interviews' => $pelamar->penjadwalanInterviews->map(fn ($s) => [
+                    'id' => $s->id,
+                    'tahap' => $s->tahap,
+                    'tahap_label' => $s->tahap_label,
+                    'tanggal_interview' => $s->tanggal_interview?->format('Y-m-d'),
+                    'tanggal_formatted' => $s->tanggal_interview ? \Carbon\Carbon::parse($s->tanggal_interview)->locale('id')->isoFormat('dddd, D MMMM Y') : '-',
+                    'jam_mulai' => $s->jam_mulai,
+                    'jam_selesai' => $s->jam_selesai,
+                    'waktu_formatted' => $s->jam_mulai . ($s->jam_selesai ? " - {$s->jam_selesai} WIB" : ' WIB'),
+                    'tipe_interview' => $s->tipe_interview,
+                    'lokasi' => $s->lokasi,
+                    'link_meeting' => $s->link_meeting,
+                    'pewawancara_nama' => $s->pewawancara_nama,
+                    'catatan_untuk_kandidat' => $s->catatan_untuk_kandidat,
+                    'status_kehadiran' => $s->status_kehadiran,
+                    'reminder_sent_at' => $s->reminder_sent_at ? \Carbon\Carbon::parse($s->reminder_sent_at)->locale('id')->isoFormat('D MMM Y, HH:mm') : null,
+                ]),
                 'created_at' => $pelamar->created_at ? $pelamar->created_at->format('Y-m-d H:i') : null,
             ],
         ]);

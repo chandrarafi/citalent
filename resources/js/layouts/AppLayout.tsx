@@ -93,6 +93,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       { href: '/kandidat/lowongan', label: 'Lowongan Kerja', icon: 'target', tone: 'purple', kelompok: 'Portal Kandidat' },
       { href: '/kandidat/profil', label: 'Profil Biodata', icon: 'users', tone: 'mint', kelompok: 'Portal Kandidat' },
       { href: '/kandidat/lamaran', label: 'Riwayat Lamaran', icon: 'log', tone: 'blue', kelompok: 'Portal Kandidat' },
+      { href: '/kandidat/survey', label: 'Survey Kepuasan', icon: 'star', tone: 'yellow', kelompok: 'Portal Kandidat' },
     )
   }
 

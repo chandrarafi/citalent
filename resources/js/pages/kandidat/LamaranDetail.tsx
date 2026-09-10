@@ -15,8 +15,32 @@ import {
   IconAlertCircle,
   IconAward,
   IconFileText,
-
+  IconCalendarEvent,
+  IconVideo,
+  IconMapPin,
+  IconClock,
+  IconExternalLink,
+  IconInfoCircle,
+  IconStar,
+  IconArrowRight,
 } from '@tabler/icons-react'
+
+interface InterviewScheduleInfo {
+  id: number
+  tahap: string
+  tahap_label: string
+  tanggal_interview: string
+  tanggal_formatted: string
+  jam_mulai: string
+  jam_selesai?: string | null
+  waktu_formatted: string
+  tipe_interview: 'online' | 'offline'
+  lokasi?: string | null
+  link_meeting?: string | null
+  pewawancara_nama?: string | null
+  catatan_untuk_kandidat?: string | null
+  status_kehadiran: string
+}
 
 interface ApplicationDetail {
   id: number
@@ -52,6 +76,7 @@ interface ApplicationDetail {
   applied_at: string
   formulir_submitted?: boolean
   has_formulir?: boolean
+  interview_schedules?: InterviewScheduleInfo[]
   lowongan?: {
     id: number
     kode_lowongan: string
@@ -245,6 +270,33 @@ export default function LamaranDetail({ application }: Props) {
             </div>
           )}
 
+          {/* Candidate Satisfaction Survey Banner */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-blue-50 via-indigo-50/50 to-white dark:bg-black/20 border border-blue-200/70 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <IconStar size={20} className="fill-white" />
+              </div>
+              <div className="min-w-0">
+                <span className="font-black text-sm text-[var(--color-ink)] block">
+                  Survey Kepuasan Proses Rekrutmen
+                </span>
+                <p className="text-xs text-muted mt-0.5 leading-relaxed">
+                  Bantu kami meningkatkan kualitas seleksi kandidat dengan mengisi survey kepuasan singkat (±1 menit).
+                </p>
+              </div>
+            </div>
+
+            <Button
+              tone="blue"
+              size="sm"
+              onClick={() => router.visit('/kandidat/survey')}
+              className="shrink-0 font-bold gap-1.5 shadow-xs"
+            >
+              <span>Isi Survey Sekarang</span>
+              <IconArrowRight size={14} />
+            </Button>
+          </div>
+
           {/* 2. Timeline Tahapan Rekrutmen (Vertical Stepper Style - identical to Admin) */}
           <Card>
             <Stack gap={4}>
@@ -290,6 +342,104 @@ export default function LamaranDetail({ application }: Props) {
                 </div>
               )}
 
+              {/* Active Upcoming Interview Banner for Candidate */}
+              {(() => {
+                const upcomingSchedule = application.interview_schedules?.find(
+                  (s) => s.status_kehadiran === 'scheduled' || s.status_kehadiran === 'rescheduled'
+                )
+                if (!upcomingSchedule) return null
+
+                return (
+                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-purple-50 via-indigo-50/50 to-white border border-purple-200 shadow-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-purple-100">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <IconCalendarEvent size={20} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-sm sm:text-base text-purple-950">
+                              Undangan {upcomingSchedule.tahap_label}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                              {upcomingSchedule.tipe_interview === 'online' ? 'Online Meeting' : 'Tatap Muka'}
+                            </span>
+                          </div>
+                          <span className="text-xs text-purple-700">
+                            Jadwal wawancara Anda telah ditentukan oleh tim rekrutmen.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 text-xs">
+                      <div className="p-3 rounded-xl bg-white border border-purple-100 flex items-start gap-2.5">
+                        <IconClock size={18} className="text-purple-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="text-slate-500 block text-[11px]">Waktu Wawancara</span>
+                          <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                            {upcomingSchedule.tanggal_formatted}
+                          </span>
+                          <span className="block text-purple-700 font-semibold mt-0.5">
+                            Pukul {upcomingSchedule.waktu_formatted}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-white border border-purple-100 flex items-start gap-2.5">
+                        {upcomingSchedule.tipe_interview === 'online' ? (
+                          <IconVideo size={18} className="text-blue-600 shrink-0 mt-0.5" />
+                        ) : (
+                          <IconMapPin size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <span className="text-slate-500 block text-[11px]">
+                            {upcomingSchedule.tipe_interview === 'online' ? 'Media Pertemuan' : 'Lokasi Wawancara'}
+                          </span>
+                          {upcomingSchedule.tipe_interview === 'online' ? (
+                            <div>
+                              <span className="font-semibold text-slate-800 block">Online Video Call</span>
+                              {upcomingSchedule.link_meeting && (
+                                <a
+                                  href={upcomingSchedule.link_meeting}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1.5 mt-1 px-3 py-1 rounded-lg bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 transition shadow-xs"
+                                >
+                                  <span>Masuk Google Meet / Zoom</span>
+                                  <IconExternalLink size={14} />
+                                </a>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="font-semibold text-slate-900 block mt-0.5">
+                              {upcomingSchedule.lokasi || 'Kantor Pusat'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {(upcomingSchedule.pewawancara_nama || upcomingSchedule.catatan_untuk_kandidat) && (
+                      <div className="mt-3 p-3 rounded-xl bg-purple-100/40 border border-purple-100 text-xs text-purple-950 space-y-1">
+                        {upcomingSchedule.pewawancara_nama && (
+                          <div>
+                            <span className="text-purple-700">Pewawancara: </span>
+                            <span className="font-semibold">{upcomingSchedule.pewawancara_nama}</span>
+                          </div>
+                        )}
+                        {upcomingSchedule.catatan_untuk_kandidat && (
+                          <div>
+                            <span className="text-purple-700">Catatan / Panduan: </span>
+                            <span>{upcomingSchedule.catatan_untuk_kandidat}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
               {/* Vertical Stepper List */}
               <div className="py-2 pl-2 sm:pl-4">
                 <div className="flex flex-col">
@@ -318,6 +468,9 @@ export default function LamaranDetail({ application }: Props) {
 
                     const isFormulirStep = stage.key === 'lengkapi_formulir'
                     const canClickForm = isFormulirStep && (stepState === 'current' || stepState === 'completed' || application.has_formulir)
+                    const stageInterviewSchedule = application.interview_schedules?.find(
+                      (s) => s.tahap === stage.key
+                    )
 
                     return (
                       <div key={stage.key} className="relative flex items-start gap-4 pb-7 last:pb-0">
@@ -406,6 +559,56 @@ export default function LamaranDetail({ application }: Props) {
                                   ? 'Lihat Formulir Lamaran'
                                   : 'Isi Formulir Lamaran Kerja'}
                               </Button>
+                            </div>
+                          )}
+
+                          {/* Interview Schedule Details on Stage */}
+                          {stageInterviewSchedule && (
+                            <div className="mt-2.5 p-3 rounded-xl bg-purple-50/60 border border-purple-200 text-xs space-y-2">
+                              <div className="flex items-center gap-1.5 font-bold text-purple-950">
+                                <IconCalendarEvent size={15} className="text-purple-600" />
+                                <span>{stageInterviewSchedule.tanggal_formatted}</span>
+                                <span className="text-slate-400">•</span>
+                                <IconClock size={14} className="text-slate-400" />
+                                <span>{stageInterviewSchedule.waktu_formatted}</span>
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-2">
+                                {stageInterviewSchedule.tipe_interview === 'online' ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="px-1.5 py-0.5 rounded text-[11px] font-semibold bg-blue-100 text-blue-800 border border-blue-200">
+                                      Online Video Call
+                                    </span>
+                                    {stageInterviewSchedule.link_meeting && (
+                                      <a
+                                        href={stageInterviewSchedule.link_meeting}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1 text-blue-600 font-bold hover:underline"
+                                      >
+                                        Buka Google Meet / Zoom <IconExternalLink size={12} />
+                                      </a>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1 text-slate-700">
+                                    <IconMapPin size={13} className="text-emerald-600" />
+                                    <span>Lokasi: {stageInterviewSchedule.lokasi || 'Kantor Pusat'}</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {stageInterviewSchedule.pewawancara_nama && (
+                                <div className="text-slate-600">
+                                  Pewawancara: <span className="font-semibold text-slate-800">{stageInterviewSchedule.pewawancara_nama}</span>
+                                </div>
+                              )}
+
+                              {stageInterviewSchedule.catatan_untuk_kandidat && (
+                                <div className="text-slate-600 pt-1 border-t border-purple-100">
+                                  <b>Catatan:</b> {stageInterviewSchedule.catatan_untuk_kandidat}
+                                </div>
+                              )}
                             </div>
                           )}
 

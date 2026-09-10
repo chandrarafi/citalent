@@ -91,6 +91,16 @@ class Pelamar extends Model
         return $this->hasOne(PenilaianSkillTest::class, 'pelamar_id', 'id')->latestOfMany();
     }
 
+    public function penjadwalanInterviews()
+    {
+        return $this->hasMany(PenjadwalanInterview::class, 'pelamar_id', 'id')->orderByDesc('tanggal_interview');
+    }
+
+    public function latestInterviewSchedule()
+    {
+        return $this->hasOne(PenjadwalanInterview::class, 'pelamar_id', 'id')->latestOfMany('tanggal_interview');
+    }
+
     /**
      * Get the effective failed stage if rejected.
      */

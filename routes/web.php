@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\CandidateSatisfactionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FormulirLamaranController;
 use App\Http\Controllers\KandidatLowonganController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\KandidatProfileController;
 use App\Http\Controllers\LowonganController;
 use App\Http\Controllers\ParameterSkillTestController;
 use App\Http\Controllers\PelamarController;
+use App\Http\Controllers\PenjadwalanInterviewController;
 use App\Http\Controllers\PenilaianSkillTestController;
 use App\Http\Controllers\PermintaanRekrutmenController;
 use App\Http\Controllers\PublicJobController;
@@ -183,6 +185,39 @@ Route::middleware('auth')->group(function () {
             ->middleware("permission:{$permString}");
     }
 
+    // ─── Penjadwalan Interview (HR, User, GM) ──────────────────────────────
+    Route::get('/penjadwalan-interview', [PenjadwalanInterviewController::class, 'index'])
+        ->name('penjadwalan-interview.index')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::get('/penjadwalan-interview/create', [PenjadwalanInterviewController::class, 'create'])
+        ->name('penjadwalan-interview.create')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::post('/penjadwalan-interview', [PenjadwalanInterviewController::class, 'store'])
+        ->name('penjadwalan-interview.store')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::get('/penjadwalan-interview/{penjadwalanInterview}/edit', [PenjadwalanInterviewController::class, 'edit'])
+        ->name('penjadwalan-interview.edit')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::put('/penjadwalan-interview/{penjadwalanInterview}', [PenjadwalanInterviewController::class, 'update'])
+        ->name('penjadwalan-interview.update')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::put('/penjadwalan-interview/{penjadwalanInterview}/status', [PenjadwalanInterviewController::class, 'updateStatus'])
+        ->name('penjadwalan-interview.update-status')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::post('/penjadwalan-interview/{penjadwalanInterview}/send-reminder', [PenjadwalanInterviewController::class, 'sendReminder'])
+        ->name('penjadwalan-interview.send-reminder')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::delete('/penjadwalan-interview/{penjadwalanInterview}', [PenjadwalanInterviewController::class, 'destroy'])
+        ->name('penjadwalan-interview.destroy')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
     // ─── Manajemen Pelamar / Kandidat ────────────────────────────────────────
     Route::get('/pelamar', [PelamarController::class, 'index'])
         ->name('pelamar.index')
@@ -211,6 +246,27 @@ Route::middleware('auth')->group(function () {
     Route::delete('/pelamar/{pelamar}', [PelamarController::class, 'destroy'])
         ->name('pelamar.destroy')
         ->middleware('permission:manage-permintaan-rekrutmen');
+
+    // ─── Candidate Satisfaction Analytics & Survey ──────────────────────────
+    Route::get('/candidate-satisfaction', [CandidateSatisfactionController::class, 'index'])
+        ->name('candidate-satisfaction.index')
+        ->middleware('permission:manage-candidate-satisfaction');
+
+    Route::get('/candidate-satisfaction/export', [CandidateSatisfactionController::class, 'export'])
+        ->name('candidate-satisfaction.export')
+        ->middleware('permission:manage-candidate-satisfaction');
+
+    Route::get('/kandidat/survey', [CandidateSatisfactionController::class, 'survey'])
+        ->name('candidate-survey.index');
+
+    Route::post('/kandidat/survey', [CandidateSatisfactionController::class, 'store'])
+        ->name('candidate-survey.store');
+
+    // Public / Direct survey link alias
+    Route::get('/survey-kepuasan', [CandidateSatisfactionController::class, 'survey'])
+        ->name('candidate-survey.public');
+    Route::post('/survey-kepuasan', [CandidateSatisfactionController::class, 'store'])
+        ->name('candidate-survey.public.store');
 
     // ─── Admin ───────────────────────────────────────────────────────────────
     Route::middleware('role:super-admin')->prefix('admin')->name('admin.')->group(function () {

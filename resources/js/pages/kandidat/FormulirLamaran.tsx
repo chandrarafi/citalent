@@ -1029,7 +1029,7 @@ export default function FormulirLamaran({ pelamar, initialForm, isSubmitted, isA
                                   className="w-full px-2 py-1 text-xs rounded border border-slate-200 focus:outline-none focus:border-purple-500 disabled:bg-slate-50"
                                   value={row.nama_perusahaan || ''}
                                   onChange={(e) => updateRowItem('pengalaman_kerja', idx, 'nama_perusahaan', e.target.value)}
-                                  placeholder="PT. Contoh Indonesia"
+                                  placeholder="PT. Menara Agung"
                                 />
                               </td>
                               <td className="p-2">

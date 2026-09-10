@@ -280,7 +280,7 @@ class KandidatLowonganController extends Controller
             abort(403, 'Akses ditolak.');
         }
 
-        $pelamar->load(['lowongan.departement', 'lowongan.jabatan', 'lowongan.permintaanRekrutmen', 'formulirLamaran', 'penilaianSkillTests']);
+        $pelamar->load(['lowongan.departement', 'lowongan.jabatan', 'lowongan.permintaanRekrutmen', 'formulirLamaran', 'penilaianSkillTests', 'penjadwalanInterviews']);
 
         // Auto-advance status if candidate already submitted formulir
         if ($pelamar->formulirLamaran?->is_submitted && in_array($pelamar->status, ['submitted', 'screening_cv', 'review', 'lengkapi_formulir'])) {
@@ -343,6 +343,22 @@ class KandidatLowonganController extends Controller
             'applied_at' => $pelamar->created_at ? $pelamar->created_at->isoFormat('D MMMM Y, HH:mm') : null,
             'formulir_submitted' => (bool) $pelamar->formulirLamaran?->is_submitted,
             'has_formulir' => (bool) $pelamar->formulirLamaran,
+            'interview_schedules' => $pelamar->penjadwalanInterviews->map(fn ($s) => [
+                'id' => $s->id,
+                'tahap' => $s->tahap,
+                'tahap_label' => $s->tahap_label,
+                'tanggal_interview' => $s->tanggal_interview?->format('Y-m-d'),
+                'tanggal_formatted' => $s->tanggal_interview ? \Carbon\Carbon::parse($s->tanggal_interview)->locale('id')->isoFormat('dddd, D MMMM Y') : '-',
+                'jam_mulai' => $s->jam_mulai,
+                'jam_selesai' => $s->jam_selesai,
+                'waktu_formatted' => $s->jam_mulai . ($s->jam_selesai ? " - {$s->jam_selesai} WIB" : ' WIB'),
+                'tipe_interview' => $s->tipe_interview,
+                'lokasi' => $s->lokasi,
+                'link_meeting' => $s->link_meeting,
+                'pewawancara_nama' => $s->pewawancara_nama,
+                'catatan_untuk_kandidat' => $s->catatan_untuk_kandidat,
+                'status_kehadiran' => $s->status_kehadiran,
+            ]),
             'lowongan' => $pelamar->lowongan ? [
                 'id' => $pelamar->lowongan->id,
                 'kode_lowongan' => $pelamar->lowongan->kode_lowongan,

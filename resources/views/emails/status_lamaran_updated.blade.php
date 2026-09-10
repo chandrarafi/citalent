@@ -1,391 +1,114 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pemberitahuan Status Lamaran Kerja</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
-            margin: 0;
-            padding: 28px 12px;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .wrapper {
-            max-width: 580px;
-            margin: 0 auto;
-            background: #ffffff;
-            border-radius: 16px;
-            overflow: hidden;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
-        }
-
-        .header {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            padding: 32px 28px;
-            text-align: center;
-        }
-
-        .header h1 {
-            color: #ffffff;
-            margin: 0;
-            font-size: 24px;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-        }
-
-        .header p {
-            color: #94a3b8;
-            margin: 6px 0 0 0;
-            font-size: 13px;
-            font-weight: 500;
-            letter-spacing: 0.3px;
-        }
-
-        .content {
-            padding: 36px 30px;
-        }
-
-        .greeting {
-            font-size: 17px;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 12px;
-        }
-
-        .lead-text {
-            font-size: 14px;
-            color: #475569;
-            line-height: 1.65;
-            margin-bottom: 24px;
-        }
-
-        .info-card {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 18px 20px;
-            margin-bottom: 24px;
-        }
-
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
-            font-size: 13px;
-            border-bottom: 1px dashed #e2e8f0;
-        }
-
-        .info-row:last-child {
-            border-bottom: none;
-            padding-bottom: 0;
-        }
-
-        .info-row:first-child {
-            padding-top: 0;
-        }
-
-        .info-label {
-            color: #64748b;
-            font-weight: 500;
-        }
-
-        .info-value {
-            color: #0f172a;
-            font-weight: 600;
-            text-align: right;
-        }
-
-        /* Status Banner: Lolos / Berhasil */
-        .status-banner-success {
-            background: #ecfdf5;
-            border: 1px solid #a7f3d0;
-            border-radius: 12px;
-            padding: 22px;
-            margin: 24px 0;
-        }
-
-        .badge-success {
-            display: inline-block;
-            background: #10b981;
-            color: #ffffff;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            padding: 4px 10px;
-            border-radius: 9999px;
-            margin-bottom: 10px;
-        }
-
-        .status-title-success {
-            font-size: 16px;
-            font-weight: 700;
-            color: #065f46;
-            margin: 0 0 8px 0;
-        }
-
-        .status-desc-success {
-            font-size: 13px;
-            color: #047857;
-            line-height: 1.6;
-            margin: 0;
-        }
-
-        /* Status Banner: Ditolak / Gagal */
-        .status-banner-rejected {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            border-radius: 12px;
-            padding: 22px;
-            margin: 24px 0;
-        }
-
-        .badge-rejected {
-            display: inline-block;
-            background: #ef4444;
-            color: #ffffff;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            padding: 4px 10px;
-            border-radius: 9999px;
-            margin-bottom: 10px;
-        }
-
-        .status-title-rejected {
-            font-size: 16px;
-            font-weight: 700;
-            color: #991b1b;
-            margin: 0 0 8px 0;
-        }
-
-        .status-desc-rejected {
-            font-size: 13px;
-            color: #b91c1c;
-            line-height: 1.6;
-            margin: 0;
-        }
-
-        /* Status Banner: Netral / Default */
-        .status-banner-neutral {
-            background: #eff6ff;
-            border: 1px solid #bfdbfe;
-            border-radius: 12px;
-            padding: 22px;
-            margin: 24px 0;
-        }
-
-        .badge-neutral {
-            display: inline-block;
-            background: #3b82f6;
-            color: #ffffff;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            padding: 4px 10px;
-            border-radius: 9999px;
-            margin-bottom: 10px;
-        }
-
-        .status-title-neutral {
-            font-size: 16px;
-            font-weight: 700;
-            color: #1e40af;
-            margin: 0 0 8px 0;
-        }
-
-        .status-desc-neutral {
-            font-size: 13px;
-            color: #1d4ed8;
-            line-height: 1.6;
-            margin: 0;
-        }
-
-        .catatan-box {
-            background: #fffbeb;
-            border: 1px solid #fef3c7;
-            border-left: 4px solid #f59e0b;
-            border-radius: 8px;
-            padding: 14px 16px;
-            margin: 20px 0;
-            font-size: 13px;
-            color: #92400e;
-            line-height: 1.5;
-        }
-
-        .catatan-title {
-            font-weight: 700;
-            margin-bottom: 4px;
-            color: #78350f;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn-wrapper {
-            text-align: center;
-            margin: 32px 0 16px 0;
-        }
-
-        .btn {
-            display: inline-block;
-            background: #0284c7;
-            color: #ffffff !important;
-            text-decoration: none;
-            padding: 12px 28px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.3);
-        }
-
-        .btn:hover {
-            background: #0369a1;
-        }
-
-        .footer {
-            background: #f8fafc;
-            border-top: 1px solid #e2e8f0;
-            padding: 20px 24px;
-            text-align: center;
-            font-size: 12px;
-            color: #94a3b8;
-            line-height: 1.5;
-        }
-
-        .footer p {
-            margin: 4px 0;
-        }
-    </style>
+    <title>Pemberitahuan Status Seleksi Rekrutmen</title>
 </head>
-
-<body>
-    <div class="wrapper">
-        <div class="header">
-            <h1>{{ config('app.name', 'Citalent') }}</h1>
-            <p>Pemberitahuan Rekrutmen & Seleksi</p>
-        </div>
-
-        <div class="content">
-            <div class="greeting">Halo, {{ $pelamar->nama_lengkap }}</div>
-
-            <p class="lead-text">
-                Terima kasih atas partisipasi dan dedikasi Anda dalam mengikuti proses seleksi penerimaan karyawan di <strong>{{ config('app.name', 'Citalent') }}</strong>.
-            </p>
-
-            <div class="info-card">
-                <table style="width: 100%; border-collapse: collapse;">
+<body style="margin: 0; padding: 20px; background-color: #f9f9f9; font-family: Arial, Helvetica, sans-serif; color: #222222; font-size: 14px; line-height: 1.6;">
+    <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border: 1px solid #dddddd; border-radius: 4px; padding: 30px;">
+        <!-- Kop Perusahaan -->
+        <tr>
+            <td style="border-bottom: 2px solid #333333; padding-bottom: 15px;">
+                <table width="100%" border="0" cellpadding="0" cellspacing="0">
                     <tr>
-                        <td style="padding: 4px 0; font-size: 13px; color: #64748b; font-weight: 500;">No. Pendaftaran</td>
-                        <td style="padding: 4px 0; font-size: 13px; color: #0f172a; font-weight: 700; text-align: right;">{{ $pelamar->no_pendaftaran }}</td>
+                        <td>
+                            <div style="font-size: 18px; font-weight: bold; color: #111111; text-transform: uppercase; letter-spacing: 0.5px;">
+                                {{ config('app.name', 'PT. Menara Agung') }}
+                            </div>
+                            <div style="font-size: 12px; color: #666666; margin-top: 2px;">
+                                Divisi Human Capital &amp; Recruitment
+                            </div>
+                        </td>
+                        <td align="right" style="font-size: 12px; color: #666666; vertical-align: bottom;">
+                            {{ date('d F Y') }}
+                        </td>
                     </tr>
-                    <tr>
-                        <td style="padding: 4px 0; font-size: 13px; color: #64748b; font-weight: 500;">Posisi Dilamar</td>
-                        <td style="padding: 4px 0; font-size: 13px; color: #0f172a; font-weight: 600; text-align: right;">{{ $pelamar->posisi_dilamar ?: ($pelamar->lowongan?->judul ?? '-') }}</td>
-                    </tr>
-                    @if($pelamar->lowongan?->departement?->deskripsi)
-                    <tr>
-                        <td style="padding: 4px 0; font-size: 13px; color: #64748b; font-weight: 500;">Departemen</td>
-                        <td style="padding: 4px 0; font-size: 13px; color: #0f172a; font-weight: 600; text-align: right;">{{ $pelamar->lowongan->departement->deskripsi }}</td>
-                    </tr>
-                    @endif
                 </table>
-            </div>
+            </td>
+        </tr>
 
-            @if($status === 'rejected')
-            <!-- Status: Ditolak / Tidak Lolos -->
-            <div class="status-banner-rejected">
-                <span class="badge-rejected">Informasi Hasil Seleksi</span>
-                <h3 class="status-title-rejected">Status: Belum Berhasil Melanjutkan</h3>
-                <p class="status-desc-rejected">
-                    Setelah melakukan evaluasi menyeluruh terhadap hasil tes dan kualifikasi yang dipersyaratkan, kami menginformasikan bahwa saat ini kami belum dapat melanjutkan proses lamaran Anda ke tahapan berikutnya.
+        <!-- Isi Surat -->
+        <tr>
+            <td style="padding-top: 25px;">
+                <p style="margin: 0 0 15px 0;">
+                    Kepada Yth.<br>
+                    <strong>Sdr/Sdri. {{ $pelamar->nama_lengkap }}</strong><br>
+                    <span style="color: #666666; font-size: 13px;">No. Pendaftaran: {{ $pelamar->no_pendaftaran }}</span>
                 </p>
-            </div>
 
-            <p class="lead-text">
-                Keputusan ini bukanlah cerminan dari kemampuan Anda secara keseluruhan, melainkan kesesuaian profil kandidat dengan kebutuhan spesifik posisi saat ini. Data Anda akan tetap tersimpan pada talent pool kami untuk pertimbangan peluang karir di masa depan. Kami mendoakan kesuksesan yang terbaik untuk perjalanan karir Anda.
-            </p>
+                <p style="margin: 0 0 15px 0;">
+                    Dengan hormat,
+                </p>
 
-            @elseif(in_array($status, ['interview_hr', 'interview_user', 'interview_gm', 'final_discussion', 'accepted', 'skill_test']))
-            <!-- Status: Lolos / Lanjut Tahap -->
-            <div class="status-banner-success">
-                <span class="badge-success">Selamat! Lolos Seleksi</span>
-                @if($status === 'interview_hr')
-                <h3 class="status-title-success">Tahap Selanjutnya: Interview HR</h3>
-                <p class="status-desc-success">
-                    Selamat! Anda dinyatakan <strong>LOLOS</strong> pada tahapan seleksi sebelumnya dan berhak untuk melanjutkan ke tahap <strong>Interview HR</strong>.
+                <p style="margin: 0 0 15px 0; text-align: justify;">
+                    Terima kasih atas partisipasi dan minat Saudara/i dalam mengikuti rangkaian proses seleksi penerimaan karyawan untuk posisi <strong>{{ $pelamar->posisi_dilamar ?: ($pelamar->lowongan?->judul ?? 'yang dilamar') }}</strong> di {{ config('app.name', 'PT. Menara Agung') }}.
                 </p>
-                @elseif($status === 'interview_user')
-                <h3 class="status-title-success">Tahap Selanjutnya: Interview User</h3>
-                <p class="status-desc-success">
-                    Selamat! Anda dinyatakan <strong>LOLOS</strong> dan berhak untuk melanjutkan ke tahap <strong>Interview User</strong>.
+
+                <table width="100%" border="0" cellpadding="6" cellspacing="0" style="margin: 15px 0 20px 0; background-color: #fafafa; border: 1px solid #e5e5e5; font-size: 13px;">
+                    <tr>
+                        <td width="30%" style="font-weight: bold; color: #444444; border-bottom: 1px solid #eeeeee;">No. Pendaftaran</td>
+                        <td width="70%" style="border-bottom: 1px solid #eeeeee; color: #111111;">: {{ $pelamar->no_pendaftaran }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bold; color: #444444; border-bottom: 1px solid #eeeeee;">Posisi yang Dilamar</td>
+                        <td style="border-bottom: 1px solid #eeeeee; color: #111111;">: {{ $pelamar->posisi_dilamar ?: ($pelamar->lowongan?->judul ?? '-') }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bold; color: #444444; border-bottom: 1px solid #eeeeee;">Status Perkembangan</td>
+                        <td style="border-bottom: 1px solid #eeeeee; font-weight: bold; color: #111111;">
+                            : {{ $statusLabel }}
+                        </td>
+                    </tr>
+                </table>
+
+                @if($status === 'rejected')
+                <p style="margin: 0 0 15px 0; text-align: justify;">
+                    Berdasarkan hasil evaluasi kualifikasi pada tahapan seleksi, bersama ini kami sampaikan bahwa saat ini kami belum dapat melanjutkan lamaran Saudara/i ke tahapan berikutnya.
                 </p>
-                @elseif($status === 'interview_gm')
-                <h3 class="status-title-success">Tahap Selanjutnya: Interview GM</h3>
-                <p class="status-desc-success">
-                    Selamat! Anda dinyatakan <strong>LOLOS</strong> dan berhak untuk melanjutkan ke tahap <strong>Interview General Manager (GM)</strong>.
-                </p>
-                @elseif($status === 'final_discussion')
-                <h3 class="status-title-success">Tahap Selanjutnya: Final Discussion</h3>
-                <p class="status-desc-success">
-                    Selamat! Anda berhak untuk melanjutkan ke tahap <strong>Final Discussion</strong>.
+                <p style="margin: 0 0 15px 0; text-align: justify;">
+                    Data Saudara/i akan tetap tersimpan dalam basis data talent pool kami untuk pertimbangan posisi lain yang sesuai di masa mendatang. Kami menyampaikan apresiasi yang setinggi-tingginya atas waktu dan usaha yang telah Saudara/i berikan.
                 </p>
                 @elseif($status === 'accepted')
-                <h3 class="status-title-success">Dinyatakan Diterima (Accepted)</h3>
-                <p class="status-desc-success">
-                    Selamat! Anda secara resmi dinyatakan <strong>DITERIMA</strong> untuk bergabung bersama tim {{ config('app.name', 'Citalent') }}.
+                <p style="margin: 0 0 15px 0; text-align: justify;">
+                    Selamat, Saudara/i dinyatakan <strong>Diterima Bekerja</strong> di {{ config('app.name', 'PT. Menara Agung') }}. Tim HR kami akan segera menghubungi Saudara/i terkait penandatanganan offering letter dan perjanjian kerja.
                 </p>
-                @elseif($status === 'skill_test')
-                <h3 class="status-title-success">Tahap Seleksi: Skill Test</h3>
-                <p class="status-desc-success">
-                    Anda dijadwalkan untuk mengikuti tahapan <strong>Skill Test</strong>.
+                @else
+                <p style="margin: 0 0 15px 0; text-align: justify;">
+                    Lamaran Saudara/i telah diperbarui ke tahapan: <strong>{{ $statusLabel }}</strong>. Rincian dan jadwal lebih lanjut akan disampaikan secara berkala melalui sistem dan email ini.
                 </p>
                 @endif
-            </div>
 
-            <p class="lead-text">
-                Tim Human Resources (HR) kami akan segera menghubungi Anda melalui email atau nomor kontak WhatsApp terdaftar untuk mengonfirmasi rincian jadwal, tautan meeting, atau petunjuk teknis pelaksanaan tahapan ini.
-            </p>
+                @if(!empty($catatan))
+                <p style="margin: 15px 0 6px 0; font-weight: bold; color: #333333;">Catatan dari Tim Rekrutmen:</p>
+                <div style="background-color: #fdfdfd; border-left: 3px solid #666666; padding: 10px 14px; margin-bottom: 15px; font-size: 13px; color: #444444;">
+                    {!! nl2br(e($catatan)) !!}
+                </div>
+                @endif
 
-            @else
-            <!-- Status Default Lainnya -->
-            <div class="status-banner-neutral">
-                <span class="badge-neutral">Pembaruan Tahapan</span>
-                <h3 class="status-title-neutral">Status Lamaran Diperbarui</h3>
-                <p class="status-desc-neutral">
-                    Status lamaran kerja Anda saat ini telah diperbarui di sistem rekrutmen kami.
+                <p style="margin: 15px 0 15px 0; text-align: justify;">
+                    Saudara/i dapat memantau rincian proses seleksi melalui portal: <a href="{{ url('/kandidat/lamaran/' . $pelamar->no_pendaftaran) }}" target="_blank" style="color: #0056b3;">{{ url('/kandidat/lamaran/' . $pelamar->no_pendaftaran) }}</a>
                 </p>
-            </div>
-            @endif
 
-            @if(!empty($catatan))
-            <div class="catatan-box">
-                <div class="catatan-title">Catatan dari Tim HR / Rekruter:</div>
-                <div>{{ $catatan }}</div>
-            </div>
-            @endif
+                <p style="margin: 0 0 20px 0; text-align: justify;">
+                    Demikian surat pemberitahuan ini kami sampaikan. Atas perhatian dan kerja samanya, kami ucapkan terima kasih.
+                </p>
 
-            <div class="btn-wrapper">
-                <a href="{{ url('/kandidat/lamaran') }}" class="btn" target="_blank">
-                    Lihat Rincian Status Lamaran
-                </a>
-            </div>
-        </div>
+                <!-- Tanda Tangan Formal -->
+                <p style="margin: 25px 0 0 0; font-size: 13px;">
+                    Hormat kami,<br>
+                    <strong>Tim Rekrutmen &amp; SDM</strong><br>
+                    {{ config('app.name', 'PT. Menara Agung') }}
+                </p>
+            </td>
+        </tr>
 
-        <div class="footer">
-            <p>Email ini dibuat secara otomatis oleh sistem rekrutmen <strong>{{ config('app.name', 'Citalent') }}</strong>.</p>
-            <p>Mohon untuk tidak membalas langsung ke alamat email pengirim ini.</p>
-            <p>&copy; {{ date('Y') }} {{ config('app.name', 'Citalent') }}. All rights reserved.</p>
-        </div>
-    </div>
+        <!-- Footer Kerahasiaan -->
+        <tr>
+            <td style="border-top: 1px solid #e5e5e5; margin-top: 25px; padding-top: 15px; font-size: 11px; color: #888888; text-align: center;">
+                Email ini dikirim secara otomatis oleh Sistem Rekrutmen {{ config('app.name', 'PT. Menara Agung') }}. Dokumen ini bersifat rahasia dan ditujukan khusus untuk penerima yang tertera di atas.
+            </td>
+        </tr>
+    </table>
 </body>
-
 </html>

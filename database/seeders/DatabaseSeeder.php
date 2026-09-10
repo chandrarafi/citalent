@@ -16,6 +16,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(RoleAndMenuSeeder::class);
+        $this->call(PelamarAdministrasiExcelSeeder::class);
+        $this->call(PelamarNetdevExcelSeeder::class);
+        $this->call(PelamarItProgrammerExcelSeeder::class);
 
         // Seed default departemen & jabatan jika belum ada
         if (\App\Models\Departement::count() === 0) {

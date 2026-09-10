@@ -16,6 +16,12 @@ import {
   IconAward,
   IconNotes,
   IconFileText,
+  IconCalendarEvent,
+  IconVideo,
+  IconMapPin,
+  IconBell,
+  IconClock,
+  IconExternalLink,
 } from '@tabler/icons-react'
 
 interface PelamarDetail {
@@ -62,6 +68,23 @@ interface PelamarDetail {
     tanggal_test?: string | null
     nama_penguji?: string | null
   } | null
+  penjadwalan_interviews?: Array<{
+    id: number
+    tahap: string
+    tahap_label: string
+    tanggal_interview: string
+    tanggal_formatted: string
+    jam_mulai: string
+    jam_selesai?: string | null
+    waktu_formatted: string
+    tipe_interview: 'online' | 'offline'
+    lokasi?: string | null
+    link_meeting?: string | null
+    pewawancara_nama?: string | null
+    catatan_untuk_kandidat?: string | null
+    status_kehadiran: string
+    reminder_sent_at?: string | null
+  }>
   created_at?: string | null
 }
 
@@ -317,57 +340,7 @@ export default function Show({ pelamar }: Props) {
             )}
           </div>
         </Card>
-
-
-
-        {/* Skill Test Assessment Banner */}
-        <Card variant="tight" className="border border-purple-100 bg-purple-50/30">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 w-full">
-            <Row gap={3} align="center">
-              <Blob icon="target" tone="purple" size="sm" />
-              <div>
-                <Heading level={3} className="text-slate-900">
-                  Evaluasi Skill Test Kandidat
-                </Heading>
-                <Text size="sm" muted>
-                  {pelamar.skill_test_assessment
-                    ? `Nilai Akhir: ${pelamar.skill_test_assessment.nilai_akhir.toFixed(1)} / 100 (Skor: ${pelamar.skill_test_assessment.total_skor.toFixed(2)}) • Status: ${pelamar.skill_test_assessment.status.toUpperCase()}`
-                    : 'Kandidat dapat dinilai kemampuan teknisnya sesuai parameter jabatan yang dilamar.'}
-                </Text>
-              </div>
-            </Row>
-
-            <Row gap={2} align="center" className="w-full sm:w-auto shrink-0">
-              {pelamar.skill_test_assessment ? (
-                <>
-                  <Button
-                    size="sm"
-                    tone="blue"
-                    onClick={() => router.visit(`/penilaian-skill-test/${pelamar.skill_test_assessment!.id}`)}
-                  >
-                    <IconAward size={14} /> Lihat Rekap Nilai
-                  </Button>
-                  <Button
-                    size="sm"
-                    tone="mint"
-                    onClick={() => router.visit(`/penilaian-skill-test/${pelamar.skill_test_assessment!.id}/edit`)}
-                  >
-                    Edit Nilai
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  size="sm"
-                  tone="purple"
-                  onClick={() => router.visit(`/pelamar/${pelamar.id}/penilaian-skill-test`)}
-                >
-                  <IconAward size={14} /> Input Nilai Skill Test
-                </Button>
-              )}
-            </Row>
-          </div>
-        </Card>
-
+     
         {/* 3. Data Pribadi Kandidat */}
         <Card>
           <Stack gap={4}>
@@ -674,6 +647,116 @@ export default function Show({ pelamar }: Props) {
                             </Button>
                           </div>
                         )}
+
+                        {/* Interview Stage Detail & Actions */}
+                        {['interview_hr', 'interview_user', 'interview_gm'].includes(stage.key) && (() => {
+                          const sched = pelamar.penjadwalan_interviews?.find((s) => s.tahap === stage.key)
+                          if (sched) {
+                            return (
+                              <div className="mt-3 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                                    <IconCalendarEvent size={15} className="text-purple-600" />
+                                    <span>{sched.tanggal_formatted}</span>
+                                    <span className="text-slate-400">•</span>
+                                    <IconClock size={14} className="text-slate-400" />
+                                    <span>{sched.waktu_formatted}</span>
+                                  </div>
+                                  <Badge tone={sched.status_kehadiran === 'attended' ? 'mint' : sched.status_kehadiran === 'not_attended' ? 'pink' : 'blue'}>
+                                    {sched.status_kehadiran === 'attended' ? 'Hadir' : sched.status_kehadiran === 'not_attended' ? 'Tidak Hadir' : 'Dijadwalkan'}
+                                  </Badge>
+                                </div>
+
+                                <div className="flex items-center gap-2 text-slate-600">
+                                  {sched.tipe_interview === 'online' ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-medium">
+                                        <IconVideo size={13} />
+                                        Online Meeting:
+                                      </span>
+                                      {sched.link_meeting && (
+                                        <a
+                                          href={sched.link_meeting}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="text-blue-600 font-semibold hover:underline flex items-center gap-0.5"
+                                        >
+                                          Buka Link Meet <IconExternalLink size={12} />
+                                        </a>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-1 text-slate-700">
+                                      <IconMapPin size={13} className="text-emerald-600" />
+                                      <span>Lokasi: {sched.lokasi || 'Kantor Pusat'}</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {sched.pewawancara_nama && (
+                                  <div className="text-slate-500">
+                                    Pewawancara: <span className="font-semibold text-slate-700">{sched.pewawancara_nama}</span>
+                                  </div>
+                                )}
+
+                                <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-2">
+                                  <div className="text-[11px] text-slate-400">
+                                    {sched.reminder_sent_at ? (
+                                      <span>Reminder terkirim: {sched.reminder_sent_at}</span>
+                                    ) : (
+                                      <span>Belum dikirim reminder</span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <Button
+                                      size="sm"
+                                      variant="quiet"
+                                      tone="purple"
+                                      className="h-7 text-xs px-2"
+                                      onClick={() => {
+                                        router.post(`/penjadwalan-interview/${sched.id}/send-reminder`, {}, {
+                                          preserveScroll: true,
+                                        })
+                                      }}
+                                    >
+                                      <IconBell size={13} className="mr-1" />
+                                      Kirim Reminder
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      tone="blue"
+                                      className="h-7 text-xs px-2"
+                                      onClick={() => router.visit('/penjadwalan-interview?search=' + encodeURIComponent(pelamar.nama_lengkap))}
+                                    >
+                                      Kelola di Jadwal
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          }
+
+                          if (stepState === 'current') {
+                            return (
+                              <div className="mt-2.5">
+                                <Button
+                                  size="sm"
+                                  tone="purple"
+                                  onClick={() =>
+                                    router.visit(
+                                      `/penjadwalan-interview/create?pelamar_id=${pelamar.id}&tahap=${stage.key}`
+                                    )
+                                  }
+                                >
+                                  <IconCalendarEvent size={14} className="mr-1" />
+                                  Jadwalkan Wawancara ({stage.title})
+                                </Button>
+                              </div>
+                            )
+                          }
+
+                          return null
+                        })()}
                       </div>
                     </div>
                   )
