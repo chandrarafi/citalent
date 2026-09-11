@@ -21,7 +21,7 @@ class PelamarController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = Pelamar::with(['lowongan.departement', 'lowongan.jabatan'])
+        $query = Pelamar::with(['lowongan.departement', 'lowongan.jabatan', 'atsScreening'])
             ->whereHas('lowongan', function ($q) {
                 $q->where('status', 'aktif');
             })
@@ -55,6 +55,16 @@ class PelamarController extends Controller
                 'surat_lamaran_url' => $p->surat_lamaran_path ? asset('storage/' . $p->surat_lamaran_path) : null,
                 'status' => $p->status,
                 'catatan' => $p->catatan,
+                'ats_screening' => $p->atsScreening ? [
+                    'id' => $p->atsScreening->id,
+                    'total_skor' => (float) $p->atsScreening->total_skor,
+                    'rekomendasi' => $p->atsScreening->rekomendasi,
+                    'rekomendasi_label' => $p->atsScreening->rekomendasi_label,
+                    'rekomendasi_tone' => $p->atsScreening->rekomendasi_tone,
+                    'status_konfirmasi' => $p->atsScreening->status_konfirmasi,
+                    'status_konfirmasi_label' => $p->atsScreening->status_konfirmasi_label,
+                    'status_konfirmasi_tone' => $p->atsScreening->status_konfirmasi_tone,
+                ] : null,
                 'lowongan' => $p->lowongan ? [
                     'id' => $p->lowongan->id,
                     'kode_lowongan' => $p->lowongan->kode_lowongan,
@@ -89,6 +99,7 @@ class PelamarController extends Controller
             'formulirLamaran',
             'latestPenilaianSkillTest.penguji',
             'penjadwalanInterviews.creator',
+            'atsScreening.confirmedBy',
         ]);
 
         return Inertia::render('pelamar/Show', [
@@ -153,6 +164,23 @@ class PelamarController extends Controller
                     'status_kehadiran' => $s->status_kehadiran,
                     'reminder_sent_at' => $s->reminder_sent_at ? \Carbon\Carbon::parse($s->reminder_sent_at)->locale('id')->isoFormat('D MMM Y, HH:mm') : null,
                 ]),
+                'ats_screening' => $pelamar->atsScreening ? [
+                    'id' => $pelamar->atsScreening->id,
+                    'divisi' => $pelamar->atsScreening->divisi,
+                    'total_skor' => (float) $pelamar->atsScreening->total_skor,
+                    'rekomendasi' => $pelamar->atsScreening->rekomendasi,
+                    'rekomendasi_label' => $pelamar->atsScreening->rekomendasi_label,
+                    'rekomendasi_tone' => $pelamar->atsScreening->rekomendasi_tone,
+                    'status_konfirmasi' => $pelamar->atsScreening->status_konfirmasi,
+                    'status_konfirmasi_label' => $pelamar->atsScreening->status_konfirmasi_label,
+                    'status_konfirmasi_tone' => $pelamar->atsScreening->status_konfirmasi_tone,
+                    'kriteria_penilaian' => $pelamar->atsScreening->kriteria_penilaian ?? [],
+                    'cv_parsed_data' => $pelamar->atsScreening->cv_parsed_data ?? [],
+                    'catatan_ats' => $pelamar->atsScreening->catatan_ats,
+                    'catatan_hr' => $pelamar->atsScreening->catatan_hr,
+                    'confirmed_by_name' => $pelamar->atsScreening->confirmedBy?->name,
+                    'confirmed_at' => $pelamar->atsScreening->confirmed_at ? $pelamar->atsScreening->confirmed_at->isoFormat('D MMM Y, HH:mm') : null,
+                ] : null,
                 'created_at' => $pelamar->created_at ? $pelamar->created_at->format('Y-m-d H:i') : null,
             ],
         ]);

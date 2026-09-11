@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\AtsScreeningController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\CandidateSatisfactionController;
 use App\Http\Controllers\DashboardController;
@@ -245,6 +246,39 @@ Route::middleware('auth')->group(function () {
 
     Route::delete('/pelamar/{pelamar}', [PelamarController::class, 'destroy'])
         ->name('pelamar.destroy')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    // ─── Screening CV (ATS) & Konfirmasi HR ──────────────────────────────────
+    Route::get('/screening-cv', [AtsScreeningController::class, 'index'])
+        ->name('screening-cv.index')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::post('/screening-cv/run-batch', [AtsScreeningController::class, 'runBatch'])
+        ->name('screening-cv.run-batch')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::post('/screening-cv/{pelamar}/run', [AtsScreeningController::class, 'runSingle'])
+        ->name('screening-cv.run-single')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::post('/screening-cv/{pelamar}/confirm', [AtsScreeningController::class, 'confirm'])
+        ->name('screening-cv.confirm')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::post('/screening-cv/bulk-confirm', [AtsScreeningController::class, 'bulkConfirm'])
+        ->name('screening-cv.bulk-confirm')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::post('/screening-cv/kriteria', [AtsScreeningController::class, 'saveKriteria'])
+        ->name('screening-cv.kriteria.save')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::delete('/screening-cv/kriteria/{kriteria}', [AtsScreeningController::class, 'deleteKriteria'])
+        ->name('screening-cv.kriteria.delete')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::post('/screening-cv/kriteria/reset', [AtsScreeningController::class, 'resetKriteriaLowongan'])
+        ->name('screening-cv.kriteria.reset')
         ->middleware('permission:manage-permintaan-rekrutmen');
 
     // ─── Candidate Satisfaction Analytics & Survey ──────────────────────────

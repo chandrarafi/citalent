@@ -201,6 +201,13 @@ class PublicJobController extends Controller
             'status' => 'submitted',
         ]);
 
+        // Otomatis jalankan ATS Screening (Menunggu konfirmasi HR)
+        try {
+            app(\App\Services\AtsScreeningService::class)->screen($pelamar);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Auto-screening error: " . $e->getMessage());
+        }
+
         return back()->with('application_success', [
             'no_pendaftaran' => $pelamar->no_pendaftaran,
             'nama_lengkap' => $pelamar->nama_lengkap,

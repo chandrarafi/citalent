@@ -103,16 +103,21 @@ export function Grid({ children, cols, gap, className }: GridProps) {
 
 export function Shell({
   children,
+  wide = false,
   className,
 }: {
   children: ReactNode
+  wide?: boolean
   className?: string
 }) {
   return (
     <div
       className={cx(
-        'pouf-shell grid [grid-template-columns:320px_minmax(0,1fr)] gap-(--s5) lg:gap-(--s6) p-4 sm:p-6 lg:p-8 w-full max-w-[1600px] mx-auto min-h-screen [align-items:start]',
-        'max-[1024px]:[grid-template-columns:minmax(0,1fr)] max-[1024px]:p-4',
+        'pouf-shell grid min-h-screen [align-items:start]',
+        wide
+          ? '[grid-template-columns:240px_minmax(0,1fr)] gap-3 lg:gap-4 p-2.5 sm:p-4 lg:p-5 w-full max-w-[99%] 2xl:max-w-[1920px] mx-auto'
+          : '[grid-template-columns:320px_minmax(0,1fr)] gap-(--s5) lg:gap-(--s6) p-4 sm:p-6 lg:p-8 w-full max-w-[1600px] mx-auto',
+        'max-[1024px]:[grid-template-columns:minmax(0,1fr)] max-[1024px]:p-3 sm:max-[1024px]:p-4',
         'max-[1024px]:pb-[calc(96px+env(safe-area-inset-bottom,0px))]',
         className,
       )}

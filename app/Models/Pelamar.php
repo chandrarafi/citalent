@@ -55,9 +55,22 @@ class Pelamar extends Model
             return asset('assets/images/user.png');
         }
 
-        return str_starts_with($this->foto_path, 'http')
-            ? $this->foto_path
-            : asset('storage/' . $this->foto_path);
+        if (str_starts_with($this->foto_path, 'http://') || str_starts_with($this->foto_path, 'https://')) {
+            return $this->foto_path;
+        }
+
+        $storagePath = public_path('storage/' . $this->foto_path);
+        $directPath = public_path($this->foto_path);
+
+        if (file_exists($storagePath)) {
+            return asset('storage/' . $this->foto_path);
+        }
+
+        if (file_exists($directPath)) {
+            return asset($this->foto_path);
+        }
+
+        return asset('assets/images/user.png');
     }
 
     public function getCvUrlAttribute(): ?string
@@ -94,6 +107,11 @@ class Pelamar extends Model
     public function penjadwalanInterviews()
     {
         return $this->hasMany(PenjadwalanInterview::class, 'pelamar_id', 'id')->orderByDesc('tanggal_interview');
+    }
+
+    public function atsScreening()
+    {
+        return $this->hasOne(AtsScreening::class, 'pelamar_id', 'id');
     }
 
     public function latestInterviewSchedule()

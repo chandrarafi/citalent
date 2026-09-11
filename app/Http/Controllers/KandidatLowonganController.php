@@ -188,6 +188,13 @@ class KandidatLowonganController extends Controller
             'status' => 'submitted',
         ]);
 
+        // Otomatis jalankan ATS Screening (Menunggu konfirmasi HR)
+        try {
+            app(\App\Services\AtsScreeningService::class)->screen($pelamar);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Auto-screening error: " . $e->getMessage());
+        }
+
         return back()->with('success', "Lamaran berhasil dikirim untuk posisi {$pelamar->posisi_dilamar}. Terima kasih!");
     }
 

@@ -40,6 +40,7 @@ interface SharedAuth {
 
 interface AppLayoutProps {
   children: ReactNode
+  wide?: boolean
 }
 
 // Inertia Link compatible with NavLink's LinkComponent type
@@ -72,7 +73,7 @@ function InertiaLink({
   )
 }
 
-export function AppLayout({ children }: AppLayoutProps) {
+export function AppLayout({ children, wide = false }: AppLayoutProps) {
   const { auth } = usePage<{ auth: SharedAuth }>().props
   const { url } = usePage()
   const currentPath = (url || '').split('?')[0]
@@ -100,13 +101,13 @@ export function AppLayout({ children }: AppLayoutProps) {
   // Group menus by kelompok
   const groupedNavItems = useMemo(() => {
     const groups: Record<string, AppNavItem[]> = {}
-    for (const item of navItems) {
-      const g = item.kelompok || 'Menu Utama'
-      if (!groups[g]) {
-        groups[g] = []
+    navItems.forEach((item) => {
+      const group = item.kelompok || 'Menu Utama'
+      if (!groups[group]) {
+        groups[group] = []
       }
-      groups[g].push(item)
-    }
+      groups[group].push(item)
+    })
     return groups
   }, [navItems])
 
@@ -116,7 +117,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <>
-      <Shell>
+      <Shell wide={wide}>
         <Sidebar mobile="hide">
           <Card variant="tight" className="max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3rem)] lg:max-h-[calc(100vh-4rem)] flex flex-col overflow-hidden">
             <div className="flex flex-col h-full min-h-0 gap-4">

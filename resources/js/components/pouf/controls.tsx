@@ -151,7 +151,8 @@ interface DialogProps {
    *  something inside it (picking an item), not just the close button. */
   open?: boolean
   onOpenChange?: (open: boolean) => void
-  size?: 'md' | 'lg' | 'xl'
+  size?: 'md' | 'lg' | 'xl' | '2xl'
+  className?: string
 }
 
 /** A plain modal (Radix Dialog), distinct from Confirm (Radix AlertDialog).
@@ -162,7 +163,7 @@ interface DialogProps {
  * easily. Using AlertDialog to show a plain list would train the user to
  * dismiss the same chrome that later asks them to confirm something destructive.
  */
-export function Dialog({ trigger, title, description, children, open, onOpenChange, size = 'md' }: DialogProps) {
+export function Dialog({ trigger, title, description, children, open, onOpenChange, size = 'md', className }: DialogProps) {
   return (
     <RDialog.Root open={open} onOpenChange={onOpenChange}>
       {trigger && <RDialog.Trigger asChild>{trigger}</RDialog.Trigger>}
@@ -174,13 +175,18 @@ export function Dialog({ trigger, title, description, children, open, onOpenChan
             through both. (prefers-reduced-motion is honoured globally in pouf.css.) */}
         <RDialog.Overlay className="pouf-overlay" />
         <RDialog.Content
-          className={
-            size === 'xl'
+          className={[
+            size === '2xl'
+              ? 'pouf-dialog pouf-dialog--2xl'
+              : size === 'xl'
               ? 'pouf-dialog pouf-dialog--xl'
               : size === 'lg'
               ? 'pouf-dialog pouf-dialog--lg'
-              : 'pouf-dialog'
-          }
+              : 'pouf-dialog',
+            className,
+          ]
+            .filter(Boolean)
+            .join(' ')}
         >
           <Stack gap={4}>
             <div className="pouf-dialog__head">

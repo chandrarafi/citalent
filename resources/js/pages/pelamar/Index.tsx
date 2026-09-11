@@ -42,6 +42,16 @@ interface PelamarItem {
   surat_lamaran_url?: string | null
   status: 'submitted' | 'review' | 'interview' | 'accepted' | 'rejected'
   catatan?: string | null
+  ats_screening?: {
+    id: number
+    total_skor: number
+    rekomendasi: 'sangat_disarankan' | 'dipertimbangkan' | 'tidak_disarankan'
+    rekomendasi_label: string
+    rekomendasi_tone: Tone
+    status_konfirmasi: 'menunggu_konfirmasi' | 'disetujui' | 'ditolak'
+    status_konfirmasi_label: string
+    status_konfirmasi_tone: Tone
+  } | null
   lowongan?: {
     id: number
     kode_lowongan: string
@@ -244,6 +254,39 @@ export default function Index({ pelamars, lowongans, selectedLowonganId }: Props
       ),
     },
     {
+      key: 'ats_screening',
+      header: 'Skor ATS',
+      minWidth: '150px',
+      render: (p: PelamarItem) => {
+        if (!p.ats_screening) {
+          return <Text size="sm" muted className="text-xs italic">Belum di-screening</Text>
+        }
+        return (
+          <Stack gap={1} className="whitespace-nowrap">
+            <Row gap={1} align="center">
+              <span className={`px-1.5 py-0.5 rounded font-mono text-[11px] font-bold ${
+                p.ats_screening.rekomendasi === 'sangat_disarankan'
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : p.ats_screening.rekomendasi === 'dipertimbangkan'
+                  ? 'bg-amber-100 text-amber-800'
+                  : 'bg-rose-100 text-rose-800'
+              }`}>
+                {p.ats_screening.total_skor.toFixed(0)}/100
+              </span>
+              <Badge tone={p.ats_screening.rekomendasi_tone} className="text-[10px] px-1 py-0">
+                {p.ats_screening.rekomendasi === 'sangat_disarankan' ? '★ Top' : p.ats_screening.rekomendasi === 'dipertimbangkan' ? 'Dipertimbangkan' : 'Kurang'}
+              </Badge>
+            </Row>
+            <Badge tone={p.ats_screening.status_konfirmasi_tone} className="text-[10px] px-1 py-0">
+              {p.ats_screening.status_konfirmasi_label}
+            </Badge>
+          </Stack>
+        )
+      },
+      sort: (a: PelamarItem, b: PelamarItem) =>
+        (b.ats_screening?.total_skor ?? 0) - (a.ats_screening?.total_skor ?? 0),
+    },
+    {
       key: 'status',
       header: 'Status Seleksi',
       align: 'right' as const,
@@ -291,6 +334,14 @@ export default function Index({ pelamars, lowongans, selectedLowonganId }: Props
               Pantau seluruh berkas pelamar masuk, tinjau CV & surat lamaran, dan perbarui tahapan seleksi kandidat
             </Text>
           </Stack>
+
+          <Button
+            tone="purple"
+            size="sm"
+            onClick={() => router.get('/screening-cv')}
+          >
+            Buka ATS Screening (Konfirmasi HR) ↗
+          </Button>
         </Row>
 
         {/* Top KPI Stats */}
