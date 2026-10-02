@@ -70,7 +70,7 @@
                                     </td>
                                     <td align="right" style="vertical-align: middle;">
                                         <span style="font-size: 11px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 0.08em;">
-                                            Verifikasi Akun
+                                            {{ ($type ?? 'activation') === 'reset_password' ? 'Reset Password' : 'Verifikasi Akun' }}
                                         </span>
                                     </td>
                                 </tr>
@@ -84,7 +84,7 @@
 
                             <!-- Heading -->
                             <h1 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 700; color: #09090b; letter-spacing: -0.02em;">
-                                Kode verifikasi pendaftaran
+                                {{ ($type ?? 'activation') === 'reset_password' ? 'Kode verifikasi reset kata sandi' : 'Kode verifikasi pendaftaran' }}
                             </h1>
 
                             <p style="margin: 0 0 8px 0; font-size: 14px; color: #3f3f46; line-height: 1.6;">
@@ -92,7 +92,11 @@
                             </p>
 
                             <p style="margin: 0 0 24px 0; font-size: 14px; color: #52525b; line-height: 1.6;">
-                                Kami menerima permintaan pendaftaran akun kandidat Anda di portal <strong>{{ config('app.name', 'Citalent') }}</strong>. Masukkan kode berikut pada formulir verifikasi untuk menyelesaikan proses:
+                                @if (($type ?? 'activation') === 'reset_password')
+                                    Kami menerima permintaan untuk mengatur ulang kata sandi (reset password) akun Anda di portal <strong>{{ config('app.name', 'Citalent') }}</strong>. Masukkan kode berikut pada formulir reset password untuk melanjutkan proses:
+                                @else
+                                    Kami menerima permintaan pendaftaran akun kandidat Anda di portal <strong>{{ config('app.name', 'Citalent') }}</strong>. Masukkan kode berikut pada formulir verifikasi untuk menyelesaikan proses:
+                                @endif
                             </p>
 
                             <!-- Minimalist Obsidian Code Box -->
@@ -116,7 +120,9 @@
                             <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 24px 0; border: 1px solid #f4f4f5; background-color: #fafafa; border-radius: 6px; font-size: 12px;">
                                 <tr>
                                     <td style="padding: 10px 14px; color: #71717a; width: 35%; border-bottom: 1px solid #f4f4f5;">Keperluan</td>
-                                    <td style="padding: 10px 14px; color: #18181b; font-weight: 500; border-bottom: 1px solid #f4f4f5;">Aktivasi Akun Kandidat Baru</td>
+                                    <td style="padding: 10px 14px; color: #18181b; font-weight: 500; border-bottom: 1px solid #f4f4f5;">
+                                        {{ ($type ?? 'activation') === 'reset_password' ? 'Reset Kata Sandi Akun' : 'Aktivasi Akun Kandidat Baru' }}
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 10px 14px; color: #71717a; border-bottom: 1px solid #f4f4f5;">Masa Berlaku</td>
@@ -129,9 +135,15 @@
                             <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 28px 0;">
                                 <tr>
                                     <td>
-                                        <a href="{{ url('/verify-otp') }}" target="_blank" style="display: inline-block; background-color: #18181b; color: #ffffff; font-size: 13px; font-weight: 600; padding: 10px 18px; border-radius: 6px; text-decoration: none; letter-spacing: -0.01em;">
-                                            Buka Halaman Verifikasi &rarr;
-                                        </a>
+                                        @if (($type ?? 'activation') === 'reset_password')
+                                            <a href="{{ url('/forgot-password/verify-otp') . (!empty($email) ? '?email=' . urlencode($email) : '') }}" target="_blank" style="display: inline-block; background-color: #18181b; color: #ffffff; font-size: 13px; font-weight: 600; padding: 10px 18px; border-radius: 6px; text-decoration: none; letter-spacing: -0.01em;">
+                                                Verifikasi Kode OTP &rarr;
+                                            </a>
+                                        @else
+                                            <a href="{{ url('/verify-otp') . (!empty($email) ? '?email=' . urlencode($email) : '') }}" target="_blank" style="display: inline-block; background-color: #18181b; color: #ffffff; font-size: 13px; font-weight: 600; padding: 10px 18px; border-radius: 6px; text-decoration: none; letter-spacing: -0.01em;">
+                                                Buka Halaman Verifikasi &rarr;
+                                            </a>
+                                        @endif
                                     </td>
                                 </tr>
                             </table>
@@ -141,7 +153,11 @@
                                     <strong>Peringatan Keamanan:</strong> Jangan berikan kode ini kepada pihak mana pun. Tim {{ config('app.name', 'Citalent') }} tidak pernah meminta kode OTP melalui telepon, WhatsApp, atau pesan pribadi.
                                 </p>
                                 <p style="margin: 0; font-size: 12px; color: #a1a1aa; line-height: 1.6;">
-                                    Jika Anda tidak merasa melakukan pendaftaran di portal ini, silakan abaikan pesan ini. Akun tidak akan aktif tanpa konfirmasi kode di atas.
+                                    @if (($type ?? 'activation') === 'reset_password')
+                                        Jika Anda tidak merasa meminta reset kata sandi, silakan abaikan pesan ini. Kata sandi akun Anda tetap aman dan tidak akan diubah.
+                                    @else
+                                        Jika Anda tidak merasa melakukan pendaftaran di portal ini, silakan abaikan pesan ini. Akun tidak akan aktif tanpa konfirmasi kode di atas.
+                                    @endif
                                 </p>
                             </div>
 

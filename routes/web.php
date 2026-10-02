@@ -36,6 +36,16 @@ Route::middleware('guest')->group(function () {
     Route::get('/verify-otp', [AuthController::class, 'showVerifyOtp'])->name('otp.verify');
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp'])->name('otp.verify.post');
     Route::post('/resend-otp', [AuthController::class, 'resendOtp'])->name('otp.resend');
+
+    Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [AuthController::class, 'sendResetOtp'])->name('password.email');
+
+    Route::get('/forgot-password/verify-otp', [AuthController::class, 'showVerifyResetOtp'])->name('password.verify-otp');
+    Route::post('/forgot-password/verify-otp', [AuthController::class, 'verifyResetOtp'])->name('password.verify-otp.post');
+    Route::post('/forgot-password/resend-otp', [AuthController::class, 'resendResetOtp'])->name('password.resend-otp');
+
+    Route::get('/reset-password', [AuthController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');

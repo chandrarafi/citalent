@@ -19,24 +19,43 @@ interface LoginValues {
 }
 
 interface LoginPageProps {
+  email?: string
   errors?: { email?: string; password?: string }
 }
 
-export default function Login({ errors: serverErrors }: LoginPageProps) {
+export default function Login({
+  email: initialEmail = '',
+  errors: serverErrors,
+}: LoginPageProps) {
   const { flash } = usePage<any>().props
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  // Ambil email dari prop atau URL search parameter jika ada
+  const queryEmail =
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('email') || ''
+      : ''
+  const defaultEmail = initialEmail || queryEmail
 
   const {
     control,
     handleSubmit,
     setError,
+    setValue,
     formState: { errors },
   } = useForm<LoginValues>({
-    defaultValues: { email: '', password: '' },
+    defaultValues: { email: defaultEmail, password: '' },
     mode: 'onSubmit',
     reValidateMode: 'onChange',
   })
+
+  // Set default email jika berubah dari prop atau query
+  useEffect(() => {
+    if (defaultEmail) {
+      setValue('email', defaultEmail)
+    }
+  }, [defaultEmail, setValue])
 
   const email = useWatch({ control, name: 'email' })
 
@@ -91,6 +110,13 @@ export default function Login({ errors: serverErrors }: LoginPageProps) {
                 </div>
               )}
 
+              {flash?.info && (
+                <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 text-sm">
+                  <IconAlertCircle size={18} className="text-sky-600 shrink-0 mt-0.5" />
+                  <span>{flash.info}</span>
+                </div>
+              )}
+
               <Stack gap={4}>
                 {/* Email */}
                 <Field label="Email" error={errors.email?.message}>
@@ -126,7 +152,19 @@ export default function Login({ errors: serverErrors }: LoginPageProps) {
                 </Field>
 
                 {/* Password */}
-                <Field label="Password" error={errors.password?.message}>
+                <Field
+                  label="Password"
+                  error={errors.password?.message}
+                  labelRight={
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline"
+                      tabIndex={-1}
+                    >
+                      Lupa password?
+                    </Link>
+                  }
+                >
                   {(id, describedBy) => (
                     <div className="relative w-full">
                       <Controller

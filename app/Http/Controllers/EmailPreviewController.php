@@ -52,8 +52,9 @@ class EmailPreviewController extends Controller
     {
         $name = $request->query('name', 'Rafi Chandra');
         $otp = $request->query('otp', '729410');
+        $type = $request->query('type', 'activation');
 
-        return view('emails.otp', compact('name', 'otp'));
+        return view('emails.otp', compact('name', 'otp', 'type'));
     }
 
     /**

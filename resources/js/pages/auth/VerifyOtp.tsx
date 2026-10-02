@@ -213,6 +213,13 @@ export default function VerifyOtp({ email, userName, errors: serverErrors }: Ver
                   </div>
                 )}
 
+                {flash?.info && (
+                  <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 text-sm">
+                    <IconAlertCircle size={18} className="text-sky-600 shrink-0 mt-0.5" />
+                    <span>{flash.info}</span>
+                  </div>
+                )}
+
                 {/* OTP 6-Digit Inputs */}
                 <Stack gap={3}>
                   <div>
