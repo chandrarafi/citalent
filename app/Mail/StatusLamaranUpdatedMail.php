@@ -14,11 +14,28 @@ class StatusLamaranUpdatedMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
+    public string $statusLabel;
+
     public function __construct(
         public Pelamar $pelamar,
         public string $status,
-        public ?string $catatan = null
-    ) {}
+        public ?string $catatan = null,
+        ?string $statusLabel = null
+    ) {
+        $this->statusLabel = $statusLabel ?? match ($this->status) {
+            'submitted' => 'Submit Lamaran',
+            'screening_cv' => 'Screening CV',
+            'lengkapi_formulir' => 'Lengkapi Formulir Lamaran Kerja',
+            'interview_hr' => 'Interview HR',
+            'interview_user' => 'Interview User',
+            'interview_gm' => 'Interview GM',
+            'skill_test' => 'Skill Test',
+            'final_discussion' => 'Final Discussion',
+            'accepted' => 'Diterima Bekerja',
+            'rejected' => 'Tidak Lolos',
+            default => ucwords(str_replace('_', ' ', $this->status)),
+        };
+    }
 
     /**
      * Get the message envelope.

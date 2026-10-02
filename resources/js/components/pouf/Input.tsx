@@ -1,4 +1,4 @@
-import { cva } from 'class-variance-authority'
+import { cva, cx } from 'class-variance-authority'
 import {
   forwardRef,
   useId,
@@ -89,7 +89,7 @@ export const inputClasses = cva(
 interface InputProps
   extends Omit<
     InputHTMLAttributes<HTMLInputElement>,
-    'children' | 'className' | 'style' | 'value' | 'onChange'
+    'children' | 'style' | 'value' | 'onChange'
   > {
   value: string
   onChange: (value: string) => void
@@ -108,6 +108,7 @@ interface InputProps
   invalid?: boolean
   disabled?: boolean
   label?: string
+  className?: string
   /** Internal: the NumberInput capsule carries the chrome. */
   bare?: boolean
 }
@@ -122,6 +123,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     invalid,
     label,
     bare,
+    className,
     ...nativeProps
   },
   ref,
@@ -130,7 +132,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     <input
       ref={ref}
       {...nativeProps}
-      className={inputClasses({ bare: !!bare, invalid: !!invalid, mono })}
+      className={cx(inputClasses({ bare: !!bare, invalid: !!invalid, mono }), className)}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       type={type}

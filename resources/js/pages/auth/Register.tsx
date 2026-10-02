@@ -7,7 +7,8 @@ import { Heading, Text } from '@/components/pouf/text'
 import { Field, Input } from '@/components/pouf/Input'
 import { Button } from '@/components/pouf/Button'
 import { Separator } from '@/components/pouf/separator'
-import { Blob } from '@/components/pouf/media'
+import { IconEye, IconEyeOff } from '@tabler/icons-react'
+import AuthLayout from '@/layouts/AuthLayout'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_RE = /^[0-9+() -]{9,20}$/
@@ -73,15 +74,18 @@ export default function Register({ errors: serverErrors }: RegisterPageProps) {
   return (
     <>
       <Head title="Pendaftaran Akun Kandidat - Citalent" />
-      <div className="min-h-screen w-full flex items-center justify-center p-3 sm:p-6 bg-[var(--bg)]">
-        <div className="w-full max-w-[480px]">
-          <form onSubmit={submit} noValidate>
+      <AuthLayout maxWidth="max-w-[480px]">
+        <form onSubmit={submit} noValidate>
             <Card>
               <Stack gap={5}>
                 <Stack gap={3}>
-                  <Blob icon="users" tone="mint" />
+                  <img
+                    src="/assets/images/logo-red-1.png"
+                    alt="Logo"
+                    width={270}
+                    className="mx-auto"
+                  />
                   <Stack gap={1}>
-                    <Heading level={2}>Daftar Akun Kandidat</Heading>
                     <Text size="sm" muted>
                       Buat akun kandidat untuk melamar lowongan dan ikuti proses seleksi.
                     </Text>
@@ -192,41 +196,46 @@ export default function Register({ errors: serverErrors }: RegisterPageProps) {
                   {/* Password */}
                   <Field label="Password" error={errors.password?.message}>
                     {(id, describedBy) => (
-                      <Row gap={2} wrap={false}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <Controller
-                            name="password"
-                            control={control}
-                            rules={{
-                              required: 'Password wajib diisi.',
-                              minLength: { value: 8, message: 'Password minimal 8 karakter.' },
-                            }}
-                            render={({ field }) => (
-                              <Input
-                                ref={field.ref}
-                                id={id}
-                                name={field.name}
-                                describedBy={describedBy}
-                                type={showPassword ? 'text' : 'password'}
-                                value={field.value}
-                                onChange={field.onChange}
-                                onBlur={field.onBlur}
-                                placeholder="Minimal 8 karakter…"
-                                autoComplete="new-password"
-                                required
-                                invalid={!!errors.password}
-                              />
-                            )}
-                          />
-                        </div>
-                        <Button
+                      <div className="relative w-full">
+                        <Controller
+                          name="password"
+                          control={control}
+                          rules={{
+                            required: 'Password wajib diisi.',
+                            minLength: { value: 8, message: 'Password minimal 8 karakter.' },
+                          }}
+                          render={({ field }) => (
+                            <Input
+                              ref={field.ref}
+                              id={id}
+                              name={field.name}
+                              describedBy={describedBy}
+                              type={showPassword ? 'text' : 'password'}
+                              value={field.value}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              placeholder="Minimal 8 karakter…"
+                              autoComplete="new-password"
+                              required
+                              invalid={!!errors.password}
+                              className="pr-12"
+                            />
+                          )}
+                        />
+                        <button
                           type="button"
-                          variant="quiet"
                           onClick={() => setShowPassword((s) => !s)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink transition-colors p-1.5 rounded-lg flex items-center justify-center focus:outline-none"
+                          tabIndex={-1}
+                          aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
                         >
-                          {showPassword ? 'Hide' : 'Show'}
-                        </Button>
-                      </Row>
+                          {showPassword ? (
+                            <IconEyeOff size={20} stroke={1.8} />
+                          ) : (
+                            <IconEye size={20} stroke={1.8} />
+                          )}
+                        </button>
+                      </div>
                     )}
                   </Field>
 
@@ -236,42 +245,47 @@ export default function Register({ errors: serverErrors }: RegisterPageProps) {
                     error={errors.password_confirmation?.message}
                   >
                     {(id, describedBy) => (
-                      <Row gap={2} wrap={false}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <Controller
-                            name="password_confirmation"
-                            control={control}
-                            rules={{
-                              required: 'Konfirmasi password wajib diisi.',
-                              validate: (val) =>
-                                val === passwordVal || 'Konfirmasi password tidak sama.',
-                            }}
-                            render={({ field }) => (
-                              <Input
-                                ref={field.ref}
-                                id={id}
-                                name={field.name}
-                                describedBy={describedBy}
-                                type={showPasswordConfirm ? 'text' : 'password'}
-                                value={field.value}
-                                onChange={field.onChange}
-                                onBlur={field.onBlur}
-                                placeholder="Ulangi password…"
-                                autoComplete="new-password"
-                                required
-                                invalid={!!errors.password_confirmation}
-                              />
-                            )}
-                          />
-                        </div>
-                        <Button
+                      <div className="relative w-full">
+                        <Controller
+                          name="password_confirmation"
+                          control={control}
+                          rules={{
+                            required: 'Konfirmasi password wajib diisi.',
+                            validate: (val) =>
+                              val === passwordVal || 'Konfirmasi password tidak sama.',
+                          }}
+                          render={({ field }) => (
+                            <Input
+                              ref={field.ref}
+                              id={id}
+                              name={field.name}
+                              describedBy={describedBy}
+                              type={showPasswordConfirm ? 'text' : 'password'}
+                              value={field.value}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              placeholder="Ulangi password…"
+                              autoComplete="new-password"
+                              required
+                              invalid={!!errors.password_confirmation}
+                              className="pr-12"
+                            />
+                          )}
+                        />
+                        <button
                           type="button"
-                          variant="quiet"
                           onClick={() => setShowPasswordConfirm((s) => !s)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink transition-colors p-1.5 rounded-lg flex items-center justify-center focus:outline-none"
+                          tabIndex={-1}
+                          aria-label={showPasswordConfirm ? 'Sembunyikan password' : 'Tampilkan password'}
                         >
-                          {showPasswordConfirm ? 'Hide' : 'Show'}
-                        </Button>
-                      </Row>
+                          {showPasswordConfirm ? (
+                            <IconEyeOff size={20} stroke={1.8} />
+                          ) : (
+                            <IconEye size={20} stroke={1.8} />
+                          )}
+                        </button>
+                      </div>
                     )}
                   </Field>
 
@@ -297,8 +311,7 @@ export default function Register({ errors: serverErrors }: RegisterPageProps) {
               </Stack>
             </Card>
           </form>
-        </div>
-      </div>
+      </AuthLayout>
     </>
   )
 }
