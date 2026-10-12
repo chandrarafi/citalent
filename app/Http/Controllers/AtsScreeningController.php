@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -286,7 +287,7 @@ class AtsScreeningController extends Controller
     {
         $validated = $request->validate([
             'pelamar_ids' => ['required', 'array', 'min:1'],
-            'pelamar_ids.*' => ['required', 'exists:rekrutmen.pelamars,id'],
+            'pelamar_ids.*' => ['required', Rule::exists(Pelamar::class, 'id')],
             'keputusan' => ['required', 'in:approve,reject'],
             'catatan_hr' => ['nullable', 'string', 'max:1000'],
             'tahap_berikutnya' => ['nullable', 'string', 'in:lengkapi_formulir,skill_test,interview_hr,interview_user'],
@@ -362,8 +363,8 @@ class AtsScreeningController extends Controller
     public function saveKriteria(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'id' => ['nullable', 'exists:rekrutmen.kriteria_ats,id'],
-            'lowongan_id' => ['nullable', 'exists:rekrutmen.lowongans,id'],
+            'id' => ['nullable', Rule::exists(KriteriaAts::class, 'id')],
+            'lowongan_id' => ['nullable', Rule::exists(Lowongan::class, 'id')],
             'divisi' => ['required', 'string'],
             'kategori' => ['required', 'string'],
             'nama_kriteria' => ['required', 'string', 'max:255'],
@@ -405,7 +406,7 @@ class AtsScreeningController extends Controller
      */
     public function resetKriteriaLowongan(Request $request): RedirectResponse
     {
-        $lowonganId = $request->validate(['lowongan_id' => 'required|exists:rekrutmen.lowongans,id'])['lowongan_id'];
+        $lowonganId = $request->validate(['lowongan_id' => ['required', Rule::exists(Lowongan::class, 'id')]])['lowongan_id'];
         $lowongan = Lowongan::with('departement')->findOrFail($lowonganId);
 
         $divisi = match (strtoupper($lowongan->departement?->kd_departement ?? '')) {
