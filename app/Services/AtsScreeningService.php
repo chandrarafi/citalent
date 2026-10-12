@@ -257,7 +257,6 @@ class AtsScreeningService
      */
     public function evaluateCriteria(string $divisi, Pelamar $pelamar, array $parsed, string $fullText): array
     {
-        // Query criteria tailored for this lowongan, or fallback to division template
         $kriteriaModels = KriteriaAts::getCriteriaFor($pelamar->lowongan_id, $divisi);
 
         $kriteria = [];
@@ -288,7 +287,7 @@ class AtsScreeningService
                     }
 
                     $isHigherEdu = in_array(strtoupper($pendidikan), ['S1', 'D4', 'S2', 'D3']);
-                    if ($crit->divisi === 'H2') { // SMK Otomotif
+                    if ($crit->divisi === 'H2') { 
                         $isSmk = str_contains($pendidikan, 'smk') || str_contains($pendidikan, 'sma');
                         if ($matchesEduMajor && $isSmk) {
                             $nilai = $bobotMax;

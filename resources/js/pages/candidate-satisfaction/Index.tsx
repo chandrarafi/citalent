@@ -523,7 +523,7 @@ export default function CandidateSatisfactionIndex({
           <Card variant="tight" className="lg:col-span-6 flex flex-col">
             <div className="pb-3 border-b border-[var(--color-line,#0000000f)] mb-3">
               <Heading level={3} className="text-base font-black">
-                Contoh Komentar Kandidat
+                Komentar Kandidat
               </Heading>
               <Text size="sm" muted className="text-xs">
                 Aspirasi dan masukan langsung dari pelamar seleksi

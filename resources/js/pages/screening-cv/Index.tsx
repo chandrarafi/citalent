@@ -236,7 +236,6 @@ export default function Index({
 }: Props) {
   const { flash } = usePage<any>().props
 
-  // Filter States
   const [search, setSearch] = useState('')
   const [lowonganFilter, setLowonganFilter] = useState<string>(
     selectedLowonganId ? String(selectedLowonganId) : 'all'
@@ -247,10 +246,8 @@ export default function Index({
   const [pageSize, setPageSize] = useState('10')
   const [page, setPage] = useState(1)
 
-  // Selection for bulk confirmation
   const [selectedIds, setSelectedIds] = useState<number[]>([])
 
-  // Modal Review & Confirmation
   const [selectedScreening, setSelectedScreening] = useState<ScreeningItem | null>(null)
   const [reviewModalOpen, setReviewModalOpen] = useState(false)
   const [decision, setDecision] = useState<'approve' | 'reject'>('approve')
@@ -258,13 +255,11 @@ export default function Index({
   const [catatanHr, setCatatanHr] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Bulk Confirmation Modal
   const [bulkModalOpen, setBulkModalOpen] = useState(false)
   const [bulkDecision, setBulkDecision] = useState<'approve' | 'reject'>('approve')
   const [bulkNextStage, setBulkNextStage] = useState('lengkapi_formulir')
   const [bulkCatatan, setBulkCatatan] = useState('')
 
-  // Batch Auto Screening Modal
   const [autoScreenModalOpen, setAutoScreenModalOpen] = useState(false)
   const [autoScreenLowongan, setAutoScreenLowongan] = useState('all')
   const [forceRescreen, setForceRescreen] = useState(false)
@@ -309,7 +304,6 @@ export default function Index({
     })
   }, [screenings, search, lowonganFilter, divisiFilter, statusKonfirmasiFilter, rekomendasiFilter])
 
-  // Pagination
   const limit = parseInt(pageSize, 10) || 10
   const totalPages = Math.max(1, Math.ceil(filteredScreenings.length / limit))
   const paginatedScreenings = useMemo(() => {
@@ -320,7 +314,6 @@ export default function Index({
   const startIndex = filteredScreenings.length === 0 ? 0 : (page - 1) * limit + 1
   const endIndex = Math.min(page * limit, filteredScreenings.length)
 
-  // Select all handler
   const allCurrentPageSelected =
     paginatedScreenings.length > 0 &&
     paginatedScreenings.every((s) => selectedIds.includes(s.pelamar_id))
