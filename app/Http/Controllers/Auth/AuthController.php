@@ -20,7 +20,7 @@ class AuthController extends Controller
     /**
      * Show the login screen.
      */
-    public function showLogin(): Response|RedirectResponse
+    public function showLogin(Request $request): Response|RedirectResponse
     {
         if (Auth::check()) {
             if (Auth::user()->hasRole('kandidat')) {
@@ -29,7 +29,9 @@ class AuthController extends Controller
             return redirect()->intended('/');
         }
 
-        return Inertia::render('auth/Login');
+        return Inertia::render('auth/Login', [
+            'email' => $request->query('email', ''),
+        ]);
     }
 
     /**
@@ -140,18 +142,55 @@ class AuthController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:25'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ], [
             'name.required' => 'Nama lengkap wajib diisi.',
             'phone.required' => 'Nomor HP / WhatsApp wajib diisi.',
             'email.required' => 'Alamat email wajib diisi.',
             'email.email' => 'Format email tidak valid.',
-            'email.unique' => 'Alamat email sudah terdaftar. Silakan gunakan email lain atau login.',
             'password.required' => 'Password wajib diisi.',
             'password.min' => 'Password minimal 8 karakter.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
         ]);
+
+        $existingUser = User::where('email', $validated['email'])->first();
+
+        if ($existingUser) {
+            if ($existingUser->isBanned()) {
+                return back()->withErrors([
+                    'email' => 'Akun dengan alamat email ini telah diblokir (Banned). Silakan hubungi Administrator.',
+                ])->withInput();
+            }
+
+            // Jika email sudah terdaftar dan belum diverifikasi OTP
+            if (!$existingUser->isActive()) {
+                $otp = sprintf('%06d', random_int(100000, 999999));
+                $existingUser->update([
+                    'name' => $validated['name'],
+                    'phone' => $validated['phone'],
+                    'password' => Hash::make($validated['password']),
+                    'otp_code' => $otp,
+                    'otp_expires_at' => now()->addMinutes(10),
+                    'failed_login_attempts' => 0,
+                ]);
+
+                try {
+                    Mail::to($existingUser->email)->send(new SendOtpMail($otp, $existingUser->name, 'activation'));
+                } catch (\Throwable $e) {
+                    Log::error('Gagal mengirim ulang email OTP saat registrasi ulang: ' . $e->getMessage());
+                }
+
+                $request->session()->put('otp_email', $existingUser->email);
+
+                return redirect()->route('otp.verify')->with('info', 'Email Anda sudah pernah terdaftar namun belum diverifikasi. Kode OTP baru telah dikirimkan ke email Anda. Silakan selesaikan verifikasi akun.');
+            }
+
+            // Jika akun sudah terdaftar dan aktif
+            return back()->withErrors([
+                'email' => 'Email ini sudah terdaftar karena Anda sudah pernah melamar dan data Anda sudah tersimpan di PT. Menara Agung. Silakan masuk ke akun Anda atau gunakan fitur Lupa Password jika lupa kata sandi.',
+            ])->with('already_registered_email', $validated['email'])->withInput();
+        }
 
         // Ensure kandidat role exists
         $kandidatRole = Role::firstOrCreate(
@@ -180,7 +219,7 @@ class AuthController extends Controller
 
         // Send OTP email
         try {
-            Mail::to($user->email)->send(new SendOtpMail($otp, $user->name));
+            Mail::to($user->email)->send(new SendOtpMail($otp, $user->name, 'activation'));
         } catch (\Throwable $e) {
             Log::error('Gagal mengirim email OTP pendaftaran: ' . $e->getMessage());
         }
@@ -321,6 +360,256 @@ class AuthController extends Controller
             Mail::to($user->email)->send(new SendOtpMail($otp, $user->name));
         } catch (\Throwable $e) {
             Log::error('Gagal mengirim ulang email OTP: ' . $e->getMessage());
+        }
+
+        return back()->with('success', 'Kode OTP baru telah berhasil dikirim ke ' . $user->email . '.');
+    }
+
+    /**
+     * Show forgot password screen.
+     */
+    public function showForgotPassword(Request $request): Response|RedirectResponse
+    {
+        if (Auth::check()) {
+            if (Auth::user()->hasRole('kandidat')) {
+                return redirect()->route('kandidat.lowongan');
+            }
+            return redirect()->intended('/');
+        }
+
+        return Inertia::render('auth/ForgotPassword', [
+            'email' => $request->query('email', ''),
+        ]);
+    }
+
+    /**
+     * Send OTP code for password reset.
+     */
+    public function sendResetOtp(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'email' => ['required', 'string', 'email'],
+        ], [
+            'email.required' => 'Alamat email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return back()->withErrors([
+                'email' => 'Alamat email tidak terdaftar dalam sistem.',
+            ])->onlyInput('email');
+        }
+
+        if ($user->isBanned()) {
+            return back()->withErrors([
+                'email' => 'Akun Anda telah diblokir (Banned). Silakan hubungi Administrator.',
+            ])->onlyInput('email');
+        }
+
+        $otp = sprintf('%06d', random_int(100000, 999999));
+
+        $user->update([
+            'otp_code' => $otp,
+            'otp_expires_at' => now()->addMinutes(10),
+        ]);
+
+        try {
+            Mail::to($user->email)->send(new SendOtpMail($otp, $user->name, 'reset_password', $user->email));
+        } catch (\Throwable $e) {
+            Log::error('Gagal mengirim email OTP reset password: ' . $e->getMessage());
+        }
+
+        $request->session()->put('reset_password_email', $user->email);
+        $request->session()->forget('reset_password_verified');
+
+        return redirect()->route('password.verify-otp')->with('success', 'Kode OTP reset password telah dikirim ke ' . $user->email . '.');
+    }
+
+    /**
+     * Show verify OTP screen for reset password.
+     */
+    public function showVerifyResetOtp(Request $request): Response|RedirectResponse
+    {
+        if (Auth::check()) {
+            return redirect()->intended('/');
+        }
+
+        $email = $request->session()->get('reset_password_email') ?? $request->query('email');
+
+        if (!$email) {
+            return redirect()->route('password.request');
+        }
+
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            return redirect()->route('password.request')->withErrors(['email' => 'Akun tidak ditemukan.']);
+        }
+
+        if ($user->isBanned()) {
+            return redirect()->route('login')->withErrors(['email' => 'Akun Anda telah diblokir (Banned). Silakan hubungi Administrator.']);
+        }
+
+        $request->session()->put('reset_password_email', $user->email);
+
+        return Inertia::render('auth/VerifyResetOtp', [
+            'email' => $user->email,
+            'userName' => $user->name,
+        ]);
+    }
+
+    /**
+     * Process verification of reset password OTP code.
+     */
+    public function verifyResetOtp(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'email' => ['required', 'string', 'email'],
+            'otp' => ['required', 'string', 'size:6'],
+        ], [
+            'otp.required' => 'Kode OTP wajib diisi.',
+            'otp.size' => 'Kode OTP harus terdiri dari 6 digit.',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return back()->withErrors(['otp' => 'Akun tidak ditemukan.']);
+        }
+
+        if ($user->isBanned()) {
+            return redirect()->route('login')->withErrors(['email' => 'Akun Anda telah diblokir (Banned). Silakan hubungi Administrator.']);
+        }
+
+        if ($user->otp_code !== $request->otp) {
+            return back()->withErrors(['otp' => 'Kode OTP yang Anda masukkan salah.']);
+        }
+
+        if ($user->otp_expires_at && now()->greaterThan($user->otp_expires_at)) {
+            return back()->withErrors(['otp' => 'Kode OTP telah kedaluwarsa. Silakan klik tombol "Kirim Ulang OTP".']);
+        }
+
+        // Tandai verifikasi OTP reset password berhasil di session
+        $request->session()->put('reset_password_email', $user->email);
+        $request->session()->put('reset_password_verified', true);
+
+        return redirect()->route('password.reset')->with('success', 'Kode OTP berhasil diverifikasi! Silakan tentukan kata sandi baru Anda.');
+    }
+
+    /**
+     * Show reset password screen (new password input).
+     */
+    public function showResetPassword(Request $request): Response|RedirectResponse
+    {
+        if (Auth::check()) {
+            return redirect()->intended('/');
+        }
+
+        $email = $request->session()->get('reset_password_email');
+        $isVerified = $request->session()->get('reset_password_verified');
+
+        if (!$email || !$isVerified) {
+            return redirect()->route('password.request')->withErrors([
+                'email' => 'Silakan lakukan verifikasi kode OTP terlebih dahulu sebelum mereset kata sandi.',
+            ]);
+        }
+
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            return redirect()->route('password.request')->withErrors(['email' => 'Akun tidak ditemukan.']);
+        }
+
+        if ($user->isBanned()) {
+            return redirect()->route('login')->withErrors(['email' => 'Akun Anda telah diblokir (Banned). Silakan hubungi Administrator.']);
+        }
+
+        return Inertia::render('auth/ResetPassword', [
+            'email' => $email,
+            'userName' => $user->name,
+        ]);
+    }
+
+    /**
+     * Process reset password submission.
+     */
+    public function resetPassword(Request $request): RedirectResponse
+    {
+        $email = $request->session()->get('reset_password_email');
+        $isVerified = $request->session()->get('reset_password_verified');
+
+        if (!$email || !$isVerified) {
+            return redirect()->route('password.request')->withErrors([
+                'email' => 'Sesi reset password tidak valid atau telah kedaluwarsa. Silakan ulangi proses.',
+            ]);
+        }
+
+        $request->validate([
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ], [
+            'password.required' => 'Password baru wajib diisi.',
+            'password.min' => 'Password minimal 8 karakter.',
+            'password.confirmed' => 'Konfirmasi password tidak cocok.',
+        ]);
+
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            return redirect()->route('password.request')->withErrors(['email' => 'Akun tidak ditemukan.']);
+        }
+
+        if ($user->isBanned()) {
+            return redirect()->route('login')->withErrors(['email' => 'Akun Anda telah diblokir (Banned). Silakan hubungi Administrator.']);
+        }
+
+        // Reset password berhasil
+        $user->update([
+            'password' => Hash::make($request->password),
+            'otp_code' => null,
+            'otp_expires_at' => null,
+            'failed_login_attempts' => 0,
+            'email_verified_at' => $user->email_verified_at ?? now(),
+            'is_active' => true,
+            'status' => 'active',
+        ]);
+
+        $request->session()->forget(['reset_password_email', 'reset_password_verified']);
+
+        return redirect()->route('login')->with('success', 'Password Anda berhasil diperbarui! Silakan masuk menggunakan kata sandi baru.');
+    }
+
+    /**
+     * Resend OTP for reset password.
+     */
+    public function resendResetOtp(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return back()->withErrors(['otp' => 'Akun tidak ditemukan.']);
+        }
+
+        if ($user->isBanned()) {
+            return redirect()->route('login')->withErrors(['email' => 'Akun Anda telah diblokir (Banned). Silakan hubungi Administrator.']);
+        }
+
+        $otp = sprintf('%06d', random_int(100000, 999999));
+
+        $user->update([
+            'otp_code' => $otp,
+            'otp_expires_at' => now()->addMinutes(10),
+        ]);
+
+        try {
+            Mail::to($user->email)->send(new SendOtpMail($otp, $user->name, 'reset_password'));
+        } catch (\Throwable $e) {
+            Log::error('Gagal mengirim ulang email OTP reset password: ' . $e->getMessage());
         }
 
         return back()->with('success', 'Kode OTP baru telah berhasil dikirim ke ' . $user->email . '.');

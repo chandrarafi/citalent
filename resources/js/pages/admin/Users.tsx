@@ -23,6 +23,9 @@ interface UserItem {
   id: number
   name: string
   email: string
+  phone?: string | null
+  status?: string | null
+  is_active?: boolean
   role_id: number | null
   role?: RoleOption | null
   created_at?: string | null
@@ -43,11 +46,15 @@ const ROLE_TONE: Record<string, Tone> = {
   'super-admin': 'purple',
   'hr-manager': 'mint',
   'employee': 'blue',
+  'kabag': 'pink',
+  'kandidat': 'orange',
+  'kadidat': 'orange',
 }
 
 const emptyForm = () => ({
   name: '',
   email: '',
+  phone: '',
   password: '',
   role_id: '',
 })
@@ -74,6 +81,7 @@ export default function Users({ users, roles }: Props) {
         !q ||
         u.name.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
+        (u.phone && u.phone.toLowerCase().includes(q)) ||
         (u.role?.label && u.role.label.toLowerCase().includes(q)) ||
         (u.role?.name && u.role.name.toLowerCase().includes(q))
 
@@ -100,9 +108,10 @@ export default function Users({ users, roles }: Props) {
   // Top stats calculations
   const stats = useMemo(() => {
     const total = users.length
-    const superAdminCount = users.filter((u) => u.role?.name === 'super-admin').length
+    const kandidatCount = users.filter((u) => u.role?.name === 'kandidat' || u.role?.name === 'kadidat').length
+    const staffCount = users.filter((u) => u.role?.name !== 'kandidat' && u.role?.name !== 'kadidat').length
     const rolesCount = roles.length
-    return { total, superAdminCount, rolesCount }
+    return { total, kandidatCount, staffCount, rolesCount }
   }, [users, roles])
 
   function openCreate() {
@@ -110,6 +119,7 @@ export default function Users({ users, roles }: Props) {
     setForm({
       name: '',
       email: '',
+      phone: '',
       password: '',
       role_id: roles.length > 0 ? String(roles[0].id) : '',
     })
@@ -122,6 +132,7 @@ export default function Users({ users, roles }: Props) {
     setForm({
       name: user.name,
       email: user.email,
+      phone: user.phone ?? '',
       password: '',
       role_id: user.role_id ? String(user.role_id) : (roles[0] ? String(roles[0].id) : ''),
     })
@@ -141,6 +152,7 @@ export default function Users({ users, roles }: Props) {
     const payload: Record<string, any> = {
       name: form.name,
       email: form.email,
+      phone: form.phone || null,
       role_id: parseInt(form.role_id, 10),
     }
 
@@ -181,25 +193,44 @@ export default function Users({ users, roles }: Props) {
     {
       key: 'user',
       header: 'Pengguna',
-      minWidth: '220px',
-      render: (u: UserItem) => (
-        <Row gap={3} wrap={false} align="center" className="min-w-[190px]">
-          <Blob
-            icon={u.role?.name === 'super-admin' ? 'star' : 'user'}
-            tone={ROLE_TONE[u.role?.name ?? ''] || 'blue'}
-            size="sm"
-            className="shrink-0"
-          />
-          <Stack gap={1} className="min-w-0">
-            <Text className="whitespace-nowrap">
-              <strong>{u.name}</strong>
-            </Text>
-            <Text size="sm" muted mono className="whitespace-nowrap">
-              {u.email}
-            </Text>
-          </Stack>
-        </Row>
-      ),
+      minWidth: '240px',
+      render: (u: UserItem) => {
+        const isCandidate = u.role?.name === 'kandidat' || u.role?.name === 'kadidat'
+        return (
+          <Row gap={3} wrap={false} align="center" className="min-w-[210px]">
+            <Blob
+              icon={u.role?.name === 'super-admin' ? 'star' : isCandidate ? 'user' : 'badge'}
+              tone={ROLE_TONE[u.role?.name ?? ''] || 'blue'}
+              size="sm"
+              className="shrink-0"
+            />
+            <Stack gap={1} className="min-w-0">
+              <Row gap={2} align="center" wrap={false}>
+                <Text className="whitespace-nowrap">
+                  <strong>{u.name}</strong>
+                </Text>
+                {isCandidate && (
+                  <span
+                    className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
+                      u.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                    }`}
+                  >
+                    {u.is_active ? 'Terverifikasi' : 'Belum Verifikasi'}
+                  </span>
+                )}
+              </Row>
+              <Text size="sm" muted mono className="whitespace-nowrap">
+                {u.email}
+              </Text>
+              {u.phone && (
+                <Text size="xs" muted mono className="whitespace-nowrap text-stone-500">
+                  📞 {u.phone}
+                </Text>
+              )}
+            </Stack>
+          </Row>
+        )
+      },
       sort: (a: UserItem, b: UserItem) => a.name.localeCompare(b.name),
     },
     {
@@ -253,6 +284,11 @@ export default function Users({ users, roles }: Props) {
                       <Text size="sm">
                         <strong>Email:</strong> {u.email}
                       </Text>
+                      {u.phone && (
+                        <Text size="sm">
+                          <strong>No. HP:</strong> {u.phone}
+                        </Text>
+                      )}
                       <Text size="sm">
                         <strong>Role:</strong> {u.role?.label ?? 'Tanpa Role'}
                       </Text>
@@ -288,7 +324,7 @@ export default function Users({ users, roles }: Props) {
         </div>
 
         {/* Top KPI Stats */}
-        <Grid cols={3}>
+        <Grid cols={4}>
           <Stat
             label="Total Pengguna"
             value={String(stats.total)}
@@ -296,8 +332,14 @@ export default function Users({ users, roles }: Props) {
             tone="purple"
           />
           <Stat
-            label="Super Admin"
-            value={`${stats.superAdminCount} Akun`}
+            label="Kandidat Pelamar"
+            value={`${stats.kandidatCount} Akun`}
+            icon="user"
+            tone="orange"
+          />
+          <Stat
+            label="Staf Internal"
+            value={`${stats.staffCount} Akun`}
             icon="star"
             tone="mint"
           />
@@ -429,6 +471,18 @@ export default function Users({ users, roles }: Props) {
                 onChange={(v) => setForm((f) => ({ ...f, email: v }))}
                 placeholder="contoh: budi@citalent.com"
                 mono
+              />
+            )}
+          </Field>
+
+          <Field label="No. Handphone / WhatsApp (Opsional)" error={errors.phone || pageErrors?.phone}>
+            {(id, describedBy) => (
+              <Input
+                id={id}
+                describedBy={describedBy}
+                value={form.phone}
+                onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+                placeholder="contoh: 081234567890"
               />
             )}
           </Field>

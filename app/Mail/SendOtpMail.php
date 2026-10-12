@@ -14,7 +14,9 @@ class SendOtpMail extends Mailable
 
     public function __construct(
         public string $otp,
-        public string $name
+        public string $name,
+        public string $type = 'activation',
+        public ?string $email = null
     ) {}
 
     /**
@@ -22,8 +24,12 @@ class SendOtpMail extends Mailable
      */
     public function envelope(): Envelope
     {
+        $subject = $this->type === 'reset_password'
+            ? 'Kode Verifikasi Reset Password - ' . config('app.name', 'Citalent')
+            : 'Kode Verifikasi OTP Akun Kandidat - ' . config('app.name', 'Citalent');
+
         return new Envelope(
-            subject: 'Kode Verifikasi OTP Akun Kandidat - ' . config('app.name', 'Citalent'),
+            subject: $subject,
         );
     }
 

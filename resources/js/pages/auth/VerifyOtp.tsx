@@ -9,6 +9,7 @@ import { Button } from '@/components/pouf/Button'
 import { Separator } from '@/components/pouf/separator'
 import { Blob, Badge } from '@/components/pouf/media'
 import { IconCheck, IconMail, IconRefresh, IconAlertCircle } from '@tabler/icons-react'
+import AuthLayout from '@/layouts/AuthLayout'
 
 interface VerifyOtpProps {
   email: string
@@ -178,17 +179,20 @@ export default function VerifyOtp({ email, userName, errors: serverErrors }: Ver
   return (
     <>
       <Head title="Verifikasi OTP - Citalent" />
-      <div className="min-h-screen w-full flex items-center justify-center p-3 sm:p-6 bg-slate-50">
-        <div className="w-full max-w-[460px]">
-          <form onSubmit={submit} noValidate>
+      <AuthLayout maxWidth="max-w-[460px]">
+        <form onSubmit={submit} noValidate>
             <Card>
               <Stack gap={5}>
                 {/* Header */}
                 <Stack gap={3}>
-                  <Blob icon="target" tone="mint" />
+                  <img
+                    src="/assets/images/logo-red-1.png"
+                    alt="Logo"
+                    width={270}
+                    className="mx-auto"
+                  />
                   <Stack gap={1}>
-                    <Heading level={2}>Verifikasi Kode OTP</Heading>
-                    <Text size="sm" muted>
+                    <Text size="sm" muted className="text-center">
                       {userName ? `Halo ${userName}, silakan ` : 'Silakan '}masukkan 6 digit kode OTP yang telah kami kirimkan ke email Anda.
                     </Text>
                   </Stack>
@@ -206,6 +210,13 @@ export default function VerifyOtp({ email, userName, errors: serverErrors }: Ver
                   <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm">
                     <IconAlertCircle size={18} className="text-rose-600 shrink-0 mt-0.5" />
                     <span>{flash.error}</span>
+                  </div>
+                )}
+
+                {flash?.info && (
+                  <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 text-sm">
+                    <IconAlertCircle size={18} className="text-sky-600 shrink-0 mt-0.5" />
+                    <span>{flash.info}</span>
                   </div>
                 )}
 
@@ -299,8 +310,7 @@ export default function VerifyOtp({ email, userName, errors: serverErrors }: Ver
               </Stack>
             </Card>
           </form>
-        </div>
-      </div>
+      </AuthLayout>
     </>
   )
 }

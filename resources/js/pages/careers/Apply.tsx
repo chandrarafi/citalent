@@ -395,9 +395,7 @@ export default function Apply({ lowongan, isAuthenticated = false, existingAppli
                 <Stack gap={1} className="flex-1 min-w-0">
                   <Eyebrow>{lowongan.departement_nama}</Eyebrow>
                   <Heading level={1}>{lowongan.judul}</Heading>
-                  <Text size="sm" muted>
-                    Posisi: <strong>{lowongan.posisi_nama}</strong> &bull; Kuota: <strong>{lowongan.jumlah_dibutuhkan} Posisi</strong>
-                  </Text>
+
                 </Stack>
                 <Badge tone={lowongan.is_closed ? 'pink' : 'mint'} className="shrink-0">
                   {lowongan.is_closed ? 'LOWONGAN DITUTUP' : 'TERBUKA'}
@@ -457,7 +455,7 @@ export default function Apply({ lowongan, isAuthenticated = false, existingAppli
                       size="md"
                       onClick={() => router.get('/login')}
                     >
-                      Apply Lowongan 
+                      Apply Lowongan
                     </Button>
                   </Row>
               </Stack>

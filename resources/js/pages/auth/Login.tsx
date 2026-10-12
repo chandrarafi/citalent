@@ -8,7 +8,8 @@ import { Field, Input } from '@/components/pouf/Input'
 import { Button } from '@/components/pouf/Button'
 import { Separator } from '@/components/pouf/separator'
 import { Blob } from '@/components/pouf/media'
-import { IconCheck, IconAlertCircle } from '@tabler/icons-react'
+import { IconCheck, IconAlertCircle, IconEye, IconEyeOff } from '@tabler/icons-react'
+import AuthLayout from '@/layouts/AuthLayout'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -18,24 +19,43 @@ interface LoginValues {
 }
 
 interface LoginPageProps {
+  email?: string
   errors?: { email?: string; password?: string }
 }
 
-export default function Login({ errors: serverErrors }: LoginPageProps) {
+export default function Login({
+  email: initialEmail = '',
+  errors: serverErrors,
+}: LoginPageProps) {
   const { flash } = usePage<any>().props
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  // Ambil email dari prop atau URL search parameter jika ada
+  const queryEmail =
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('email') || ''
+      : ''
+  const defaultEmail = initialEmail || queryEmail
 
   const {
     control,
     handleSubmit,
     setError,
+    setValue,
     formState: { errors },
   } = useForm<LoginValues>({
-    defaultValues: { email: '', password: '' },
+    defaultValues: { email: defaultEmail, password: '' },
     mode: 'onSubmit',
     reValidateMode: 'onChange',
   })
+
+  // Set default email jika berubah dari prop atau query
+  useEffect(() => {
+    if (defaultEmail) {
+      setValue('email', defaultEmail)
+    }
+  }, [defaultEmail, setValue])
 
   const email = useWatch({ control, name: 'email' })
 
@@ -59,19 +79,20 @@ export default function Login({ errors: serverErrors }: LoginPageProps) {
   })
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-3 sm:p-6 bg-slate-50">
-      <div className="w-full max-w-[420px]">
+    <>
+      <Head title="Masuk - Citalent" />
+      <AuthLayout maxWidth="max-w-[420px]">
         <form onSubmit={submit} noValidate>
           <Card>
             <Stack gap={5}>
               <Stack gap={3}>
-                <Blob icon="lock" tone="purple" />
-                <Stack gap={1}>
-                  <Heading level={2}>Welcome back</Heading>
-                  <Text size="sm" muted>
-                    Sign in to your HR App account.
-                  </Text>
-                </Stack>
+                <img
+                  src="/assets/images/logo-red-1.png"
+                  alt="Logo"
+                  width={270}
+
+                  className="mx-auto"
+                />
               </Stack>
 
               {/* Flash Messages */}
@@ -86,6 +107,13 @@ export default function Login({ errors: serverErrors }: LoginPageProps) {
                 <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm">
                   <IconAlertCircle size={18} className="text-rose-600 shrink-0 mt-0.5" />
                   <span>{flash.error}</span>
+                </div>
+              )}
+
+              {flash?.info && (
+                <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 text-sm">
+                  <IconAlertCircle size={18} className="text-sky-600 shrink-0 mt-0.5" />
+                  <span>{flash.info}</span>
                 </div>
               )}
 
@@ -124,43 +152,60 @@ export default function Login({ errors: serverErrors }: LoginPageProps) {
                 </Field>
 
                 {/* Password */}
-                <Field label="Password" error={errors.password?.message}>
+                <Field
+                  label="Password"
+                  error={errors.password?.message}
+                  labelRight={
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline"
+                      tabIndex={-1}
+                    >
+                      Lupa password?
+                    </Link>
+                  }
+                >
                   {(id, describedBy) => (
-                    <Row gap={2} wrap={false}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <Controller
-                          name="password"
-                          control={control}
-                          rules={{
-                            required: 'Password wajib diisi.',
-                            minLength: { value: 8, message: 'Minimal 8 karakter.' },
-                          }}
-                          render={({ field }) => (
-                            <Input
-                              ref={field.ref}
-                              id={id}
-                              name={field.name}
-                              describedBy={describedBy}
-                              type={showPassword ? 'text' : 'password'}
-                              value={field.value}
-                              onChange={field.onChange}
-                              onBlur={field.onBlur}
-                              placeholder="••••••••…"
-                              autoComplete="current-password"
-                              required
-                              invalid={!!errors.password}
-                            />
-                          )}
-                        />
-                      </div>
-                      <Button
+                    <div className="relative w-full">
+                      <Controller
+                        name="password"
+                        control={control}
+                        rules={{
+                          required: 'Password wajib diisi.',
+                          minLength: { value: 8, message: 'Minimal 8 karakter.' },
+                        }}
+                        render={({ field }) => (
+                          <Input
+                            ref={field.ref}
+                            id={id}
+                            name={field.name}
+                            describedBy={describedBy}
+                            type={showPassword ? 'text' : 'password'}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            placeholder="•••••••"
+                            autoComplete="current-password"
+                            required
+                            invalid={!!errors.password}
+                            className="pr-12"
+                          />
+                        )}
+                      />
+                      <button
                         type="button"
-                        variant="quiet"
                         onClick={() => setShowPassword((s) => !s)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink transition-colors p-1.5 rounded-lg flex items-center justify-center focus:outline-none"
+                        tabIndex={-1}
+                        aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
                       >
-                        {showPassword ? 'Hide' : 'Show'}
-                      </Button>
-                    </Row>
+                        {showPassword ? (
+                          <IconEyeOff size={20} stroke={1.8} />
+                        ) : (
+                          <IconEye size={20} stroke={1.8} />
+                        )}
+                      </button>
+                    </div>
                   )}
                 </Field>
 
@@ -184,7 +229,7 @@ export default function Login({ errors: serverErrors }: LoginPageProps) {
             </Stack>
           </Card>
         </form>
-      </div>
-    </div>
+      </AuthLayout>
+    </>
   )
 }

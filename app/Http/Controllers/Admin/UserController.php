@@ -21,16 +21,15 @@ class UserController extends Controller
     public function index(): Response
     {
         $users = User::with('role')
-            ->where(function ($q) {
-                $q->whereHas('role', fn ($r) => $r->where('name', '!=', 'kandidat'))
-                    ->orWhereNull('role_id');
-            })
             ->orderBy('id', 'desc')
             ->get()
             ->map(fn (User $u) => [
                 'id' => $u->id,
                 'name' => $u->name,
                 'email' => $u->email,
+                'phone' => $u->phone,
+                'status' => $u->status ?? ($u->is_active ? 'active' : 'pending'),
+                'is_active' => (bool) $u->is_active,
                 'role_id' => $u->role_id,
                 'role' => $u->role ? [
                     'id' => $u->role->id,
@@ -40,7 +39,7 @@ class UserController extends Controller
                 'created_at' => $u->created_at ? $u->created_at->format('Y-m-d H:i') : null,
             ]);
 
-        $roles = Role::where('name', '!=', 'kandidat')->orderBy('id')->get(['id', 'name', 'label']);
+        $roles = Role::orderBy('id')->get(['id', 'name', 'label']);
 
         return Inertia::render('admin/Users', [
             'users' => $users,
@@ -56,6 +55,7 @@ class UserController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
+            'phone' => ['nullable', 'string', 'max:25'],
             'password' => ['required', 'string', 'min:6'],
             'role_id' => ['required', 'integer', 'exists:roles,id'],
         ], [
@@ -72,8 +72,11 @@ class UserController extends Controller
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
+            'phone' => $data['phone'] ?? null,
             'password' => Hash::make($data['password']),
             'role_id' => $data['role_id'],
+            'is_active' => true,
+            'status' => 'active',
         ]);
 
         return back()->with('success', "Pengguna '{$user->name}' berhasil ditambahkan.");
@@ -87,6 +90,7 @@ class UserController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'phone' => ['nullable', 'string', 'max:25'],
             'password' => ['nullable', 'string', 'min:6'],
             'role_id' => ['required', 'integer', 'exists:roles,id'],
         ], [
@@ -102,6 +106,7 @@ class UserController extends Controller
         $updateData = [
             'name' => $data['name'],
             'email' => $data['email'],
+            'phone' => $data['phone'] ?? null,
             'role_id' => $data['role_id'],
         ];
 

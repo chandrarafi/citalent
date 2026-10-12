@@ -7,6 +7,7 @@ use App\Http\Controllers\AtsScreeningController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\CandidateSatisfactionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EmailPreviewController;
 use App\Http\Controllers\FormulirLamaranController;
 use App\Http\Controllers\KandidatLowonganController;
 use App\Http\Controllers\KandidatProfileController;
@@ -35,9 +36,27 @@ Route::middleware('guest')->group(function () {
     Route::get('/verify-otp', [AuthController::class, 'showVerifyOtp'])->name('otp.verify');
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp'])->name('otp.verify.post');
     Route::post('/resend-otp', [AuthController::class, 'resendOtp'])->name('otp.resend');
+
+    Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [AuthController::class, 'sendResetOtp'])->name('password.email');
+
+    Route::get('/forgot-password/verify-otp', [AuthController::class, 'showVerifyResetOtp'])->name('password.verify-otp');
+    Route::post('/forgot-password/verify-otp', [AuthController::class, 'verifyResetOtp'])->name('password.verify-otp.post');
+    Route::post('/forgot-password/resend-otp', [AuthController::class, 'resendResetOtp'])->name('password.resend-otp');
+
+    Route::get('/reset-password', [AuthController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
+
+// ─── Preview Templates Email (Hanya Admin) ───────────────────────────────────
+Route::middleware(['auth', 'role:super-admin,admin'])->prefix('preview-emails')->group(function () {
+    Route::get('/', [EmailPreviewController::class, 'index'])->name('preview.emails');
+    Route::get('/render/otp', [EmailPreviewController::class, 'renderOtp'])->name('preview.email.render.otp');
+    Route::get('/render/status-lamaran', [EmailPreviewController::class, 'renderStatusLamaran'])->name('preview.email.render.status');
+    Route::get('/render/undangan-interview', [EmailPreviewController::class, 'renderUndanganInterview'])->name('preview.email.render.interview');
+});
 
 // ─── App ─────────────────────────────────────────────────────────────────────
 Route::middleware('auth')->group(function () {
