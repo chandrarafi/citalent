@@ -11,6 +11,7 @@ use App\Http\Controllers\EmailPreviewController;
 use App\Http\Controllers\FormulirLamaranController;
 use App\Http\Controllers\KandidatLowonganController;
 use App\Http\Controllers\KandidatProfileController;
+use App\Http\Controllers\KriteriaAtsController;
 use App\Http\Controllers\LowonganController;
 use App\Http\Controllers\ParameterSkillTestController;
 use App\Http\Controllers\PelamarController;
@@ -299,6 +300,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/screening-cv/kriteria/reset', [AtsScreeningController::class, 'resetKriteriaLowongan'])
         ->name('screening-cv.kriteria.reset')
         ->middleware('permission:manage-permintaan-rekrutmen');
+
+    // ─── Kriteria ATS Screening ───────────────────────────────────────────────
+    Route::prefix('kriteria-ats')->name('kriteria-ats.')->middleware('permission:manage-permintaan-rekrutmen')->group(function () {
+        Route::get('/', [KriteriaAtsController::class, 'index'])->name('index');
+        Route::post('/', [KriteriaAtsController::class, 'store'])->name('store');
+        Route::put('/{kriteria}', [KriteriaAtsController::class, 'update'])->name('update');
+        Route::delete('/{kriteria}', [KriteriaAtsController::class, 'destroy'])->name('destroy');
+        Route::patch('/{kriteria}/toggle-active', [KriteriaAtsController::class, 'toggleActive'])->name('toggle-active');
+        Route::post('/{kriteria}/duplicate', [KriteriaAtsController::class, 'duplicate'])->name('duplicate');
+    });
 
     // ─── Candidate Satisfaction Analytics & Survey ──────────────────────────
     Route::get('/candidate-satisfaction', [CandidateSatisfactionController::class, 'index'])

@@ -7,7 +7,6 @@ import { Heading, Text, Eyebrow } from '@/components/pouf/text'
 import { Button } from '@/components/pouf/Button'
 import { Input, Field } from '@/components/pouf/Input'
 import { Table } from '@/components/pouf/table'
-import { Stat } from '@/components/pouf/readout'
 import { Badge, Blob, Dot } from '@/components/pouf/media'
 import { Select, Dialog } from '@/components/pouf/controls'
 import { Checkbox } from '@/components/pouf/checkbox'
@@ -800,40 +799,6 @@ export default function Index({
               </button>
             )
           })}
-        </div>
-
-        {/* Top KPI Readouts */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          <Stat
-            label="Total Discreening ATS"
-            value={String(stats.total_screened)}
-            icon="database"
-            tone="blue"
-          />
-          <Stat
-            label="Menunggu Konfirmasi HR"
-            value={`${stats.pending_confirmation} Kandidat`}
-            icon="clock"
-            tone="orange"
-          />
-          <Stat
-            label="Top Candidates (≥ 75)"
-            value={`${stats.top_candidates} Orang`}
-            icon="target"
-            tone="mint"
-          />
-          <Stat
-            label="Dikonfirmasi Lolos"
-            value={`${stats.approved} Orang`}
-            icon="ok"
-            tone="mint"
-          />
-          <Stat
-            label="Dikonfirmasi Ditolak"
-            value={`${stats.rejected} Orang`}
-            icon="fail"
-            tone="pink"
-          />
         </div>
 
         {/* Flash Notifications */}

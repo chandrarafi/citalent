@@ -9,6 +9,9 @@ import {
 import { useMemo, useState, type ReactNode } from 'react'
 import { cx } from 'class-variance-authority'
 import { Text } from './text'
+import { StickyTableScroll } from './StickyTableScroll'
+
+export { StickyTableScroll }
 
 // Re-export specific TanStack primitives if needed
 export type { ColumnDef, SortingState }
@@ -39,6 +42,7 @@ export interface TableProps<T> {
   onRowClick?: (row: T) => void
   getRowLabel?: (row: T) => string
   className?: string
+  stickyScroll?: boolean
 }
 
 export function Table<T>({
@@ -49,6 +53,7 @@ export function Table<T>({
   onRowClick,
   getRowLabel,
   className,
+  stickyScroll = true,
 }: TableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([])
 
@@ -119,8 +124,16 @@ export function Table<T>({
   const effectiveMinWidth =
     minWidth ?? (columns.length >= 7 ? '1000px' : columns.length >= 5 ? '850px' : '650px')
 
-  return (
-    <div className={cx('pouf-table__wrap overflow-x-auto w-full [webkit-overflow-scrolling:touch]', className)}>
+  const tableElement = (
+    <div
+      className={cx(
+        'pouf-table__wrap overflow-x-auto w-full [webkit-overflow-scrolling:touch]',
+        '[scrollbar-width:auto] [scrollbar-color:var(--color-purple)_rgba(0,0,0,0.04)]',
+        '[&::-webkit-scrollbar]:h-3.5 [&::-webkit-scrollbar-track]:bg-black/[0.04] [&::-webkit-scrollbar-track]:rounded-full',
+        '[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[var(--color-purple)]/55 hover:[&::-webkit-scrollbar-thumb]:bg-[var(--color-purple)]/85',
+        className,
+      )}
+    >
       <table
         className="pouf-table w-full border-collapse"
         style={{ minWidth: effectiveMinWidth }}
@@ -246,6 +259,12 @@ export function Table<T>({
       </table>
     </div>
   )
+
+  if (stickyScroll) {
+    return <StickyTableScroll>{tableElement}</StickyTableScroll>
+  }
+
+  return tableElement
 }
 
 export { Table as DataTable }
