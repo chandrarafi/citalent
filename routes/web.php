@@ -273,6 +273,14 @@ Route::middleware('auth')->group(function () {
         ->name('screening-cv.index')
         ->middleware('permission:manage-permintaan-rekrutmen');
 
+    Route::get('/screening-cv/batch-progress', [AtsScreeningController::class, 'getBatchProgress'])
+        ->name('screening-cv.batch-progress')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::post('/screening-cv/cancel-batch', [AtsScreeningController::class, 'cancelBatch'])
+        ->name('screening-cv.cancel-batch')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
     Route::post('/screening-cv/run-batch', [AtsScreeningController::class, 'runBatch'])
         ->name('screening-cv.run-batch')
         ->middleware('permission:manage-permintaan-rekrutmen');

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Head, router, usePage } from '@inertiajs/react'
 import { AppLayout } from '@/layouts/AppLayout'
 import { Card } from '@/components/pouf/surface'
@@ -11,6 +11,7 @@ import { Badge, Blob, Dot } from '@/components/pouf/media'
 import { Select, Dialog } from '@/components/pouf/controls'
 import { Checkbox } from '@/components/pouf/checkbox'
 import { Pagination } from '@/components/pouf/pagination'
+import { toast } from '@/components/pouf/toaster'
 import type { Tone } from '@/components/pouf/tone'
 import {
   IconCheck,
@@ -142,6 +143,16 @@ interface Props {
   kriteriaLowongans?: KriteriaAtsItem[]
 }
 
+interface BatchProgress {
+  batch_id: string | null
+  total: number
+  completed: number
+  failed: number
+  percentage: number
+  current_candidate: string | null
+  status: 'idle' | 'processing' | 'completed'
+}
+
 const DIVISI_OPTIONS = [
   { value: 'all', label: 'Semua Divisi' },
   { value: 'H1', label: 'H1 - Marketing & Sales' },
@@ -225,6 +236,14 @@ const PAGE_SIZE_OPTIONS = [
   { value: '50', label: '50 per hal' },
 ]
 
+const SCREENING_STEPS = [
+  'Mengekstrak data teks berkas CV & profil kandidat...',
+  'Mengambil kriteria kebutuhan posisi dari database...',
+  'Model AI mengevaluasi kesesuaian kualifikasi & kompetensi...',
+  'Menghitung skor bobot kriteria dan menyusun rekomendasi ATS...',
+  'Menyiapkan ringkasan evaluasi kualitatif untuk tim HR...',
+]
+
 export default function Index({
   screenings,
   lowongans,
@@ -262,6 +281,77 @@ export default function Index({
   const [autoScreenModalOpen, setAutoScreenModalOpen] = useState(false)
   const [autoScreenLowongan, setAutoScreenLowongan] = useState('all')
   const [forceRescreen, setForceRescreen] = useState(false)
+  const [screeningStep, setScreeningStep] = useState(0)
+
+  // Real-time Queue Progress State
+  const [progress, setProgress] = useState<BatchProgress | null>(null)
+  const [showProgressCard, setShowProgressCard] = useState(false)
+  const [prevStatus, setPrevStatus] = useState<string>('idle')
+
+  const screeningLoading = progress?.status === 'processing'
+
+  // Polling batch screening progress from backend cache
+  useEffect(() => {
+    let intervalId: any = null
+
+    const checkProgress = async () => {
+      try {
+        const response = await fetch('/screening-cv/batch-progress', {
+          headers: { Accept: 'application/json' },
+        })
+        if (!response.ok) return
+        const data: BatchProgress = await response.json()
+
+        setProgress(data)
+
+        if (data.status === 'processing') {
+          setShowProgressCard(true)
+          setPrevStatus('processing')
+        } else if (data.status === 'completed') {
+          if (prevStatus === 'processing') {
+            setShowProgressCard(true)
+            toast.success('AI Screening CV Selesai!', {
+              description: `Berhasil memproses ${data.completed} kandidat pelamar.`,
+            })
+            // Reload screenings and stats without losing user page scroll
+            router.reload({ only: ['screenings', 'stats'] })
+            setPrevStatus('completed')
+
+            // Auto dismiss floating card after 6 seconds
+            setTimeout(() => {
+              setShowProgressCard(false)
+            }, 6000)
+          }
+        }
+      } catch (e) {
+        // Silently catch fetch network glitches
+      }
+    }
+
+    // Immediate check on mount
+    checkProgress()
+
+    // Poll every 2 seconds
+    intervalId = setInterval(checkProgress, 2000)
+
+    return () => {
+      if (intervalId) clearInterval(intervalId)
+    }
+  }, [prevStatus])
+
+  // Rotate informative step messages while screening is running
+  useEffect(() => {
+    if (!screeningLoading) {
+      setScreeningStep(0)
+      return
+    }
+
+    const interval = setInterval(() => {
+      setScreeningStep((prev) => (prev + 1) % SCREENING_STEPS.length)
+    }, 3200)
+
+    return () => clearInterval(interval)
+  }, [screeningLoading])
 
   // Kriteria Settings Modal State
   const [settingsModalOpen, setSettingsModalOpen] = useState(false)
@@ -399,9 +489,11 @@ export default function Index({
     )
   }
 
-  // Run batch auto screening
+  // Run batch auto screening via queue
   function submitRunAutoScreening() {
     setIsSubmitting(true)
+    setAutoScreenModalOpen(false)
+
     router.post(
       '/screening-cv/run-batch',
       {
@@ -410,23 +502,73 @@ export default function Index({
       },
       {
         preserveScroll: true,
+        onSuccess: () => {
+          toast.info('Memproses AI Screening CV...', {
+            description: 'Screening dimasukkan ke antrean latar belakang (Queue). Progres persentase ditampilkan di bawah.',
+          })
+          setShowProgressCard(true)
+          setPrevStatus('processing')
+        },
         onFinish: () => {
           setIsSubmitting(false)
-          setAutoScreenModalOpen(false)
         },
       }
     )
   }
 
-  // Run single re-screen
+  // Run single re-screen via queue
   function handleReScreen(pelamarId: number) {
+    setIsSubmitting(true)
+    setReviewModalOpen(false)
+
     router.post(
       `/screening-cv/${pelamarId}/run`,
       {},
       {
         preserveScroll: true,
+        onSuccess: () => {
+          toast.info('Memproses AI Screening CV...', {
+            description: 'Screening pelamar sedang diproses di latar belakang (Queue).',
+          })
+          setShowProgressCard(true)
+          setPrevStatus('processing')
+        },
+        onFinish: () => {
+          setIsSubmitting(false)
+        },
       }
     )
+  }
+
+  const [isCancelling, setIsCancelling] = useState(false)
+
+  // Cancel running batch queue
+  const handleCancelBatch = async () => {
+    if (!confirm('Hentikan dan batalkan proses AI screening yang sedang berjalan?')) return
+    setIsCancelling(true)
+    try {
+      const res = await fetch('/screening-cv/cancel-batch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+          Accept: 'application/json',
+        },
+      })
+      if (res.ok) {
+        toast.warning('Proses screening dibatalkan.', {
+          description: 'Antrean proses telah dihentikan.',
+        })
+        setShowProgressCard(false)
+        setProgress(null)
+        setPrevStatus('idle')
+        router.reload({ only: ['screenings', 'stats'] })
+      }
+    } catch (e) {
+      toast.error('Gagal membatalkan proses.')
+    } finally {
+      setIsCancelling(false)
+    }
   }
 
   // Active criteria to display in settings modal
@@ -736,12 +878,6 @@ export default function Index({
         {/* Header Title & Actions */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <Stack gap={1}>
-            <Row gap={2} align="center">
-              <Eyebrow>Applicant Tracking System (ATS)</Eyebrow>
-              <Badge tone="purple" className="flex items-center gap-1">
-                <IconSparkles size={12} /> Auto-Screening Engine
-              </Badge>
-            </Row>
             <Heading level={1}>Screening CV Otomatis & Konfirmasi HR</Heading>
             <Text size="sm" muted>
               Menyaring dan menilai kesesuaian berkas kandidat otomatis berdasarkan tabel kriteria kebutuhan divisi (H1, HC3, H2, IT, HRD, Finance, H3) yang disesuaikan per lowongan.
@@ -761,11 +897,13 @@ export default function Index({
             <Button
               tone="blue"
               size="sm"
+              loading={screeningLoading}
+              disabled={isSubmitting || screeningLoading}
               onClick={() => setAutoScreenModalOpen(true)}
               className="w-full sm:w-auto"
             >
               <IconRefresh size={14} className="mr-1" />
-              Jalankan Auto-Screening ATS
+              {screeningLoading ? 'Memproses ATS...' : 'Jalankan Auto-Screening ATS'}
             </Button>
           </Row>
         </div>
@@ -824,13 +962,14 @@ export default function Index({
               <Button
                 tone="purple"
                 size="sm"
+                loading={screeningLoading}
                 onClick={() => {
                   setForceRescreen(false)
                   submitRunAutoScreening()
                 }}
-                disabled={isSubmitting}
+                disabled={isSubmitting || screeningLoading}
               >
-                Proses {stats.unscreened} Berkas Sekarang ➔
+                {screeningLoading ? 'Memproses Berkas...' : `Proses ${stats.unscreened} Berkas Sekarang ➔`}
               </Button>
             </div>
           </Card>
@@ -1046,11 +1185,13 @@ export default function Index({
                   size="sm"
                   variant="quiet"
                   tone="blue"
+                  loading={screeningLoading}
+                  disabled={screeningLoading}
                   onClick={() => handleReScreen(selectedScreening.pelamar!.id)}
                   title="Screening Ulang"
                 >
                   <IconRefresh size={13} className="mr-1" />
-                  Screening Ulang
+                  {screeningLoading ? 'Memproses...' : 'Screening Ulang'}
                 </Button>
               </div>
             </div>
@@ -1395,10 +1536,11 @@ export default function Index({
               </Button>
               <Button
                 tone="purple"
-                disabled={isSubmitting}
+                loading={screeningLoading}
+                disabled={isSubmitting || screeningLoading}
                 onClick={submitRunAutoScreening}
               >
-                {isSubmitting ? 'Sedang Memproses ATS...' : 'Mulai Auto-Screening ➔'}
+                {screeningLoading ? 'Sedang Memproses ATS...' : 'Mulai Auto-Screening ➔'}
               </Button>
             </div>
           </Stack>
@@ -1748,6 +1890,125 @@ export default function Index({
             </div>
           </Stack>
         </Dialog>
+      )}
+
+      {/* ────────────────────────────────────────────────────────────────────────
+          AI SCREENING REAL-TIME PROGRESS BAR (NON-BLOCKING)
+      ──────────────────────────────────────────────────────────────────────── */}
+      {showProgressCard && progress && progress.status !== 'idle' && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 right-6 z-50 w-96 max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-purple-200/90 dark:border-purple-900/60 p-4 transition-all duration-300 animate-in slide-in-from-bottom-5 backdrop-blur-md"
+        >
+          <div className="flex items-start justify-between gap-3 mb-2.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div
+                className={`w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-md shrink-0 ${
+                  progress.status === 'completed'
+                    ? 'bg-gradient-to-tr from-emerald-500 to-teal-500 shadow-emerald-500/20'
+                    : 'bg-gradient-to-tr from-purple-600 to-indigo-600 shadow-purple-500/25'
+                }`}
+              >
+                {progress.status === 'completed' ? (
+                  <IconCheck size={18} />
+                ) : (
+                  <IconSparkles size={18} className="animate-spin [animation-duration:4s]" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                    {progress.status === 'completed'
+                      ? 'AI Screening Selesai'
+                      : 'Memproses AI Screening CV'}
+                  </h4>
+                  <span
+                    className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
+                      progress.status === 'completed'
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                        : 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300'
+                    }`}
+                  >
+                    {progress.status === 'completed' ? 'Selesai' : 'Queue'}
+                  </span>
+                </div>
+                <p
+                  className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5"
+                  title={progress.current_candidate || ''}
+                >
+                  {progress.status === 'completed'
+                    ? 'Semua kandidat berhasil dinilai'
+                    : progress.current_candidate || SCREENING_STEPS[screeningStep % SCREENING_STEPS.length]}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span
+                className={`text-base font-extrabold tracking-tight ${
+                  progress.status === 'completed'
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-purple-600 dark:text-purple-400'
+                }`}
+              >
+                {progress.percentage}%
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowProgressCard(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg transition-colors"
+                title="Tutup notifikasi progres"
+              >
+                <IconX size={15} />
+              </button>
+            </div>
+          </div>
+
+          {/* Real-time Percentage Progress Bar */}
+          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden mb-2 relative shadow-inner">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ease-out ${
+                progress.status === 'completed'
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                  : 'bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-500'
+              }`}
+              style={{ width: `${Math.min(100, Math.max(0, progress.percentage))}%` }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+            <span>
+              {progress.completed} / {progress.total} kandidat
+              {progress.failed > 0 && (
+                <span className="text-rose-500 ml-1">({progress.failed} gagal)</span>
+              )}
+            </span>
+            <div className="flex items-center gap-2">
+              {progress.status === 'processing' && (
+                <button
+                  type="button"
+                  disabled={isCancelling}
+                  onClick={handleCancelBatch}
+                  className="text-[10px] font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400 px-2 py-0.5 rounded-md transition-colors border border-rose-200/60 dark:border-rose-900/40 cursor-pointer"
+                >
+                  {isCancelling ? 'Membatalkan...' : 'Batalkan'}
+                </button>
+              )}
+              {progress.status === 'completed' ? (
+                <span className="text-emerald-600 font-semibold flex items-center gap-1">
+                  <IconCheck size={12} />
+                  Siap ditinjau HR
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-purple-600 dark:text-purple-400 font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping inline-block" />
+                  Berjalan
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </AppLayout>
   )

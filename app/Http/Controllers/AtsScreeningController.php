@@ -2,18 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessBatchAtsScreeningJob;
 use App\Mail\StatusLamaranUpdatedMail;
 use App\Models\AtsScreening;
 use App\Models\KriteriaAts;
 use App\Models\Lowongan;
 use App\Models\Pelamar;
 use App\Services\AtsScreeningService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -142,14 +147,59 @@ class AtsScreeningController extends Controller
     }
 
     /**
-     * Run batch auto-screening for unscreened or filtered candidates.
+     * Get real-time batch screening progress.
+     */
+     public function getBatchProgress(): JsonResponse
+     {
+         $progress = Cache::get('ats_screening_batch_progress', [
+             'status' => 'idle',
+             'percentage' => 0,
+             'completed' => 0,
+             'total' => 0,
+             'failed' => 0,
+             'current_candidate' => null,
+             'batch_id' => null,
+         ]);
+
+         return response()->json($progress);
+     }
+
+    /**
+     * Cancel active ATS batch screening queue immediately.
+     */
+    public function cancelBatch(): JsonResponse
+    {
+        Cache::put('ats_screening_cancel_requested', true, now()->addMinutes(10));
+        $progress = Cache::get('ats_screening_batch_progress');
+        if ($progress && !empty($progress['batch_id'])) {
+            Cache::put("ats_screening_cancel_{$progress['batch_id']}", true, now()->addMinutes(10));
+        }
+
+        Cache::put('ats_screening_batch_progress', [
+            'status' => 'idle',
+            'percentage' => 0,
+            'completed' => 0,
+            'total' => 0,
+            'failed' => 0,
+            'current_candidate' => null,
+            'batch_id' => null,
+        ]);
+
+        // Restart queue worker to immediately terminate child process
+        Artisan::call('queue:restart');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Proses AI Screening CV berhasil dibatalkan.',
+        ]);
+    }
+
+    /**
+     * Run batch auto-screening for unscreened or filtered candidates using Queue.
      */
     public function runBatch(Request $request): RedirectResponse
     {
-        ini_set('memory_limit', '512M');
-        set_time_limit(300);
-        $query = Pelamar::with(['lowongan.departement', 'lowongan.jabatan', 'formulirLamaran'])
-            ->whereHas('lowongan', fn ($q) => $q->where('status', 'aktif'));
+        $query = Pelamar::whereHas('lowongan', fn ($q) => $q->where('status', 'aktif'));
 
         if ($request->filled('lowongan_id') && $request->lowongan_id !== 'all') {
             $query->where('lowongan_id', $request->lowongan_id);
@@ -160,29 +210,57 @@ class AtsScreeningController extends Controller
             $query->whereDoesntHave('atsScreening');
         }
 
-        $pelamars = $query->get();
-        $processed = 0;
+        $pelamarIds = $query->pluck('id')->all();
 
-        foreach ($pelamars as $p) {
-            try {
-                $this->screeningService->screen($p);
-                $processed++;
-            } catch (\Throwable $e) {
-                Log::error("Gagal auto-screening pelamar ID {$p->id}: " . $e->getMessage());
-            }
+        if (empty($pelamarIds)) {
+            return back()->with('info', 'Tidak ada kandidat yang perlu diskrining.');
         }
 
-        return back()->with('success', "Auto-Screening ATS selesai. Sebanyak {$processed} kandidat berhasil dinilai dan siap ditinjau oleh HR.");
+        $batchId = (string) Str::uuid();
+        Cache::forget('ats_screening_cancel_requested');
+        Cache::forget("ats_screening_cancel_{$batchId}");
+
+        // Initialize progress in Cache immediately
+        Cache::put('ats_screening_batch_progress', [
+            'batch_id' => $batchId,
+            'total' => count($pelamarIds),
+            'completed' => 0,
+            'failed' => 0,
+            'percentage' => 0,
+            'current_candidate' => 'Menyiapkan antrean screening...',
+            'status' => 'processing',
+            'updated_at' => now()->timestamp,
+        ], now()->addHours(2));
+
+        // Dispatch background queue job
+        ProcessBatchAtsScreeningJob::dispatch($batchId, $pelamarIds);
+
+        return back()->with('info', 'Screening CV untuk ' . count($pelamarIds) . ' kandidat telah dimasukkan ke antrean background.');
     }
 
     /**
-     * Run single auto-screening for one candidate.
+     * Run single auto-screening for one candidate using Queue.
      */
     public function runSingle(Pelamar $pelamar): RedirectResponse
     {
-        $screening = $this->screeningService->screen($pelamar);
+        $batchId = (string) Str::uuid();
+        Cache::forget('ats_screening_cancel_requested');
+        Cache::forget("ats_screening_cancel_{$batchId}");
 
-        return back()->with('success', "Screening CV otomatis ATS berhasil untuk '{$pelamar->nama_lengkap}' (Skor: {$screening->total_skor}/100 - {$screening->rekomendasi_label}). Silakan lakukan konfirmasi hasil.");
+        Cache::put('ats_screening_batch_progress', [
+            'batch_id' => $batchId,
+            'total' => 1,
+            'completed' => 0,
+            'failed' => 0,
+            'percentage' => 0,
+            'current_candidate' => $pelamar->nama_lengkap,
+            'status' => 'processing',
+            'updated_at' => now()->timestamp,
+        ], now()->addHours(2));
+
+        ProcessBatchAtsScreeningJob::dispatch($batchId, [$pelamar->id]);
+
+        return back()->with('info', "Screening CV untuk '{$pelamar->nama_lengkap}' sedang diproses di background.");
     }
 
     /**

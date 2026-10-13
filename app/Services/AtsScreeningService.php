@@ -5,12 +5,21 @@ namespace App\Services;
 use App\Models\AtsScreening;
 use App\Models\KriteriaAts;
 use App\Models\Pelamar;
-use Carbon\Carbon;
+use Illuminate\Http\Client\Pool;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class AtsScreeningService
 {
+    protected PdfToMarkdownService $pdfToMarkdownService;
+
+    public function __construct(PdfToMarkdownService $pdfToMarkdownService)
+    {
+        $this->pdfToMarkdownService = $pdfToMarkdownService;
+    }
+
     /**
      * Run automated ATS CV screening for a candidate.
      */
@@ -26,11 +35,22 @@ class AtsScreeningService
         $extractedText = $this->extractCandidateText($pelamar);
         $parsedData = $this->parseCandidateData($pelamar, $extractedText);
 
-        $evaluation = $this->evaluateCriteria($divisi, $pelamar, $parsedData, $extractedText);
+        // 1. Try AI-Powered Screening via Vendorarouter / 9Router
+        $aiResult = $this->evaluateWithAi($divisi, $pelamar, $parsedData, $extractedText);
 
-        $totalSkor = $evaluation['total_skor'];
-        $rekomendasi = $this->determineRekomendasi($totalSkor);
-        $catatanAts = $this->generateSummaryNotes($divisi, $totalSkor, $rekomendasi, $evaluation['kriteria']);
+        if ($aiResult && !empty($aiResult['kriteria'])) {
+            $totalSkor = $aiResult['total_skor'];
+            $rekomendasi = $aiResult['rekomendasi'];
+            $catatanAts = $aiResult['catatan_ats'];
+            $kriteriaEvaluation = $aiResult['kriteria'];
+        } else {
+            // 2. Safe Fallback: Rule-Based Evaluation
+            $evaluation = $this->evaluateCriteria($divisi, $pelamar, $parsedData, $extractedText);
+            $totalSkor = $evaluation['total_skor'];
+            $rekomendasi = $this->determineRekomendasi($totalSkor);
+            $catatanAts = $this->generateSummaryNotes($divisi, $totalSkor, $rekomendasi, $evaluation['kriteria']);
+            $kriteriaEvaluation = $evaluation['kriteria'];
+        }
 
         $screening = AtsScreening::updateOrCreate(
             ['pelamar_id' => $pelamar->id],
@@ -40,7 +60,7 @@ class AtsScreeningService
                 'total_skor' => $totalSkor,
                 'rekomendasi' => $rekomendasi,
                 'status_konfirmasi' => 'menunggu_konfirmasi', // Menunggu konfirmasi HR
-                'kriteria_penilaian' => $evaluation['kriteria'],
+                'kriteria_penilaian' => $kriteriaEvaluation,
                 'cv_parsed_data' => $parsedData,
                 'catatan_ats' => $catatanAts,
             ]
@@ -111,10 +131,95 @@ class AtsScreeningService
     }
 
     /**
-     * Extract full searchable text from candidate record, profile, formulir, and PDF CV.
+     * Get or generate structured Markdown document from candidate's profile, form, and PDF CV.
+     * Cached in database `rekrutmen.pelamars.cv_markdown` for 0ms subsequent reads.
+     */
+    public function getCandidateMarkdown(Pelamar $pelamar): string
+    {
+        // 1. Return immediately if already parsed & cached in database
+        if (!empty($pelamar->cv_markdown)) {
+            return $pelamar->cv_markdown;
+        }
+
+        $mdSections = [];
+
+        // Header identity
+        $mdSections[] = "# " . strtoupper($pelamar->nama_lengkap ?? 'KANDIDAT');
+        $mdSections[] = "**Posisi Dilamar**: " . ($pelamar->posisi_dilamar ?: $pelamar->lowongan?->judul ?: '-');
+        $mdSections[] = "**Pendidikan Terakhir**: " . ($pelamar->pendidikan_terakhir ?: '-') . " - " . ($pelamar->jurusan ?: '-') . " (" . ($pelamar->nama_institusi ?: '-') . ")";
+        $mdSections[] = "**Tahun Lulus**: " . ($pelamar->tahun_lulus ?: '-');
+        if (!empty($pelamar->email)) {
+            $mdSections[] = "**Email**: " . $pelamar->email;
+        }
+        if (!empty($pelamar->nomor_kontak)) {
+            $mdSections[] = "**Kontak**: " . $pelamar->nomor_kontak;
+        }
+
+        // Formulir Lamaran sections if available
+        if ($pelamar->formulirLamaran) {
+            $f = $pelamar->formulirLamaran;
+            if (!empty($f->pengalaman_kerja)) {
+                $mdSections[] = "\n## Riwayat Pengalaman Kerja";
+                $expList = is_array($f->pengalaman_kerja) ? $f->pengalaman_kerja : json_decode($f->pengalaman_kerja, true);
+                if (is_array($expList)) {
+                    foreach ($expList as $item) {
+                        if (is_array($item)) {
+                            $posisi = $item['posisi'] ?? $item['jabatan'] ?? 'Pekerjaan';
+                            $perusahaan = $item['perusahaan'] ?? $item['nama_perusahaan'] ?? '';
+                            $lama = $item['lama_bekerja'] ?? $item['tahun'] ?? '';
+                            $deskripsi = $item['deskripsi_tugas'] ?? $item['deskripsi'] ?? '';
+                            $mdSections[] = "- **{$posisi}** di {$perusahaan} ({$lama})" . ($deskripsi ? ": {$deskripsi}" : "");
+                        }
+                    }
+                }
+            }
+
+            if (!empty($f->minat_keahlian)) {
+                $mdSections[] = "\n## Keterampilan & Keahlian";
+                $skills = is_array($f->minat_keahlian) ? $f->minat_keahlian : json_decode($f->minat_keahlian, true);
+                if (is_array($skills)) {
+                    foreach ($skills as $s) {
+                        $val = is_string($s) ? $s : ($s['nama'] ?? $s['keahlian'] ?? '');
+                        if (!empty($val)) {
+                            $mdSections[] = "- {$val}";
+                        }
+                    }
+                }
+            }
+        }
+
+        // High accuracy PDF CV conversion to Markdown via Smalot & PdfToMarkdownService
+        if (!empty($pelamar->cv_path) && !str_starts_with($pelamar->cv_path, 'http')) {
+            $pdfMarkdown = $this->pdfToMarkdownService->convertPdfToMarkdown($pelamar->cv_path);
+            if (!empty($pdfMarkdown)) {
+                $mdSections[] = "\n## Isi Dokumen CV (PDF)\n" . $pdfMarkdown;
+            }
+        }
+
+        $fullMarkdown = trim(implode("\n", $mdSections));
+
+        // Save to database so all future screenings are 0ms
+        if (!empty($fullMarkdown)) {
+            try {
+                $pelamar->updateQuietly(['cv_markdown' => $fullMarkdown]);
+            } catch (\Throwable $e) {
+                Log::warning("Gagal menyimpan cv_markdown pelamar {$pelamar->id}: " . $e->getMessage());
+            }
+        }
+
+        return $fullMarkdown;
+    }
+
+    /**
+     * Extract full searchable text from candidate record, profile, formulir, and Markdown CV.
      */
     public function extractCandidateText(Pelamar $pelamar): string
     {
+        $markdown = $this->getCandidateMarkdown($pelamar);
+        if (!empty($markdown)) {
+            return strtolower($markdown);
+        }
+
         $chunks = [
             $pelamar->nama_lengkap,
             $pelamar->pendidikan_terakhir,
@@ -125,65 +230,7 @@ class AtsScreeningService
             $pelamar->catatan,
         ];
 
-        // Formulir lamaran text if available
-        if ($pelamar->formulirLamaran) {
-            $f = $pelamar->formulirLamaran;
-            $chunks[] = $f->data_pribadi ? json_encode($f->data_pribadi) : '';
-            $chunks[] = $f->riwayat_pendidikan ? json_encode($f->riwayat_pendidikan) : '';
-            $chunks[] = $f->pengalaman_kerja ? json_encode($f->pengalaman_kerja) : '';
-            $chunks[] = $f->keterampilan_bahasa ? json_encode($f->keterampilan_bahasa) : '';
-            $chunks[] = $f->minat_keahlian ? json_encode($f->minat_keahlian) : '';
-        }
-
-        // PDF text extraction if cv_path exists
-        if ($pelamar->cv_path) {
-            $pdfText = $this->extractTextFromPdf($pelamar->cv_path);
-            if (!empty($pdfText)) {
-                $chunks[] = $pdfText;
-            }
-        }
-
         return strtolower(implode(' ', array_filter($chunks)));
-    }
-
-    /**
-     * Extract text from PDF file stored in local/public disk.
-     */
-    protected function extractTextFromPdf(string $path): string
-    {
-        try {
-            $fullPath = Storage::disk('public')->path($path);
-            if (!file_exists($fullPath)) {
-                return '';
-            }
-
-            $content = @file_get_contents($fullPath);
-            if (!$content) {
-                return '';
-            }
-
-            // Extract text objects from PDF streams
-            $text = '';
-            if (preg_match_all('/stream(.*?)endstream/s', $content, $matches)) {
-                foreach ($matches[1] as $stream) {
-                    $uncompressed = @gzuncompress(trim($stream));
-                    if ($uncompressed) {
-                        $stream = $uncompressed;
-                    }
-                    if (preg_match_all('/\[\s*(.*?)\s*\]\s*TJ|(\([^\)]*\))\s*Tj/s', $stream, $textMatches)) {
-                        foreach ($textMatches[0] as $match) {
-                            $cleaned = preg_replace('/[\\\\(\)\[\]]/', '', $match);
-                            $text .= ' ' . $cleaned;
-                        }
-                    }
-                }
-            }
-
-            return trim(preg_replace('/\s+/', ' ', $text));
-        } catch (\Throwable $e) {
-            Log::warning("AtsScreeningService PDF extraction error for {$path}: " . $e->getMessage());
-            return '';
-        }
     }
 
     /**
@@ -441,5 +488,310 @@ class AtsScreeningService
         }
 
         return "Kandidat hanya memenuhi {$passedCount} dari {$totalCount} kriteria kebutuhan divisi {$divisiName} (Skor: {$score}/100). Beberapa kompetensi kunci belum terdeteksi secara optimal.";
+    }
+
+    /**
+     * Resolve the active AI model name from config or fallback default.
+     */
+    public function resolveAiModel(): string
+    {
+        $configured = config('services.ai_router.model');
+        if (!empty($configured)) {
+            return $configured;
+        }
+
+        $cached = Cache::get('ai_router_active_model');
+        if (!empty($cached)) {
+            return $cached;
+        }
+
+        // Default verified model for vendorarouter
+        return 'gemini-3.8-flash-high';
+    }
+
+    /**
+     * AI-Powered CV Evaluation using Vendorarouter / 9Router (OpenAI-compatible)
+    /**
+     * Build system and user prompts for AI evaluation.
+     */
+    public function buildAiPrompts(string $divisi, Pelamar $pelamar, array $parsed, string $fullText, iterable $kriteriaModels): array
+    {
+        $criteriaList = [];
+        foreach ($kriteriaModels as $crit) {
+            $bobot = (int) $crit->bobot;
+            $criteriaList[] = [
+                'kriteria' => $crit->nama_kriteria,
+                'kebutuhan' => $crit->kebutuhan,
+                'bobot_max' => $bobot,
+                'tipe_penilaian' => $crit->tipe_penilaian,
+                'is_wajib' => (bool) $crit->is_wajib,
+                'kata_kunci_terkait' => $crit->keywords ?? [],
+            ];
+        }
+
+        $candidateMarkdown = $this->getCandidateMarkdown($pelamar);
+
+        $candidateSummary = [
+            'nama_lengkap' => $pelamar->nama_lengkap,
+            'posisi_dilamar' => $pelamar->posisi_dilamar ?? $pelamar->lowongan?->judul ?? '-',
+            'divisi_departemen' => $divisi,
+            'pendidikan_terakhir' => ($pelamar->pendidikan_terakhir ?? '-') . ' ' . ($pelamar->jurusan ?? ''),
+            'institusi_kampus' => $pelamar->nama_institusi ?? '-',
+            'tahun_lulus' => $pelamar->tahun_lulus ?? '-',
+            'estimasi_pengalaman' => $parsed['pengalaman_label'] ?? '-',
+            'keahlian_terdeteksi' => $parsed['skills'] ?? [],
+            'dokumen_cv_markdown' => !empty($candidateMarkdown) ? mb_substr($candidateMarkdown, 0, 3500) : mb_substr($fullText, 0, 2500),
+        ];
+
+        $systemPrompt = <<<PROMPT
+Anda adalah AI Recruiter Expert ATS (Applicant Tracking System) untuk perusahaan rekrutmen profesional.
+Tugas Anda adalah mengevaluasi kecocokan profil kandidat pelamar kerja dengan kriteria lowongan posisi secara objektif, kritis, profesional, dan adil berdasarkan profil dan isi CV kandidat dalam format Markdown terstruktur (.md).
+
+ATURAN PENILAIAN:
+1. Evaluasi SETIAP kriteria dari daftar yang diberikan tanpa ada yang terlewat.
+   - "kriteria": nama kriteria persis seperti input
+   - "kebutuhan": teks kebutuhan kriteria
+   - "data_kandidat": ringkasan temuan fakta/bukti spesifik dari CV kandidat terkait kriteria tersebut (maksimal 1 kalimat padat). Jika tidak ditemukan di CV, tulis jujur 'Tidak ditemukan bukti di CV'.
+   - "nilai": skor numerik (0 sampai bobot_max). Berikan nilai penuh jika kandidat memenuhi dengan baik, nilai proporsional jika sebagian, atau nilai rendah/0 jika tidak memenuhi sama sekali.
+   - "bobot_max": nilai bobot maksimum dari kriteria tersebut
+   - "status_cocok": boolean (true jika memenuhi syarat kriteria, false jika tidak memenuhi)
+2. "total_skor": hitung total nilai seluruh kriteria, lalu normalisasi ke skala 0 - 100 (bulatkan integer).
+3. "rekomendasi":
+   - "sangat_disarankan" jika total_skor >= 75
+   - "dipertimbangkan" jika total_skor antara 50 dan 74
+   - "tidak_disarankan" jika total_skor < 50
+4. "catatan_ats": buat 2-3 kalimat rangkuman analisis evaluasi profesional yang menjelaskan alasan rekomendasi, keunggulan utama kandidat, dan catatan pertimbangan untuk HR.
+
+FORMAT OUTPUT:
+KEMBALIKAN HANYA JSON MURNI (tanpa markdown atau teks pembuka/penutup). Format JSON:
+{
+  "total_skor": 85,
+  "rekomendasi": "sangat_disarankan",
+  "catatan_ats": "Kandidat memiliki latar belakang...",
+  "kriteria_penilaian": [
+    {
+      "kriteria": "...",
+      "kebutuhan": "...",
+      "data_kandidat": "...",
+      "nilai": 20,
+      "bobot_max": 20,
+      "status_cocok": true
+    }
+  ]
+}
+PROMPT;
+
+        $userPrompt = "Kriteria yang harus dinilai:\n" . json_encode($criteriaList, JSON_UNESCAPED_UNICODE) .
+            "\n\nProfil & Isi Dokumen CV Kandidat:\n" . json_encode($candidateSummary, JSON_UNESCAPED_UNICODE);
+
+        return [
+            'system_prompt' => $systemPrompt,
+            'user_prompt' => $userPrompt,
+        ];
+    }
+
+    /**
+     * Parse raw AI response to structured evaluation array.
+     */
+    public function parseAiResponse(\Illuminate\Http\Client\Response $response, string $divisi, string $model): ?array
+    {
+        $rawContent = trim($response->json('choices.0.message.content') ?? '');
+        if (empty($rawContent)) {
+            return null;
+        }
+
+        // Extract JSON if wrapped in markdown codeblock
+        if (preg_match('/```(?:json)?\s*(\{[\s\S]*?\})\s*```/s', $rawContent, $matches)) {
+            $rawContent = $matches[1];
+        } elseif (preg_match('/\{[\s\S]*\}/s', $rawContent, $matches)) {
+            $rawContent = $matches[0];
+        }
+
+        $decoded = json_decode($rawContent, true);
+        if (!is_array($decoded) || empty($decoded['kriteria_penilaian'])) {
+            Log::warning("AtsScreeningService: Failed to parse AI JSON response: {$rawContent}");
+            return null;
+        }
+
+        $totalSkor = (float) ($decoded['total_skor'] ?? 0);
+        $rekomendasi = $decoded['rekomendasi'] ?? $this->determineRekomendasi($totalSkor);
+        $catatanAts = $decoded['catatan_ats'] ?? $this->generateSummaryNotes($divisi, $totalSkor, $rekomendasi, $decoded['kriteria_penilaian']);
+
+        return [
+            'total_skor' => min(100.0, max(0.0, $totalSkor)),
+            'rekomendasi' => $rekomendasi,
+            'catatan_ats' => $catatanAts,
+            'kriteria' => $decoded['kriteria_penilaian'],
+            'model_used' => $response->json('model') ?? $model,
+        ];
+    }
+
+    /**
+     * Run high-speed concurrent batch ATS screening for multiple candidates (5 per pool).
+     *
+     * @param iterable<Pelamar> $pelamars
+     * @return array<AtsScreening>
+     */
+    public function screenBatch(iterable $pelamars): array
+    {
+        $prepared = [];
+        $results = [];
+
+        $apiKey = config('services.ai_router.api_key');
+        $baseUrl = rtrim(config('services.ai_router.base_url', 'https://vendorarouter.web.id/api/v1'), '/');
+        $model = $this->resolveAiModel();
+        $useAi = !empty($apiKey);
+
+        foreach ($pelamars as $idx => $pelamar) {
+            $pelamar->loadMissing([
+                'lowongan.departement',
+                'lowongan.jabatan',
+                'formulirLamaran',
+            ]);
+
+            $divisi = $this->determineDivisi($pelamar);
+            $extractedText = $this->extractCandidateText($pelamar);
+            $parsedData = $this->parseCandidateData($pelamar, $extractedText);
+            $kriteriaModels = KriteriaAts::getCriteriaFor($pelamar->lowongan_id, $divisi);
+
+            $payload = null;
+            if ($useAi && $kriteriaModels->isNotEmpty()) {
+                $payload = $this->buildAiPrompts($divisi, $pelamar, $parsedData, $extractedText, $kriteriaModels);
+            }
+
+            $prepared[$idx] = [
+                'pelamar' => $pelamar,
+                'divisi' => $divisi,
+                'extractedText' => $extractedText,
+                'parsedData' => $parsedData,
+                'kriteriaModels' => $kriteriaModels,
+                'payload' => $payload,
+            ];
+        }
+
+        // Execute concurrent HTTP requests in parallel if AI is active
+        $httpResponses = [];
+        if ($useAi) {
+            try {
+                $httpResponses = Http::pool(function (Pool $pool) use ($prepared, $apiKey, $baseUrl, $model) {
+                    foreach ($prepared as $idx => $item) {
+                        if (empty($item['payload'])) {
+                            continue;
+                        }
+                        $pool->as("req_{$idx}")
+                            ->withToken($apiKey)
+                            ->withoutVerifying()
+                            ->timeout(45)
+                            ->post("{$baseUrl}/chat/completions", [
+                                'model' => $model,
+                                'messages' => [
+                                    ['role' => 'system', 'content' => $item['payload']['system_prompt']],
+                                    ['role' => 'user', 'content' => $item['payload']['user_prompt']],
+                                ],
+                                'temperature' => 0.2,
+                                'max_tokens' => 800,
+                            ]);
+                    }
+                });
+            } catch (\Throwable $e) {
+                Log::warning("AtsScreeningService screenBatch Http::pool exception: " . $e->getMessage());
+            }
+        }
+
+        // Process and save results for each candidate
+        foreach ($prepared as $idx => $item) {
+            $pelamar = $item['pelamar'];
+            $divisi = $item['divisi'];
+            $extractedText = $item['extractedText'];
+            $parsedData = $item['parsedData'];
+
+            $aiResult = null;
+            if (isset($httpResponses["req_{$idx}"])) {
+                $res = $httpResponses["req_{$idx}"];
+                if ($res instanceof \Illuminate\Http\Client\Response && $res->successful()) {
+                    $aiResult = $this->parseAiResponse($res, $divisi, $model);
+                }
+            }
+
+            if ($aiResult && !empty($aiResult['kriteria'])) {
+                $totalSkor = $aiResult['total_skor'];
+                $rekomendasi = $aiResult['rekomendasi'];
+                $catatanAts = $aiResult['catatan_ats'];
+                $kriteriaEvaluation = $aiResult['kriteria'];
+            } else {
+                // High-precision Rule-Based Fallback
+                $evaluation = $this->evaluateCriteria($divisi, $pelamar, $parsedData, $extractedText);
+                $totalSkor = $evaluation['total_skor'];
+                $rekomendasi = $this->determineRekomendasi($totalSkor);
+                $catatanAts = $this->generateSummaryNotes($divisi, $totalSkor, $rekomendasi, $evaluation['kriteria']);
+                $kriteriaEvaluation = $evaluation['kriteria'];
+            }
+
+            $screening = AtsScreening::updateOrCreate(
+                ['pelamar_id' => $pelamar->id],
+                [
+                    'lowongan_id' => $pelamar->lowongan_id,
+                    'divisi' => $divisi,
+                    'total_skor' => $totalSkor,
+                    'rekomendasi' => $rekomendasi,
+                    'status_konfirmasi' => 'menunggu_konfirmasi',
+                    'kriteria_penilaian' => $kriteriaEvaluation,
+                    'cv_parsed_data' => $parsedData,
+                    'catatan_ats' => $catatanAts,
+                ]
+            );
+
+            $results[] = $screening;
+        }
+
+        return $results;
+    }
+
+    /**
+     * AI-Powered CV Evaluation using Vendorarouter / 9Router (OpenAI-compatible)
+     */
+    public function evaluateWithAi(string $divisi, Pelamar $pelamar, array $parsed, string $fullText): ?array
+    {
+        $apiKey = config('services.ai_router.api_key');
+        if (empty($apiKey)) {
+            return null; // Fallback to rule-based
+        }
+
+        $baseUrl = rtrim(config('services.ai_router.base_url', 'https://vendorarouter.web.id/api/v1'), '/');
+        $model = $this->resolveAiModel();
+
+        $kriteriaModels = KriteriaAts::getCriteriaFor($pelamar->lowongan_id, $divisi);
+        if ($kriteriaModels->isEmpty()) {
+            return null;
+        }
+
+        $prompts = $this->buildAiPrompts($divisi, $pelamar, $parsed, $fullText, $kriteriaModels);
+
+        try {
+            $client = Http::withToken($apiKey)->timeout(config('services.ai_router.timeout', 60));
+            if (!config('services.ai_router.verify_ssl', false)) {
+                $client = $client->withoutVerifying();
+            }
+
+            $response = $client->post("{$baseUrl}/chat/completions", [
+                'model' => $model,
+                'messages' => [
+                    ['role' => 'system', 'content' => $prompts['system_prompt']],
+                    ['role' => 'user', 'content' => $prompts['user_prompt']],
+                ],
+                'temperature' => 0.2,
+                'max_tokens' => 800,
+            ]);
+
+            if (!$response->successful()) {
+                Log::warning("AtsScreeningService AI error (Status {$response->status()}): " . $response->body());
+                return null;
+            }
+
+            return $this->parseAiResponse($response, $divisi, $model);
+        } catch (\Throwable $e) {
+            Log::warning("AtsScreeningService evaluateWithAi exception: " . $e->getMessage());
+            return null;
+        }
     }
 }

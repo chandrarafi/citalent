@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'ai_router' => [
+        'base_url' => env('AI_ROUTER_BASE_URL', 'https://vendorarouter.web.id/api/v1'),
+        'api_key' => env('AI_ROUTER_API_KEY', env('ROUTER_API_KEY', env('OPENAI_API_KEY'))),
+        'model' => env('AI_ROUTER_MODEL'),
+        'timeout' => (int) env('AI_ROUTER_TIMEOUT', 60),
+        'verify_ssl' => (bool) env('AI_ROUTER_VERIFY_SSL', false),
+    ],
+
 ];
