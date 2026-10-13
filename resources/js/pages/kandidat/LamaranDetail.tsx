@@ -612,16 +612,7 @@ export default function LamaranDetail({ application }: Props) {
                             </div>
                           )}
 
-                          {/* HR Notes on active stage */}
-                          {stepState === 'current' && application.catatan && (
-                            <div className="mt-2.5 p-3 rounded-xl bg-amber-50/90 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
-                              <IconAlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
-                              <div>
-                                <span className="font-bold">Catatan dari Tim Rekrutmen:</span>
-                                <p className="mt-0.5 leading-relaxed">{application.catatan}</p>
-                              </div>
-                            </div>
-                          )}
+                         
                         </div>
                       </div>
                     )
