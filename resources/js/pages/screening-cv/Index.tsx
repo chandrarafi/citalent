@@ -35,6 +35,10 @@ import {
   IconUsers,
   IconCalculator,
   IconPackage,
+  IconCalendar,
+  IconVideo,
+  IconMapPin,
+  IconMail,
 } from '@tabler/icons-react'
 
 interface KriteriaItem {
@@ -275,8 +279,39 @@ export default function Index({
 
   const [bulkModalOpen, setBulkModalOpen] = useState(false)
   const [bulkDecision, setBulkDecision] = useState<'approve' | 'reject'>('approve')
-  const [bulkNextStage, setBulkNextStage] = useState('lengkapi_formulir')
+  const [bulkNextStage, setBulkNextStage] = useState('interview_hr')
   const [bulkCatatan, setBulkCatatan] = useState('')
+
+  // Helper date for tomorrow
+  const getTomorrowDate = () => {
+    const d = new Date()
+    d.setDate(d.getDate() + 1)
+    return d.toISOString().split('T')[0]
+  }
+
+  // Bulk Interview Schedule States
+  const [bulkScheduleInterview, setBulkScheduleInterview] = useState(true)
+  const [bulkInterviewDate, setBulkInterviewDate] = useState(getTomorrowDate())
+  const [bulkInterviewJamMulai, setBulkInterviewJamMulai] = useState('09:00')
+  const [bulkInterviewJamSelesai, setBulkInterviewJamSelesai] = useState('10:00')
+  const [bulkInterviewTipe, setBulkInterviewTipe] = useState<'offline' | 'online'>('offline')
+  const [bulkInterviewLokasi, setBulkInterviewLokasi] = useState('Head Office PT Menara Agung, Ruang Rapat Lt. 2')
+  const [bulkInterviewLinkMeeting, setBulkInterviewLinkMeeting] = useState('')
+  const [bulkInterviewPewawancara, setBulkInterviewPewawancara] = useState('')
+  const [bulkInterviewCatatanKandidat, setBulkInterviewCatatanKandidat] = useState('Harap hadir 10 menit lebih awal dengan membawa dokumen identitas diri (KTP) dan berkas pendukung.')
+  const [bulkInterviewKirimEmail, setBulkInterviewKirimEmail] = useState(true)
+
+  // Single Interview Schedule States
+  const [singleScheduleInterview, setSingleScheduleInterview] = useState(true)
+  const [singleInterviewDate, setSingleInterviewDate] = useState(getTomorrowDate())
+  const [singleInterviewJamMulai, setSingleInterviewJamMulai] = useState('09:00')
+  const [singleInterviewJamSelesai, setSingleInterviewJamSelesai] = useState('10:00')
+  const [singleInterviewTipe, setSingleInterviewTipe] = useState<'offline' | 'online'>('offline')
+  const [singleInterviewLokasi, setSingleInterviewLokasi] = useState('Head Office PT Menara Agung, Ruang Rapat Lt. 2')
+  const [singleInterviewLinkMeeting, setSingleInterviewLinkMeeting] = useState('')
+  const [singleInterviewPewawancara, setSingleInterviewPewawancara] = useState('')
+  const [singleInterviewCatatanKandidat, setSingleInterviewCatatanKandidat] = useState('Harap hadir 10 menit lebih awal dengan membawa dokumen identitas diri (KTP) dan berkas pendukung.')
+  const [singleInterviewKirimEmail, setSingleInterviewKirimEmail] = useState(true)
 
   const [autoScreenModalOpen, setAutoScreenModalOpen] = useState(false)
   const [autoScreenLowongan, setAutoScreenLowongan] = useState('all')
@@ -448,15 +483,35 @@ export default function Index({
     if (!selectedScreening || !selectedScreening.pelamar) return
 
     setIsSubmitting(true)
+    const payload: any = {
+      keputusan: decision,
+      catatan_hr: catatanHr,
+      tahap_berikutnya: decision === 'approve' ? nextStageChoice : undefined,
+    }
+
+    if (decision === 'approve' && singleScheduleInterview) {
+      payload.buat_jadwal_interview = true
+      payload.tanggal_interview = singleInterviewDate
+      payload.jam_mulai = singleInterviewJamMulai
+      payload.jam_selesai = singleInterviewJamSelesai
+      payload.tipe_interview = singleInterviewTipe
+      payload.lokasi = singleInterviewLokasi
+      payload.link_meeting = singleInterviewLinkMeeting
+      payload.pewawancara_nama = singleInterviewPewawancara
+      payload.catatan_interview = singleInterviewCatatanKandidat
+      payload.kirim_undangan_email = singleInterviewKirimEmail
+    }
+
     router.post(
       `/screening-cv/${selectedScreening.pelamar.id}/confirm`,
-      {
-        keputusan: decision,
-        catatan_hr: catatanHr,
-        tahap_berikutnya: decision === 'approve' ? nextStageChoice : undefined,
-      },
+      payload,
       {
         preserveScroll: true,
+        onSuccess: () => {
+          toast.info('Memproses Konfirmasi & Jadwal...', {
+            description: 'Konfirmasi kandidat dan pembuatan jadwal interview sedang diproses di antrean (Queue).',
+          })
+        },
         onFinish: () => {
           setIsSubmitting(false)
           setReviewModalOpen(false)
@@ -470,16 +525,36 @@ export default function Index({
     if (selectedIds.length === 0) return
 
     setIsSubmitting(true)
+    const payload: any = {
+      pelamar_ids: selectedIds,
+      keputusan: bulkDecision,
+      catatan_hr: bulkCatatan,
+      tahap_berikutnya: bulkDecision === 'approve' ? bulkNextStage : undefined,
+    }
+
+    if (bulkDecision === 'approve' && bulkScheduleInterview) {
+      payload.buat_jadwal_interview = true
+      payload.tanggal_interview = bulkInterviewDate
+      payload.jam_mulai = bulkInterviewJamMulai
+      payload.jam_selesai = bulkInterviewJamSelesai
+      payload.tipe_interview = bulkInterviewTipe
+      payload.lokasi = bulkInterviewLokasi
+      payload.link_meeting = bulkInterviewLinkMeeting
+      payload.pewawancara_nama = bulkInterviewPewawancara
+      payload.catatan_interview = bulkInterviewCatatanKandidat
+      payload.kirim_undangan_email = bulkInterviewKirimEmail
+    }
+
     router.post(
       '/screening-cv/bulk-confirm',
-      {
-        pelamar_ids: selectedIds,
-        keputusan: bulkDecision,
-        catatan_hr: bulkCatatan,
-        tahap_berikutnya: bulkDecision === 'approve' ? bulkNextStage : undefined,
-      },
+      payload,
       {
         preserveScroll: true,
+        onSuccess: () => {
+          toast.info('Memproses Konfirmasi Massal...', {
+            description: `${selectedIds.length} kandidat dan pembuatan jadwal wawancara sedang diproses di antrean (Queue).`,
+          })
+        },
         onFinish: () => {
           setIsSubmitting(false)
           setBulkModalOpen(false)
@@ -1364,16 +1439,140 @@ export default function Index({
                     {() => (
                       <Select
                         value={nextStageChoice}
-                        onChange={(v) => setNextStageChoice(v)}
+                        onChange={(v) => {
+                          setNextStageChoice(v)
+                          if (v.startsWith('interview')) {
+                            setSingleScheduleInterview(true)
+                          }
+                        }}
                         options={[
-                          { value: 'lengkapi_formulir', label: '1. Lengkapi Formulir Lamaran Kerja (Recommended)' },
-                          { value: 'skill_test', label: '2. Skill Test / Uji Kompetensi' },
-                          { value: 'interview_hr', label: '3. Interview HR' },
-                          { value: 'interview_user', label: '4. Interview User' },
+                          { value: 'interview_hr', label: '1. Interview HR (Wawancara HR)' },
+                          { value: 'interview_user', label: '2. Interview User (Wawancara User)' },
+                          { value: 'interview_gm', label: '3. Interview GM (Wawancara General Manager)' },
+                          { value: 'skill_test', label: '4. Skill Test / Uji Kompetensi' },
+                          { value: 'lengkapi_formulir', label: '5. Lengkapi Formulir Lamaran Kerja' },
                         ]}
                       />
                     )}
                   </Field>
+                )}
+
+                {/* Instant Interview Scheduling Box for Single Candidate */}
+                {decision === 'approve' && (
+                  <div className="p-3.5 rounded-xl border border-indigo-200 bg-indigo-50/50 space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-indigo-600 text-white shadow-xs">
+                          <IconCalendar size={16} />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-slate-900">
+                            Buat Jadwal Interview Otomatis
+                          </div>
+                          <div className="text-[11px] text-slate-500">
+                            Langsung tersimpan ke tabel <strong>Penjadwalan Interview</strong>
+                          </div>
+                        </div>
+                      </div>
+                      <Checkbox
+                        checked={singleScheduleInterview}
+                        onChange={(checked) => setSingleScheduleInterview(Boolean(checked))}
+                        label="Jadwalkan"
+                      />
+                    </div>
+
+                    {singleScheduleInterview && (
+                      <div className="pt-2 border-t border-indigo-100 space-y-2.5">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                              Tanggal <span className="text-rose-500">*</span>
+                            </label>
+                            <input
+                              type="date"
+                              value={singleInterviewDate}
+                              onChange={(e) => setSingleInterviewDate(e.target.value)}
+                              className="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                              Mulai <span className="text-rose-500">*</span>
+                            </label>
+                            <input
+                              type="time"
+                              value={singleInterviewJamMulai}
+                              onChange={(e) => setSingleInterviewJamMulai(e.target.value)}
+                              className="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                              Selesai
+                            </label>
+                            <input
+                              type="time"
+                              value={singleInterviewJamSelesai}
+                              onChange={(e) => setSingleInterviewJamSelesai(e.target.value)}
+                              className="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                            Metode Pelaksanaan
+                          </label>
+                          <select
+                            value={singleInterviewTipe}
+                            onChange={(e) => setSingleInterviewTipe(e.target.value as 'offline' | 'online')}
+                            className="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                          >
+                            <option value="offline">Tatap Muka (Offline)</option>
+                            <option value="online">Online Video Call (Google Meet / Zoom)</option>
+                          </select>
+                        </div>
+
+                        {singleInterviewTipe === 'offline' ? (
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                              Lokasi Wawancara
+                            </label>
+                            <input
+                              type="text"
+                              value={singleInterviewLokasi}
+                              onChange={(e) => setSingleInterviewLokasi(e.target.value)}
+                              placeholder="Head Office, Ruang Rapat Lt. 2"
+                              className="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                            />
+                          </div>
+                        ) : (
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                              Link Google Meet / Zoom
+                            </label>
+                            <input
+                              type="url"
+                              value={singleInterviewLinkMeeting}
+                              onChange={(e) => setSingleInterviewLinkMeeting(e.target.value)}
+                              placeholder="https://meet.google.com/..."
+                              className="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                            />
+                          </div>
+                        )}
+
+                        <div>
+                          <Checkbox
+                            checked={singleInterviewKirimEmail}
+                            onChange={(checked) => setSingleInterviewKirimEmail(Boolean(checked))}
+                            label="Kirimkan email undangan wawancara resmi ke kandidat"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 <Field label="Catatan / Feedback Tambahan HR (Opsional)">
@@ -1403,6 +1602,8 @@ export default function Index({
                   >
                     {isSubmitting
                       ? 'Menyimpan...'
+                      : decision === 'approve' && singleScheduleInterview
+                      ? 'Konfirmasi Lolos & Buat Jadwal ✓'
                       : decision === 'approve'
                       ? 'Konfirmasi Loloskan ✓'
                       : 'Konfirmasi Tolak ✗'}
@@ -1422,14 +1623,14 @@ export default function Index({
           open={bulkModalOpen}
           onOpenChange={(open) => setBulkModalOpen(open)}
           title={`Konfirmasi Massal (${selectedIds.length} Kandidat Terpilih)`}
-          description="Terapkan keputusan HR serentak untuk seluruh kandidat yang telah Anda centang."
-          size="md"
+          description="Terapkan keputusan HR serentak dan otomatis buat jadwal interview untuk seluruh kandidat yang telah Anda centang."
+          size="lg"
         >
           <Stack gap={4}>
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
               <Text size="sm">
                 Keputusan:{' '}
-                <strong>
+                <strong className={bulkDecision === 'approve' ? 'text-emerald-700' : 'text-rose-700'}>
                   {bulkDecision === 'approve'
                     ? 'LOLOSKAN KE TAHAP BERIKUTNYA'
                     : 'TOLAK (REJECTED)'}
@@ -1439,34 +1640,172 @@ export default function Index({
             </div>
 
             {bulkDecision === 'approve' && (
-              <Field label="Tahapan Seleksi Lanjutan">
+              <Field label="Pilih Tahapan Seleksi Lanjutan">
                 {() => (
                   <Select
                     value={bulkNextStage}
-                    onChange={(v) => setBulkNextStage(v)}
+                    onChange={(v) => {
+                      setBulkNextStage(v)
+                      if (v.startsWith('interview')) {
+                        setBulkScheduleInterview(true)
+                      }
+                    }}
                     options={[
-                      { value: 'lengkapi_formulir', label: 'Lengkapi Formulir Lamaran Kerja' },
-                      { value: 'skill_test', label: 'Skill Test' },
-                      { value: 'interview_hr', label: 'Interview HR' },
+                      { value: 'interview_hr', label: '1. Interview HR (Wawancara HR)' },
+                      { value: 'interview_user', label: '2. Interview User (Wawancara User)' },
+                      { value: 'interview_gm', label: '3. Interview GM (Wawancara General Manager)' },
+                      { value: 'skill_test', label: '4. Skill Test & Ujian Teknis' },
+                      { value: 'lengkapi_formulir', label: '5. Lengkapi Formulir Lamaran Kerja' },
                     ]}
                   />
                 )}
               </Field>
             )}
 
-            <Field label="Catatan Massal (Opsional)">
+            {/* Instant Interview Scheduling Box */}
+            {bulkDecision === 'approve' && (
+              <div className="p-4 rounded-xl border border-indigo-200 bg-indigo-50/50 space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-lg bg-indigo-600 text-white shadow-xs">
+                      <IconCalendar size={18} />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-slate-900">
+                        Buat Jadwal Interview Otomatis
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        Jadwal langsung disimpan ke tabel <strong>Penjadwalan Interview</strong> untuk {selectedIds.length} kandidat
+                      </div>
+                    </div>
+                  </div>
+                  <Checkbox
+                    checked={bulkScheduleInterview}
+                    onChange={(checked) => setBulkScheduleInterview(Boolean(checked))}
+                    label="Aktifkan Jadwal"
+                  />
+                </div>
+
+                {bulkScheduleInterview && (
+                  <div className="pt-3 border-t border-indigo-100 space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Tanggal Wawancara <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="date"
+                          value={bulkInterviewDate}
+                          onChange={(e) => setBulkInterviewDate(e.target.value)}
+                          className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Jam Mulai <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="time"
+                          value={bulkInterviewJamMulai}
+                          onChange={(e) => setBulkInterviewJamMulai(e.target.value)}
+                          className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Jam Selesai
+                        </label>
+                        <input
+                          type="time"
+                          value={bulkInterviewJamSelesai}
+                          onChange={(e) => setBulkInterviewJamSelesai(e.target.value)}
+                          className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Metode Pelaksanaan
+                      </label>
+                      <select
+                        value={bulkInterviewTipe}
+                        onChange={(e) => setBulkInterviewTipe(e.target.value as 'offline' | 'online')}
+                        className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      >
+                        <option value="offline">Tatap Muka (Offline)</option>
+                        <option value="online">Online Video Call (Google Meet / Zoom)</option>
+                      </select>
+                    </div>
+
+                    {bulkInterviewTipe === 'offline' ? (
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Lokasi Kantor / Ruangan Wawancara
+                        </label>
+                        <input
+                          type="text"
+                          value={bulkInterviewLokasi}
+                          onChange={(e) => setBulkInterviewLokasi(e.target.value)}
+                          placeholder="contoh: Head Office PT Menara Agung, Ruang Rapat Lt. 2"
+                          className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                        />
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Tautan Video Conference (Google Meet / Zoom)
+                        </label>
+                        <input
+                          type="url"
+                          value={bulkInterviewLinkMeeting}
+                          onChange={(e) => setBulkInterviewLinkMeeting(e.target.value)}
+                          placeholder="https://meet.google.com/abc-defg-hij"
+                          className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Catatan Khusus untuk Kandidat
+                      </label>
+                      <input
+                        type="text"
+                        value={bulkInterviewCatatanKandidat}
+                        onChange={(e) => setBulkInterviewCatatanKandidat(e.target.value)}
+                        placeholder="contoh: Pakaian formal rapi, membawa KTP dan berkas fisik asli"
+                        className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      />
+                    </div>
+
+                    <div className="pt-2">
+                      <Checkbox
+                        checked={bulkInterviewKirimEmail}
+                        onChange={(checked) => setBulkInterviewKirimEmail(Boolean(checked))}
+                        label="Kirimkan email undangan wawancara resmi (beserta jadwal & lokasi/link) ke seluruh kandidat"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <Field label="Catatan Tambahan HR (Opsional)">
               {(id, describedBy) => (
                 <Input
                   id={id}
                   describedBy={describedBy}
                   value={bulkCatatan}
                   onChange={(v) => setBulkCatatan(v)}
-                  placeholder="Catatan untuk riwayat seleksi kandidat terpilih..."
+                  placeholder="Catatan internal riwayat seleksi kandidat terpilih..."
                 />
               )}
             </Field>
 
-            <div className="flex justify-between items-center pt-2">
+            <div className="flex justify-between items-center pt-2 border-t border-slate-200">
               <Button
                 variant="quiet"
                 size="sm"
@@ -1479,7 +1818,11 @@ export default function Index({
                 disabled={isSubmitting}
                 onClick={submitBulkConfirmation}
               >
-                {isSubmitting ? 'Memproses...' : 'Terapkan Konfirmasi Massal'}
+                {isSubmitting
+                  ? 'Menyimpan & Menjadwalkan...'
+                  : bulkDecision === 'approve' && bulkScheduleInterview
+                  ? `Loloskan & Buat Jadwal (${selectedIds.length} Kandidat) ✓`
+                  : `Terapkan Konfirmasi Massal (${selectedIds.length})`}
               </Button>
             </div>
           </Stack>

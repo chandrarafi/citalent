@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\ProcessBatchAtsScreeningJob;
+use App\Jobs\ProcessBulkConfirmJob;
 use App\Mail\StatusLamaranUpdatedMail;
+use App\Mail\UndanganInterviewMail;
 use App\Models\AtsScreening;
 use App\Models\KriteriaAts;
 use App\Models\Lowongan;
 use App\Models\Pelamar;
+use App\Models\PenjadwalanInterview;
 use App\Services\AtsScreeningService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -272,100 +275,62 @@ class AtsScreeningController extends Controller
     /**
      * Confirm screening result by HR (Approve or Reject).
      */
+    /**
+     * Confirm screening result by HR (Approve or Reject), with optional instant interview scheduling.
+     */
     public function confirm(Request $request, Pelamar $pelamar): RedirectResponse
     {
         $validated = $request->validate([
             'keputusan' => ['required', 'in:approve,reject'],
             'catatan_hr' => ['nullable', 'string', 'max:1000'],
-            'tahap_berikutnya' => ['nullable', 'string', 'in:lengkapi_formulir,skill_test,interview_hr,interview_user'],
+            'tahap_berikutnya' => ['nullable', 'string', 'in:lengkapi_formulir,skill_test,interview_hr,interview_user,interview_gm'],
+            // Instant Interview Scheduling Fields
+            'buat_jadwal_interview' => ['nullable', 'boolean'],
+            'tanggal_interview' => ['nullable', 'required_if:buat_jadwal_interview,true', 'date'],
+            'jam_mulai' => ['nullable', 'required_if:buat_jadwal_interview,true', 'string', 'max:10'],
+            'jam_selesai' => ['nullable', 'string', 'max:10'],
+            'tipe_interview' => ['nullable', 'required_if:buat_jadwal_interview,true', 'in:offline,online'],
+            'lokasi' => ['nullable', 'string', 'max:255'],
+            'link_meeting' => ['nullable', 'string', 'max:500'],
+            'pewawancara_nama' => ['nullable', 'string', 'max:255'],
+            'catatan_interview' => ['nullable', 'string', 'max:1000'],
+            'kirim_undangan_email' => ['nullable', 'boolean'],
         ]);
-
-        $screening = AtsScreening::where('pelamar_id', $pelamar->id)->first();
-        if (!$screening) {
-            $screening = $this->screeningService->screen($pelamar);
-        }
 
         $userId = Auth::id();
         $isApprove = $validated['keputusan'] === 'approve';
+        $buatJadwal = $isApprove && $request->boolean('buat_jadwal_interview');
 
-        if ($isApprove) {
-            // Determine next stage
-            $kdJabatan = $pelamar->lowongan?->jabatan?->kd_jabatan ?: '';
-            $skillTestJabatanCodes = ['JBT-5', 'JBT-27', 'JBT-28', 'JBT-29', 'JBT-31', 'JBT-26'];
-            $hasSkillTest = in_array($kdJabatan, $skillTestJabatanCodes);
+        $jadwalData = [
+            'tanggal_interview' => $validated['tanggal_interview'] ?? null,
+            'jam_mulai' => $validated['jam_mulai'] ?? null,
+            'jam_selesai' => $validated['jam_selesai'] ?? null,
+            'tipe_interview' => $validated['tipe_interview'] ?? 'offline',
+            'lokasi' => $validated['lokasi'] ?? null,
+            'link_meeting' => $validated['link_meeting'] ?? null,
+            'pewawancara_nama' => $validated['pewawancara_nama'] ?? null,
+            'catatan_interview' => $validated['catatan_interview'] ?? null,
+            'kirim_undangan_email' => $request->boolean('kirim_undangan_email', true),
+        ];
 
-            $nextStage = $validated['tahap_berikutnya'] ?? 'lengkapi_formulir';
+        ProcessBulkConfirmJob::dispatch(
+            [$pelamar->id],
+            $validated['keputusan'],
+            $validated['catatan_hr'] ?? null,
+            $validated['tahap_berikutnya'] ?? null,
+            $buatJadwal,
+            $jadwalData,
+            $userId
+        );
 
-            $screening->update([
-                'status_konfirmasi' => 'disetujui',
-                'catatan_hr' => $validated['catatan_hr'] ?? 'Disetujui oleh HR untuk melanjutkan ke tahapan berikutnya.',
-                'confirmed_by' => $userId,
-                'confirmed_at' => now(),
-            ]);
-
-            $pelamar->update([
-                'status' => $nextStage,
-                'tahap_gagal' => null,
-                'catatan' => $validated['catatan_hr'] ?? "Lolos ATS Screening (Skor: {$screening->total_skor}/100). Dikonfirmasi lanjut ke tahap " . strtoupper(str_replace('_', ' ', $nextStage)),
-            ]);
-
-            $stageLabel = match ($nextStage) {
-                'lengkapi_formulir' => 'Lengkapi Formulir Lamaran Kerja',
-                'skill_test' => 'Skill Test',
-                'interview_hr' => 'Interview HR',
-                default => strtoupper(str_replace('_', ' ', $nextStage)),
-            };
-
-            // Queue notification email
-            if (!empty($pelamar->email)) {
-                try {
-                    Mail::to($pelamar->email)->queue(
-                        new StatusLamaranUpdatedMail(
-                            $pelamar->fresh(['lowongan.departement', 'lowongan.jabatan']),
-                            $nextStage,
-                            $validated['catatan_hr'] ?? null
-                        )
-                    );
-                } catch (\Throwable $e) {
-                    Log::error("Gagal queue email konfirmasi screening pelamar ID {$pelamar->id}: " . $e->getMessage());
-                }
-            }
-
-            return back()->with('success', "Konfirmasi berhasil! '{$pelamar->nama_lengkap}' LOLOS screening ATS dan melaju ke tahap '{$stageLabel}'.");
-        } else {
-            $screening->update([
-                'status_konfirmasi' => 'ditolak',
-                'catatan_hr' => $validated['catatan_hr'] ?? 'Kandidat belum memenuhi kualifikasi minimum yang dibutuhkan.',
-                'confirmed_by' => $userId,
-                'confirmed_at' => now(),
-            ]);
-
-            $pelamar->update([
-                'status' => 'rejected',
-                'tahap_gagal' => 'screening_cv',
-                'catatan' => $validated['catatan_hr'] ?? "Tidak lolos seleksi berkas/screening CV (Skor ATS: {$screening->total_skor}/100).",
-            ]);
-
-            if (!empty($pelamar->email)) {
-                try {
-                    Mail::to($pelamar->email)->queue(
-                        new StatusLamaranUpdatedMail(
-                            $pelamar->fresh(['lowongan.departement', 'lowongan.jabatan']),
-                            'rejected',
-                            $validated['catatan_hr'] ?? 'Terima kasih atas partisipasi Anda. Saat ini kualifikasi Anda belum sesuai dengan kebutuhan posisi ini.'
-                        )
-                    );
-                } catch (\Throwable $e) {
-                    Log::error("Gagal queue email tolak screening pelamar ID {$pelamar->id}: " . $e->getMessage());
-                }
-            }
-
-            return back()->with('success', "Konfirmasi berhasil: Status '{$pelamar->nama_lengkap}' telah DITOLAK pada tahapan Screening CV.");
-        }
+        $actionText = $isApprove ? 'Loloskan' : 'Tolak';
+        $schedText = $buatJadwal ? ' dan pembuatan jadwal interview' : '';
+        return back()->with('info', "Proses {$actionText} kandidat '{$pelamar->nama_lengkap}'{$schedText} sedang diproses di antrean (Queue).");
     }
 
     /**
-     * Bulk confirm multiple candidates at once.
+     * Bulk confirm multiple candidates at once, with optional instant interview scheduling.
+     * Processed in background via Queue.
      */
     public function bulkConfirm(Request $request): RedirectResponse
     {
@@ -374,71 +339,50 @@ class AtsScreeningController extends Controller
             'pelamar_ids.*' => ['required', Rule::exists(Pelamar::class, 'id')],
             'keputusan' => ['required', 'in:approve,reject'],
             'catatan_hr' => ['nullable', 'string', 'max:1000'],
-            'tahap_berikutnya' => ['nullable', 'string', 'in:lengkapi_formulir,skill_test,interview_hr,interview_user'],
+            'tahap_berikutnya' => ['nullable', 'string', 'in:lengkapi_formulir,skill_test,interview_hr,interview_user,interview_gm'],
+            // Instant Interview Scheduling Fields
+            'buat_jadwal_interview' => ['nullable', 'boolean'],
+            'tanggal_interview' => ['nullable', 'required_if:buat_jadwal_interview,true', 'date'],
+            'jam_mulai' => ['nullable', 'required_if:buat_jadwal_interview,true', 'string', 'max:10'],
+            'jam_selesai' => ['nullable', 'string', 'max:10'],
+            'tipe_interview' => ['nullable', 'required_if:buat_jadwal_interview,true', 'in:offline,online'],
+            'lokasi' => ['nullable', 'string', 'max:255'],
+            'link_meeting' => ['nullable', 'string', 'max:500'],
+            'pewawancara_nama' => ['nullable', 'string', 'max:255'],
+            'catatan_interview' => ['nullable', 'string', 'max:1000'],
+            'kirim_undangan_email' => ['nullable', 'boolean'],
         ]);
 
         $userId = Auth::id();
         $isApprove = $validated['keputusan'] === 'approve';
-        $nextStage = $validated['tahap_berikutnya'] ?? 'lengkapi_formulir';
-        $count = 0;
+        $buatJadwal = $isApprove && $request->boolean('buat_jadwal_interview');
+        $count = count($validated['pelamar_ids']);
 
-        $pelamars = Pelamar::with(['lowongan.departement', 'lowongan.jabatan', 'atsScreening'])
-            ->whereIn('id', $validated['pelamar_ids'])
-            ->get();
+        $jadwalData = [
+            'tanggal_interview' => $validated['tanggal_interview'] ?? null,
+            'jam_mulai' => $validated['jam_mulai'] ?? null,
+            'jam_selesai' => $validated['jam_selesai'] ?? null,
+            'tipe_interview' => $validated['tipe_interview'] ?? 'offline',
+            'lokasi' => $validated['lokasi'] ?? null,
+            'link_meeting' => $validated['link_meeting'] ?? null,
+            'pewawancara_nama' => $validated['pewawancara_nama'] ?? null,
+            'catatan_interview' => $validated['catatan_interview'] ?? null,
+            'kirim_undangan_email' => $request->boolean('kirim_undangan_email', true),
+        ];
 
-        foreach ($pelamars as $pelamar) {
-            $screening = $pelamar->atsScreening;
-            if (!$screening) {
-                $screening = $this->screeningService->screen($pelamar);
-            }
+        ProcessBulkConfirmJob::dispatch(
+            $validated['pelamar_ids'],
+            $validated['keputusan'],
+            $validated['catatan_hr'] ?? null,
+            $validated['tahap_berikutnya'] ?? null,
+            $buatJadwal,
+            $jadwalData,
+            $userId
+        );
 
-            if ($isApprove) {
-                $screening->update([
-                    'status_konfirmasi' => 'disetujui',
-                    'catatan_hr' => $validated['catatan_hr'] ?? 'Disetujui secara massal oleh HR.',
-                    'confirmed_by' => $userId,
-                    'confirmed_at' => now(),
-                ]);
-
-                $pelamar->update([
-                    'status' => $nextStage,
-                    'tahap_gagal' => null,
-                    'catatan' => $validated['catatan_hr'] ?? "Lolos ATS Screening (Skor: {$screening->total_skor}/100).",
-                ]);
-            } else {
-                $screening->update([
-                    'status_konfirmasi' => 'ditolak',
-                    'catatan_hr' => $validated['catatan_hr'] ?? 'Ditolak pada tahapan screening berkas.',
-                    'confirmed_by' => $userId,
-                    'confirmed_at' => now(),
-                ]);
-
-                $pelamar->update([
-                    'status' => 'rejected',
-                    'tahap_gagal' => 'screening_cv',
-                    'catatan' => $validated['catatan_hr'] ?? "Tidak lolos seleksi berkas/screening CV.",
-                ]);
-            }
-
-            if (!empty($pelamar->email)) {
-                try {
-                    Mail::to($pelamar->email)->queue(
-                        new StatusLamaranUpdatedMail(
-                            $pelamar,
-                            $isApprove ? $nextStage : 'rejected',
-                            $validated['catatan_hr'] ?? null
-                        )
-                    );
-                } catch (\Throwable $e) {
-                    Log::error("Gagal queue email bulk confirm screening pelamar ID {$pelamar->id}: " . $e->getMessage());
-                }
-            }
-
-            $count++;
-        }
-
-        $actionLabel = $isApprove ? 'DILOLOSKAN' : 'DITOLAK';
-        return back()->with('success', "Sebanyak {$count} kandidat berhasil dikonfirmasi ({$actionLabel}) oleh HR.");
+        $actionText = $isApprove ? 'Loloskan' : 'Tolak';
+        $schedText = $buatJadwal ? ' beserta pembuatan jadwal interview' : '';
+        return back()->with('info', "Konfirmasi massal ({$actionText}) untuk {$count} kandidat{$schedText} sedang diproses di antrean (Queue).");
     }
 
     /**

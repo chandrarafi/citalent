@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Pelamar;
+use App\Models\PenjadwalanInterview;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -20,7 +21,8 @@ class StatusLamaranUpdatedMail extends Mailable implements ShouldQueue
         public Pelamar $pelamar,
         public string $status,
         public ?string $catatan = null,
-        ?string $statusLabel = null
+        ?string $statusLabel = null,
+        public ?PenjadwalanInterview $schedule = null
     ) {
         $this->statusLabel = $statusLabel ?? match ($this->status) {
             'submitted' => 'Submit Lamaran',

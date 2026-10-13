@@ -111,9 +111,21 @@ class EmailPreviewController extends Controller
             default => "Harap memeriksa jadwal dan informasi terkini di dashboard kandidat Anda.",
         };
 
-        $catatan = $request->query('catatan', $defaultCatatan);
+        $schedule = null;
+        if (str_starts_with($status, 'interview') || $request->has('schedule')) {
+            $schedule = (object) [
+                'tahap_label' => $statusLabel,
+                'tanggal_interview' => Carbon::now()->addDays(2)->format('Y-m-d'),
+                'jam_mulai' => '09:00',
+                'jam_selesai' => '10:30',
+                'tipe_interview' => $request->query('type', 'online'),
+                'lokasi' => 'Head Office PT Menara Agung, Ruang Rapat HR Lt. 2',
+                'link_meeting' => 'https://meet.google.com/abc-defg-hij',
+                'catatan_untuk_kandidat' => 'Harap hadir tepat waktu 10 menit sebelum sesi dimulai. Mengenakan kemeja formal rapi.',
+            ];
+        }
 
-        return view('emails.lamaran_lulus', compact('pelamar', 'status', 'statusLabel', 'catatan'));
+        return view('emails.lamaran_lulus', compact('pelamar', 'status', 'statusLabel', 'catatan', 'schedule'));
     }
 
     /**

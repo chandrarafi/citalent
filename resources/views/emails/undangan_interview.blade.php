@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    @php
+    // Logo embedding logic
+    $logoPath = public_path('assets/images/logo-red-1.png');
+    if (isset($message) && is_object($message) && method_exists($message, 'embed') && file_exists($logoPath)) {
+        $logoSrc = $message->embed($logoPath);
+    } elseif (file_exists($logoPath)) {
+        $logoSrc = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+    } else {
+        $logoSrc = asset('assets/images/logo-red-1.png');
+    }
+    @endphp
     <title>{{ $isReminder ? 'Pengingat Jadwal Wawancara Kerja' : 'Undangan Wawancara Kerja' }} — {{ config('app.name', 'Citalent') }}</title>
     <style type="text/css">
         body, table, td, a {
@@ -34,8 +45,6 @@
                 width: 100% !important;
                 max-width: 100% !important;
                 border-radius: 0 !important;
-                border-left: none !important;
-                border-right: none !important;
             }
             .content-cell {
                 padding: 28px 20px !important;
@@ -50,22 +59,22 @@
         <tr>
             <td align="center">
 
-                <!-- Main Card -->
-                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="container" style="max-width: 580px; background-color: #ffffff; border: 1px solid #e4e4e7; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);">
+                <!-- Main Card (Clean & Borderless) -->
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="container" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);">
 
                     <!-- Brand Header -->
                     <tr>
-                        <td style="padding: 28px 32px; border-bottom: 1px solid #f4f4f5;">
+                        <td style="padding: 28px 32px 20px 32px;">
                             <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                                 <tr>
                                     <td align="left" style="vertical-align: middle;">
-                                        <img src="{{ asset('assets/images/logo-red-1.png') }}"
-                                             alt="{{ config('app.name', 'Citalent') }}"
+                                        <img src="{{ $logoSrc }}"
+                                             alt="{{ config('app.name', 'PT. Menara Agung') }}"
                                              width="140"
-                                             style="display: block; width: 140px; height: auto;" />
+                                             style="display: block; width: 140px; max-width: 140px; height: auto; border: 0;" />
                                     </td>
                                     <td align="right" style="vertical-align: middle;">
-                                        <span style="font-size: 11px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 0.08em;">
+                                        <span style="display: inline-block; padding: 5px 12px; font-size: 11px; font-weight: 700; color: #71717a; background-color: #f4f4f5; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em;">
                                             {{ $isReminder ? 'Pengingat Jadwal' : 'Undangan Wawancara' }}
                                         </span>
                                     </td>
@@ -76,7 +85,7 @@
 
                     <!-- Content -->
                     <tr>
-                        <td class="content-cell" style="padding: 36px 32px 32px 32px;">
+                        <td class="content-cell" style="padding: 16px 32px 32px 32px;">
 
                             <!-- Heading -->
                             <h1 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 700; color: #09090b; letter-spacing: -0.02em;">
@@ -89,14 +98,14 @@
 
                             <p style="margin: 0 0 24px 0; font-size: 14px; color: #52525b; line-height: 1.6;">
                                 @if ($isReminder)
-                                Sehubungan dengan rangkaian proses seleksi posisi <strong>{{ $pelamar->posisi_dilamar ?: ($pelamar->lowongan?->judul ?? 'yang dilamar') }}</strong>, bersama ini kami menyampaikan pengingat jadwal pelaksanaan sesi wawancara Anda sebagai berikut:
+                                Kami mengingatkan kembali agenda wawancara kerja Saudara/i untuk posisi <strong>{{ $pelamar->posisi_dilamar ?: ($pelamar->lowongan?->judul ?? 'yang dilamar') }}</strong> di {{ config('app.name', 'PT. Menara Agung') }}:
                                 @else
-                                Sehubungan dengan lamaran pekerjaan yang Saudara/i ajukan untuk posisi <strong>{{ $pelamar->posisi_dilamar ?: ($pelamar->lowongan?->judul ?? 'yang dilamar') }}</strong>, kami mengundang Saudara/i untuk menghadiri tahapan <strong>{{ $schedule->tahap_label }}</strong> yang akan diselenggarakan pada jadwal berikut:
+                                Sehubungan dengan proses seleksi penerimaan karyawan untuk posisi <strong>{{ $pelamar->posisi_dilamar ?: ($pelamar->lowongan?->judul ?? 'yang dilamar') }}</strong> di {{ config('app.name', 'PT. Menara Agung') }}, dengan ini kami mengundang Saudara/i untuk menghadiri sesi wawancara dengan rincian sebagai berikut:
                                 @endif
                             </p>
 
-                            <!-- Hero Schedule Box -->
-                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 24px 0; background-color: #09090b; border-radius: 8px;">
+                            <!-- Hero Schedule Box (Clean & Borderless) -->
+                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 24px 0; background-color: #09090b; border-radius: 12px;">
                                 <tr>
                                     <td style="padding: 24px 22px;">
                                         <div style="font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: #a1a1aa; margin-bottom: 8px;">
@@ -109,7 +118,7 @@
                                             Pukul {{ $schedule->jam_mulai }} WIB{{ $schedule->jam_selesai ? ' s/d ' . $schedule->jam_selesai . ' WIB' : '' }}
                                         </div>
 
-                                        <div style="border-top: 1px solid #27272a; padding-top: 12px; font-size: 12px; color: #a1a1aa;">
+                                        <div style="padding-top: 10px; font-size: 12px; color: #a1a1aa;">
                                             Metode: <strong style="color: #ffffff;">{{ $schedule->tipe_interview === 'online' ? 'Online (Video Conference)' : 'Tatap Muka (Offline)' }}</strong>
                                             @if ($schedule->tipe_interview === 'offline' && $schedule->lokasi)
                                                 <br>Lokasi: <span style="color: #ffffff;">{{ $schedule->lokasi }}</span>
@@ -124,7 +133,7 @@
                             <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 24px 0;">
                                 <tr>
                                     <td>
-                                        <a href="{{ $schedule->link_meeting }}" target="_blank" style="display: inline-block; background-color: #dc2626; color: #ffffff; font-size: 13px; font-weight: 600; padding: 11px 20px; border-radius: 6px; text-decoration: none; letter-spacing: -0.01em;">
+                                        <a href="{{ $schedule->link_meeting }}" target="_blank" style="display: inline-block; background-color: #dc2626; color: #ffffff; font-size: 13px; font-weight: 600; padding: 12px 22px; border-radius: 8px; text-decoration: none; letter-spacing: -0.01em;">
                                             Masuk ke Ruang Video Call &rarr;
                                         </a>
                                         <div style="margin-top: 8px; font-size: 11px; color: #71717a;">
@@ -135,36 +144,36 @@
                             </table>
                             @endif
 
-                            <!-- Context Details Table -->
-                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 24px 0; border: 1px solid #f4f4f5; background-color: #fafafa; border-radius: 6px; font-size: 12px;">
+                            <!-- Context Details Table (Clean & Borderless) -->
+                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 24px 0; background-color: #fafafa; border-radius: 12px; font-size: 12px;">
                                 <tr>
-                                    <td style="padding: 10px 14px; color: #71717a; width: 35%; border-bottom: 1px solid #f4f4f5;">No. Pendaftaran</td>
-                                    <td style="padding: 10px 14px; color: #18181b; font-weight: 600; font-family: ui-monospace, Menlo, Consolas, monospace; border-bottom: 1px solid #f4f4f5;">
+                                    <td style="padding: 12px 16px 6px 16px; color: #71717a; width: 35%;">No. Pendaftaran</td>
+                                    <td style="padding: 12px 16px 6px 16px; color: #18181b; font-weight: 600; font-family: ui-monospace, Menlo, Consolas, monospace;">
                                         {{ $pelamar->no_pendaftaran }}
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 10px 14px; color: #71717a; border-bottom: 1px solid #f4f4f5;">Posisi yang Dilamar</td>
-                                    <td style="padding: 10px 14px; color: #18181b; font-weight: 500; border-bottom: 1px solid #f4f4f5;">
+                                    <td style="padding: 6px 16px; color: #71717a;">Posisi yang Dilamar</td>
+                                    <td style="padding: 6px 16px; color: #18181b; font-weight: 500;">
                                         {{ $pelamar->posisi_dilamar ?: ($pelamar->lowongan?->judul ?? '-') }}
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 10px 14px; color: #71717a; border-bottom: 1px solid #f4f4f5;">Tahapan Seleksi</td>
-                                    <td style="padding: 10px 14px; color: #18181b; font-weight: 500; border-bottom: 1px solid #f4f4f5;">
+                                    <td style="padding: 6px 16px; color: #71717a;">Tahapan Seleksi</td>
+                                    <td style="padding: 6px 16px; color: #18181b; font-weight: 500;">
                                         {{ $schedule->tahap_label }}
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 10px 14px; color: #71717a;">Format Pelaksanaan</td>
-                                    <td style="padding: 10px 14px; color: #18181b; font-weight: 500;">
+                                    <td style="padding: 6px 16px 12px 16px; color: #71717a;">Format Pelaksanaan</td>
+                                    <td style="padding: 6px 16px 12px 16px; color: #18181b; font-weight: 500;">
                                         {{ $schedule->tipe_interview === 'online' ? 'Video Conference (Google Meet)' : 'Tatap Muka di Lokasi Perusahaan' }}
                                     </td>
                                 </tr>
                             </table>
 
-                            <!-- Instructions / Petunjuk Pelaksanaan -->
-                            <div style="margin: 0 0 24px 0; background-color: #fafafa; border: 1px solid #e4e4e7; border-left: 3px solid #71717a; border-radius: 6px; padding: 14px 16px;">
+                            <!-- Instructions / Petunjuk Pelaksanaan (Clean & Borderless) -->
+                            <div style="margin: 0 0 24px 0; background-color: #f4f4f5; border-radius: 12px; padding: 18px 20px;">
                                 <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #52525b; margin-bottom: 8px;">
                                     Petunjuk &amp; Ketentuan Wawancara
                                 </div>
@@ -189,14 +198,14 @@
                             <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 28px 0;">
                                 <tr>
                                     <td>
-                                        <a href="{{ url('/kandidat/lamaran/' . $pelamar->no_pendaftaran) }}" target="_blank" style="display: inline-block; background-color: #18181b; color: #ffffff; font-size: 13px; font-weight: 600; padding: 10px 18px; border-radius: 6px; text-decoration: none; letter-spacing: -0.01em;">
+                                        <a href="{{ url('/kandidat/lamaran/' . $pelamar->no_pendaftaran) }}" target="_blank" style="display: inline-block; background-color: #18181b; color: #ffffff; font-size: 13px; font-weight: 600; padding: 11px 22px; border-radius: 8px; text-decoration: none; letter-spacing: -0.01em;">
                                             Pantau Riwayat Lamaran di Portal &rarr;
                                         </a>
                                     </td>
                                 </tr>
                             </table>
 
-                            <div style="border-top: 1px solid #f4f4f5; padding-top: 20px;">
+                            <div style="padding-top: 12px;">
                                 <p style="margin: 0; font-size: 12px; color: #71717a; line-height: 1.6;">
                                     Demikian undangan ini kami sampaikan. Apabila terdapat hal mendesak mengenai jadwal di atas, silakan hubungi tim rekrutmen kami melalui portal rekrutmen.
                                 </p>
@@ -218,7 +227,7 @@
 
                     <!-- Legal Footer -->
                     <tr>
-                        <td style="background-color: #fafafa; border-top: 1px solid #f4f4f5; padding: 20px 32px; font-size: 11px; color: #a1a1aa; line-height: 1.6;">
+                        <td style="background-color: #fafafa; padding: 22px 32px; font-size: 11px; color: #a1a1aa; line-height: 1.6;">
                             <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                                 <tr>
                                     <td>
