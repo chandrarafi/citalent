@@ -17,7 +17,9 @@ class ProcessBatchAtsScreeningJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $timeout = 1800; // 30 minutes max for full batch
-    public int $tries = 1;
+    public int $tries = 3;
+    public int $maxExceptions = 3;
+    public int $backoff = 5;
 
     protected string $batchId;
     protected array $pelamarIds;
@@ -134,5 +136,23 @@ class ProcessBatchAtsScreeningJob implements ShouldQueue
         ], now()->addMinutes(15));
 
         Log::info("ProcessBatchAtsScreeningJob [{$this->batchId}]: Selesai! Berhasil: {$completed}, Gagal: {$failed}.");
+    }
+
+    /**
+     * Handle job failure gracefully.
+     */
+    public function failed(?\Throwable $exception): void
+    {
+        Log::error("ProcessBatchAtsScreeningJob [{$this->batchId}] gagal permanen: " . $exception?->getMessage());
+        Cache::put('ats_screening_batch_progress', [
+            'batch_id' => $this->batchId,
+            'total' => count($this->pelamarIds),
+            'completed' => 0,
+            'failed' => count($this->pelamarIds),
+            'percentage' => 0,
+            'current_candidate' => 'Proses terhenti karena error',
+            'status' => 'idle',
+            'updated_at' => now()->timestamp,
+        ], now()->addMinutes(5));
     }
 }

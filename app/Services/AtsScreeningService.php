@@ -43,6 +43,9 @@ class AtsScreeningService
             $rekomendasi = $aiResult['rekomendasi'];
             $catatanAts = $aiResult['catatan_ats'];
             $kriteriaEvaluation = $aiResult['kriteria'];
+            if (!empty($aiResult['skills'])) {
+                $parsedData['skills'] = array_slice(array_values(array_unique(array_merge($aiResult['skills'], $parsedData['skills']))), 0, 10);
+            }
         } else {
             // 2. Safe Fallback: Rule-Based Evaluation
             $evaluation = $this->evaluateCriteria($divisi, $pelamar, $parsedData, $extractedText);
@@ -262,27 +265,97 @@ class AtsScreeningService
             }
         }
 
-        // Detect keywords present
+        // Detect skills using strict word boundary matching to avoid false positives (e.g., 'rapi' -> 'api')
         $detectedSkills = [];
         $allKnownKeywords = [
-            'sql', 'database', 'mysql', 'postgresql', 'networking', 'mikrotik', 'cisco',
-            'windows server', 'linux', 'python', 'php', 'laravel', 'react', 'typescript',
-            'javascript', 'it support', 'troubleshooting', 'docker', 'git', 'api',
-            'marketing', 'digital marketing', 'target penjualan', 'negosiasi', 'public speaking',
-            'seo', 'sem', 'google ads', 'meta ads', 'canva', 'desain', 'crm',
-            'customer handling', 'complaint handling', 'call center', 'zendesk', 'microsoft office',
-            'excel', 'word', 'powerpoint', 'komunikasi',
-            'smk otomotif', 'bengkel', 'honda', 'yamaha', 'diagnosis motor', 'injeksi',
-            'kelistrikan', 'tune up', 'scanner', 'engine', 'mekanik',
-            'recruitment', 'payroll', 'training', 'uu ketenagakerjaan', 'bpjs',
-            'employee relations', 'administrasi hr', 'psikotes',
-            'akuntansi', 'accurate', 'sap', 'jurnal', 'pajak', 'brevet', 'financial reporting', 'audit',
-            'inventory management', 'gudang', 'sparepart', 'stock opname', 'erp', 'kode part',
+            'sql' => 'SQL',
+            'database' => 'Database',
+            'mysql' => 'MySQL',
+            'postgresql' => 'PostgreSQL',
+            'networking' => 'Networking',
+            'mikrotik' => 'MikroTik',
+            'cisco' => 'Cisco',
+            'windows server' => 'Windows Server',
+            'linux' => 'Linux',
+            'python' => 'Python',
+            'php' => 'PHP',
+            'laravel' => 'Laravel',
+            'react' => 'React',
+            'typescript' => 'TypeScript',
+            'javascript' => 'JavaScript',
+            'it support' => 'IT Support',
+            'troubleshooting' => 'Troubleshooting',
+            'docker' => 'Docker',
+            'git' => 'Git',
+            'api' => 'REST API',
+            'marketing' => 'Marketing',
+            'digital marketing' => 'Digital Marketing',
+            'target penjualan' => 'Target Penjualan',
+            'negosiasi' => 'Negosiasi',
+            'public speaking' => 'Public Speaking',
+            'seo' => 'SEO',
+            'sem' => 'SEM',
+            'google ads' => 'Google Ads',
+            'meta ads' => 'Meta Ads',
+            'canva' => 'Canva',
+            'desain' => 'Desain Grafis',
+            'crm' => 'CRM',
+            'customer handling' => 'Customer Handling',
+            'complaint handling' => 'Complaint Handling',
+            'call center' => 'Call Center',
+            'zendesk' => 'Zendesk',
+            'microsoft office' => 'Microsoft Office',
+            'microsoft excel' => 'Microsoft Excel',
+            'microsoft word' => 'Microsoft Word',
+            'excel' => 'Microsoft Excel',
+            'word' => 'Microsoft Word',
+            'powerpoint' => 'PowerPoint',
+            'power point' => 'PowerPoint',
+            'komunikasi' => 'Komunikasi',
+            'administrasi' => 'Administrasi',
+            'pengarsipan' => 'Pengarsipan Dokumen',
+            'perbankan' => 'Perbankan',
+            'kredit' => 'Administrasi Kredit',
+            'verifikasi' => 'Verifikasi Data',
+            'smk otomotif' => 'SMK Otomotif',
+            'bengkel' => 'Bengkel',
+            'honda' => 'Sistem Motor Honda',
+            'yamaha' => 'Sistem Motor Yamaha',
+            'diagnosis motor' => 'Diagnosis Motor',
+            'injeksi' => 'Injeksi Motor',
+            'kelistrikan' => 'Kelistrikan',
+            'tune up' => 'Tune Up',
+            'scanner' => 'Scanner Motor',
+            'engine' => 'Engine Mekanik',
+            'mekanik' => 'Mekanik',
+            'recruitment' => 'Recruitment',
+            'payroll' => 'Payroll',
+            'training' => 'Training SDM',
+            'uu ketenagakerjaan' => 'UU Ketenagakerjaan',
+            'bpjs' => 'BPJS Ketenagakerjaan',
+            'employee relations' => 'Employee Relations',
+            'administrasi hr' => 'Administrasi HR',
+            'psikotes' => 'Psikotes',
+            'akuntansi' => 'Akuntansi',
+            'accurate' => 'Accurate',
+            'sap' => 'SAP',
+            'jurnal' => 'Jurnal Keuangan',
+            'pajak' => 'Perpajakan',
+            'brevet' => 'Brevet Pajak',
+            'financial reporting' => 'Financial Reporting',
+            'audit' => 'Audit',
+            'inventory management' => 'Inventory Management',
+            'gudang' => 'Manajemen Gudang',
+            'sparepart' => 'Sparepart',
+            'stock opname' => 'Stock Opname',
+            'erp' => 'ERP',
+            'kode part' => 'Kode Part',
         ];
 
-        foreach ($allKnownKeywords as $kw) {
-            if (str_contains($fullText, $kw)) {
-                $detectedSkills[] = ucwords($kw);
+        foreach ($allKnownKeywords as $kw => $label) {
+            // Strict regex word boundary prevents matching substrings (e.g. 'rapi' matching 'api', 'seorang' matching 'seo')
+            if (preg_match('/\b' . preg_quote($kw, '/') . '\b/i', $fullText)) {
+                $detectedSkills[] = $label;
             }
         }
 
@@ -293,7 +366,7 @@ class AtsScreeningService
             'tahun_lulus' => $pelamar->tahun_lulus ?? '-',
             'pengalaman_tahun' => $expYears,
             'pengalaman_label' => "{$expYears} Tahun",
-            'skills' => array_slice(array_unique($detectedSkills), 0, 10),
+            'skills' => array_slice(array_values(array_unique($detectedSkills)), 0, 10),
             'bahasa' => str_contains($fullText, 'inggris') || str_contains($fullText, 'english') ? ['Indonesia', 'Inggris'] : ['Indonesia'],
             'sertifikasi' => str_contains($fullText, 'sertifikat') || str_contains($fullText, 'brevet') || str_contains($fullText, 'cisco') ? 'Ada' : '-',
         ];
@@ -568,6 +641,7 @@ KEMBALIKAN HANYA JSON MURNI (tanpa markdown atau teks pembuka/penutup). Format J
   "total_skor": 85,
   "rekomendasi": "sangat_disarankan",
   "catatan_ats": "Kandidat memiliki latar belakang...",
+  "keahlian_terdeteksi": ["Microsoft Excel", "Microsoft Word", "Administrasi Perbankan", "Pengarsipan Dokumen", "Komunikasi"],
   "kriteria_penilaian": [
     {
       "kriteria": "...",
@@ -617,11 +691,21 @@ PROMPT;
         $rekomendasi = $decoded['rekomendasi'] ?? $this->determineRekomendasi($totalSkor);
         $catatanAts = $decoded['catatan_ats'] ?? $this->generateSummaryNotes($divisi, $totalSkor, $rekomendasi, $decoded['kriteria_penilaian']);
 
+        $aiSkills = [];
+        if (!empty($decoded['keahlian_terdeteksi']) && is_array($decoded['keahlian_terdeteksi'])) {
+            foreach ($decoded['keahlian_terdeteksi'] as $sk) {
+                if (is_string($sk) && trim($sk) !== '') {
+                    $aiSkills[] = ucwords(trim($sk));
+                }
+            }
+        }
+
         return [
             'total_skor' => min(100.0, max(0.0, $totalSkor)),
             'rekomendasi' => $rekomendasi,
             'catatan_ats' => $catatanAts,
             'kriteria' => $decoded['kriteria_penilaian'],
+            'skills' => $aiSkills,
             'model_used' => $response->json('model') ?? $model,
         ];
     }
@@ -718,6 +802,9 @@ PROMPT;
                 $rekomendasi = $aiResult['rekomendasi'];
                 $catatanAts = $aiResult['catatan_ats'];
                 $kriteriaEvaluation = $aiResult['kriteria'];
+                if (!empty($aiResult['skills'])) {
+                    $parsedData['skills'] = array_slice(array_values(array_unique(array_merge($aiResult['skills'], $parsedData['skills']))), 0, 10);
+                }
             } else {
                 // High-precision Rule-Based Fallback
                 $evaluation = $this->evaluateCriteria($divisi, $pelamar, $parsedData, $extractedText);
