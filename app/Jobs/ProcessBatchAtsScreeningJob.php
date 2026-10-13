@@ -16,21 +16,23 @@ class ProcessBatchAtsScreeningJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $timeout = 1800; // 30 minutes max for full batch
-    public int $tries = 3;
-    public int $maxExceptions = 3;
-    public int $backoff = 5;
+    public int $timeout = 180; // 3 menit per chunk (sangat aman karena 5 kandidat hanya butuh ~20 detik)
+    public int $tries = 2;
+    public int $maxExceptions = 2;
+    public int $backoff = 3;
 
     protected string $batchId;
     protected array $pelamarIds;
+    protected int $totalBatchCount;
 
     /**
-     * Create a new job instance.
+     * Create a new job instance for a chunk of candidates.
      */
-    public function __construct(string $batchId, array $pelamarIds)
+    public function __construct(string $batchId, array $pelamarIds, int $totalBatchCount = 0)
     {
         $this->batchId = $batchId;
         $this->pelamarIds = $pelamarIds;
+        $this->totalBatchCount = $totalBatchCount ?: count($pelamarIds);
     }
 
     /**
@@ -38,121 +40,93 @@ class ProcessBatchAtsScreeningJob implements ShouldQueue
      */
     public function handle(AtsScreeningService $screeningService): void
     {
-        $total = count($this->pelamarIds);
-        $completed = 0;
-        $failed = 0;
-
-        Log::info("ProcessBatchAtsScreeningJob [{$this->batchId}]: Memulai proses batch untuk {$total} pelamar.");
-
-        $chunks = array_chunk($this->pelamarIds, 5);
-
-        foreach ($chunks as $chunkIds) {
-            // Check if user requested cancellation for this specific batch
-            if (Cache::get("ats_screening_cancel_{$this->batchId}", false)) {
-                Log::info("ProcessBatchAtsScreeningJob [{$this->batchId}]: Dibatalkan oleh pengguna.");
-                Cache::put('ats_screening_batch_progress', [
-                    'batch_id' => null,
-                    'total' => $total,
-                    'completed' => $completed,
-                    'failed' => $failed,
-                    'percentage' => 0,
-                    'current_candidate' => 'Proses telah dibatalkan',
-                    'status' => 'idle',
-                    'updated_at' => now()->timestamp,
-                ], now()->addMinutes(10));
-                return;
-            }
-
-            $pelamars = Pelamar::whereIn('id', $chunkIds)
-                ->with(['lowongan.departement', 'lowongan.jabatan', 'formulirLamaran'])
-                ->get();
-
-            if ($pelamars->isEmpty()) {
-                $completed += count($chunkIds);
-                continue;
-            }
-
-            $firstCandidate = $pelamars->first()?->nama_lengkap ?? 'Kandidat';
-            $candidateLabel = count($pelamars) > 1
-                ? "{$firstCandidate} & " . (count($pelamars) - 1) . " kandidat lainnya"
-                : $firstCandidate;
-
-            $currentPct = $total > 0 ? (int) round(($completed / $total) * 100) : 0;
-
-            // Update state before chunk begins
-            Cache::put('ats_screening_batch_progress', [
-                'batch_id' => $this->batchId,
-                'total' => $total,
-                'completed' => $completed,
-                'failed' => $failed,
-                'percentage' => $currentPct,
-                'current_candidate' => $candidateLabel,
-                'status' => 'processing',
-                'updated_at' => now()->timestamp,
-            ], now()->addHours(2));
-
-            try {
-                Log::info("ProcessBatchAtsScreeningJob [{$this->batchId}]: Memproses concurrent pool " . count($pelamars) . " kandidat ({$candidateLabel})...");
-                $screened = $screeningService->screenBatch($pelamars);
-                $completed += count($pelamars);
-            } catch (\Throwable $e) {
-                Log::error("ProcessBatchAtsScreeningJob error pada concurrent chunk: " . $e->getMessage());
-                // Safe fallback to individual screening if batch fails
-                foreach ($pelamars as $p) {
-                    try {
-                        $screeningService->screen($p);
-                        $completed++;
-                    } catch (\Throwable $ex) {
-                        $failed++;
-                        $completed++;
-                    }
-                }
-            }
-
-            // Update state after chunk completes
-            $newPct = $total > 0 ? (int) round(($completed / $total) * 100) : 100;
-            Cache::put('ats_screening_batch_progress', [
-                'batch_id' => $this->batchId,
-                'total' => $total,
-                'completed' => $completed,
-                'failed' => $failed,
-                'percentage' => $newPct,
-                'current_candidate' => $candidateLabel,
-                'status' => $completed >= $total ? 'completed' : 'processing',
-                'updated_at' => now()->timestamp,
-            ], now()->addHours(2));
+        // 1. Check if user requested cancellation
+        if (Cache::get("ats_screening_cancel_{$this->batchId}", false) || Cache::get('ats_screening_cancel_requested', false)) {
+            Log::info("ProcessBatchAtsScreeningJob [{$this->batchId}]: Skip chunk (" . count($this->pelamarIds) . " kandidat) karena telah dibatalkan.");
+            return;
         }
 
-        // Final completion state
-        Cache::put('ats_screening_batch_progress', [
-            'batch_id' => $this->batchId,
-            'total' => $total,
-            'completed' => $completed,
-            'failed' => $failed,
-            'percentage' => 100,
-            'current_candidate' => 'Semua kandidat selesai diproses',
-            'status' => 'completed',
-            'updated_at' => now()->timestamp,
-        ], now()->addMinutes(15));
+        $pelamars = Pelamar::whereIn('id', $this->pelamarIds)
+            ->with(['lowongan.departement', 'lowongan.jabatan', 'formulirLamaran'])
+            ->get();
 
-        Log::info("ProcessBatchAtsScreeningJob [{$this->batchId}]: Selesai! Berhasil: {$completed}, Gagal: {$failed}.");
+        if ($pelamars->isEmpty()) {
+            $this->updateProgress(count($this->pelamarIds), 0, 'Selesai');
+            return;
+        }
+
+        $firstCandidate = $pelamars->first()?->nama_lengkap ?? 'Kandidat';
+        $candidateLabel = count($pelamars) > 1
+            ? "{$firstCandidate} & " . (count($pelamars) - 1) . " kandidat lainnya"
+            : $firstCandidate;
+
+        $chunkFailed = 0;
+
+        try {
+            Log::info("ProcessBatchAtsScreeningJob [{$this->batchId}]: Memproses pool " . count($pelamars) . " kandidat ({$candidateLabel})...");
+            $screeningService->screenBatch($pelamars);
+        } catch (\Throwable $e) {
+            Log::error("ProcessBatchAtsScreeningJob error batch pool: " . $e->getMessage() . " - Fallback single");
+            foreach ($pelamars as $p) {
+                try {
+                    $screeningService->screen($p);
+                } catch (\Throwable $ex) {
+                    $chunkFailed++;
+                }
+            }
+        }
+
+        $chunkSuccess = count($pelamars) - $chunkFailed;
+        $this->updateProgress($chunkSuccess, $chunkFailed, $candidateLabel);
     }
 
     /**
-     * Handle job failure gracefully.
+     * Atomically update batch progress in Cache.
+     */
+    protected function updateProgress(int $successCount, int $failedCount, string $label): void
+    {
+        try {
+            Cache::lock("ats_progress_lock_{$this->batchId}", 5)->block(3, function () use ($successCount, $failedCount, $label) {
+                $progress = Cache::get('ats_screening_batch_progress', [
+                    'batch_id' => $this->batchId,
+                    'total' => $this->totalBatchCount,
+                    'completed' => 0,
+                    'failed' => 0,
+                    'percentage' => 0,
+                    'current_candidate' => null,
+                    'status' => 'processing',
+                ]);
+
+                $total = $this->totalBatchCount ?: ($progress['total'] ?? 1);
+                $newCompleted = min($total, ($progress['completed'] ?? 0) + $successCount + $failedCount);
+                $newFailed = ($progress['failed'] ?? 0) + $failedCount;
+                $newPercentage = $total > 0 ? (int) round(($newCompleted / $total) * 100) : 100;
+                $isDone = ($newCompleted >= $total);
+
+                Cache::put('ats_screening_batch_progress', [
+                    'batch_id' => $this->batchId,
+                    'total' => $total,
+                    'completed' => $newCompleted,
+                    'failed' => $newFailed,
+                    'percentage' => $newPercentage,
+                    'current_candidate' => $isDone ? 'Semua kandidat selesai diproses' : $label,
+                    'status' => $isDone ? 'completed' : 'processing',
+                    'updated_at' => now()->timestamp,
+                ], now()->addHours(2));
+
+                Log::info("ProcessBatchAtsScreeningJob [{$this->batchId}]: Progress {$newCompleted}/{$total} ({$newPercentage}%).");
+            });
+        } catch (\Throwable $e) {
+            Log::warning("Gagal update lock progress: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Handle job failure gracefully if this individual chunk fails permanently.
      */
     public function failed(?\Throwable $exception): void
     {
-        Log::error("ProcessBatchAtsScreeningJob [{$this->batchId}] gagal permanen: " . $exception?->getMessage());
-        Cache::put('ats_screening_batch_progress', [
-            'batch_id' => $this->batchId,
-            'total' => count($this->pelamarIds),
-            'completed' => 0,
-            'failed' => count($this->pelamarIds),
-            'percentage' => 0,
-            'current_candidate' => 'Proses terhenti karena error',
-            'status' => 'idle',
-            'updated_at' => now()->timestamp,
-        ], now()->addMinutes(5));
+        Log::error("ProcessBatchAtsScreeningJob [{$this->batchId}] chunk gagal: " . $exception?->getMessage());
+        $this->updateProgress(0, count($this->pelamarIds), 'Gagal memproses sebagian kandidat');
     }
 }

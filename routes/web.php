@@ -55,6 +55,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 Route::middleware(['auth', 'role:super-admin,admin'])->prefix('preview-emails')->group(function () {
     Route::get('/', [EmailPreviewController::class, 'index'])->name('preview.emails');
     Route::get('/render/otp', [EmailPreviewController::class, 'renderOtp'])->name('preview.email.render.otp');
+    Route::get('/render/lamaran-lulus', [EmailPreviewController::class, 'renderLamaranLulus'])->name('preview.email.render.lulus');
+    Route::get('/render/lamaran-gagal', [EmailPreviewController::class, 'renderLamaranGagal'])->name('preview.email.render.gagal');
     Route::get('/render/status-lamaran', [EmailPreviewController::class, 'renderStatusLamaran'])->name('preview.email.render.status');
     Route::get('/render/undangan-interview', [EmailPreviewController::class, 'renderUndanganInterview'])->name('preview.email.render.interview');
 });

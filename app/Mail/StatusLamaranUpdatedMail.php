@@ -45,15 +45,19 @@ class StatusLamaranUpdatedMail extends Mailable implements ShouldQueue
         $appName = config('app.name', 'Citalent');
         $posisi = $this->pelamar->posisi_dilamar ?: ($this->pelamar->lowongan?->judul ?? 'Posisi Rekrutmen');
 
+        $isLulus = ($this->status !== 'rejected');
+
         $subject = match ($this->status) {
-            'interview_hr' => "Pemberitahuan: Lolos ke Tahap Interview HR ({$posisi}) - {$appName}",
-            'interview_user' => "Pemberitahuan: Lolos ke Tahap Interview User ({$posisi}) - {$appName}",
-            'interview_gm' => "Pemberitahuan: Lolos ke Tahap Interview GM ({$posisi}) - {$appName}",
-            'skill_test' => "Pemberitahuan: Jadwal Tahap Skill Test ({$posisi}) - {$appName}",
-            'final_discussion' => "Pemberitahuan: Undangan Final Discussion ({$posisi}) - {$appName}",
-            'accepted' => "Selamat! Anda Diterima Bekerja untuk Posisi {$posisi} - {$appName}",
-            'rejected' => "Informasi Hasil Seleksi Rekrutmen ({$posisi}) - {$appName}",
-            default => "Pembaruan Status Lamaran: {$posisi} - {$appName}",
+            'accepted' => "Selamat! Anda Dinyatakan Lulus & Diterima Bekerja ({$posisi}) - {$appName}",
+            'rejected' => "Pemberitahuan Hasil Seleksi Lamaran ({$posisi}) - {$appName}",
+            'interview_hr' => "Selamat! Anda Dinyatakan Lolos ke Tahap Interview HR ({$posisi}) - {$appName}",
+            'interview_user' => "Selamat! Anda Dinyatakan Lolos ke Tahap Interview User ({$posisi}) - {$appName}",
+            'interview_gm' => "Selamat! Anda Dinyatakan Lolos ke Tahap Interview GM ({$posisi}) - {$appName}",
+            'skill_test' => "Selamat! Anda Dinyatakan Lolos ke Tahap Skill Test ({$posisi}) - {$appName}",
+            'final_discussion' => "Selamat! Anda Dinyatakan Lolos ke Tahap Final Discussion ({$posisi}) - {$appName}",
+            default => $isLulus
+                ? "Selamat! Anda Dinyatakan Lolos ke Tahap {$this->statusLabel} ({$posisi}) - {$appName}"
+                : "Pemberitahuan Hasil Seleksi Lamaran ({$posisi}) - {$appName}",
         };
 
         return new Envelope(
@@ -66,8 +70,10 @@ class StatusLamaranUpdatedMail extends Mailable implements ShouldQueue
      */
     public function content(): Content
     {
+        $view = ($this->status === 'rejected') ? 'emails.lamaran_gagal' : 'emails.lamaran_lulus';
+
         return new Content(
-            view: 'emails.status_lamaran_updated',
+            view: $view,
         );
     }
 

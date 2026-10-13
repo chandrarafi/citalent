@@ -220,10 +220,12 @@ class AtsScreeningController extends Controller
         Cache::forget('ats_screening_cancel_requested');
         Cache::forget("ats_screening_cancel_{$batchId}");
 
+        $total = count($pelamarIds);
+
         // Initialize progress in Cache immediately
         Cache::put('ats_screening_batch_progress', [
             'batch_id' => $batchId,
-            'total' => count($pelamarIds),
+            'total' => $total,
             'completed' => 0,
             'failed' => 0,
             'percentage' => 0,
@@ -232,10 +234,14 @@ class AtsScreeningController extends Controller
             'updated_at' => now()->timestamp,
         ], now()->addHours(2));
 
-        // Dispatch background queue job
-        ProcessBatchAtsScreeningJob::dispatch($batchId, $pelamarIds);
+        // Dispatch background queue jobs in small chunks of 5 candidates
+        // agar tidak pernah terkena timeout 30 menit dan progress tersimpan bertahap
+        $chunks = array_chunk($pelamarIds, 5);
+        foreach ($chunks as $chunk) {
+            ProcessBatchAtsScreeningJob::dispatch($batchId, $chunk, $total);
+        }
 
-        return back()->with('info', 'Screening CV untuk ' . count($pelamarIds) . ' kandidat telah dimasukkan ke antrean background.');
+        return back()->with('info', "Screening CV untuk {$total} kandidat telah dimasukkan ke antrean background (" . count($chunks) . " sub-batch).");
     }
 
     /**
@@ -258,7 +264,7 @@ class AtsScreeningController extends Controller
             'updated_at' => now()->timestamp,
         ], now()->addHours(2));
 
-        ProcessBatchAtsScreeningJob::dispatch($batchId, [$pelamar->id]);
+        ProcessBatchAtsScreeningJob::dispatch($batchId, [$pelamar->id], 1);
 
         return back()->with('info', "Screening CV untuk '{$pelamar->nama_lengkap}' sedang diproses di background.");
     }

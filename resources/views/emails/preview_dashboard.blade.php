@@ -210,37 +210,40 @@
     <header class="top-navbar">
         <div class="brand-section">
             <span class="brand-badge">Preview</span>
-            <span class="brand-title">Email Templates (3)</span>
+            <span class="brand-title">Email Templates</span>
         </div>
 
-        <!-- 3 Email Tabs -->
+        <!-- Email Tabs -->
         <nav class="nav-tabs">
-            <a href="{{ route('preview.emails', ['email' => 'otp']) }}" 
-               class="nav-tab-item {{ $current === 'otp' ? 'active' : '' }}">
-                <span>🔑</span> Kode OTP
+            <a href="{{ route('preview.emails', ['email' => 'lamaran-lulus', 'status' => $currentStatus === 'rejected' ? 'interview_hr' : $currentStatus]) }}" 
+               class="nav-tab-item {{ in_array($current, ['lamaran-lulus', 'status-lamaran']) && $currentStatus !== 'rejected' ? 'active' : '' }}">
+                <span>🎉</span> Lulus (Lolos Seleksi)
             </a>
-            <a href="{{ route('preview.emails', ['email' => 'status-lamaran', 'status' => $currentStatus]) }}" 
-               class="nav-tab-item {{ $current === 'status-lamaran' ? 'active' : '' }}">
-                <span>📋</span> Status Seleksi
+            <a href="{{ route('preview.emails', ['email' => 'lamaran-gagal']) }}" 
+               class="nav-tab-item {{ $current === 'lamaran-gagal' || ($current === 'status-lamaran' && $currentStatus === 'rejected') ? 'active' : '' }}">
+                <span>📩</span> Gagal (Tidak Lolos)
             </a>
             <a href="{{ route('preview.emails', ['email' => 'undangan-interview', 'type' => $currentType, 'reminder' => $currentReminder]) }}" 
                class="nav-tab-item {{ $current === 'undangan-interview' ? 'active' : '' }}">
                 <span>📅</span> Undangan Interview
             </a>
+            <a href="{{ route('preview.emails', ['email' => 'otp']) }}" 
+               class="nav-tab-item {{ $current === 'otp' ? 'active' : '' }}">
+                <span>🔑</span> Kode OTP
+            </a>
         </nav>
 
         <!-- Dynamic Controls -->
         <div class="controls-section">
-            {{-- Status Lamaran Variants --}}
-            @if ($current === 'status-lamaran')
-                <select class="filter-select" onchange="location.href = '{{ route('preview.emails', ['email' => 'status-lamaran']) }}&status=' + this.value">
+            {{-- Status Lamaran Lulus Variants --}}
+            @if ($current === 'lamaran-lulus' || ($current === 'status-lamaran' && $currentStatus !== 'rejected'))
+                <select class="filter-select" onchange="location.href = '{{ route('preview.emails', ['email' => 'lamaran-lulus']) }}&status=' + this.value">
                     <option value="interview_hr" {{ $currentStatus === 'interview_hr' ? 'selected' : '' }}>Tahap: Interview HR</option>
                     <option value="interview_user" {{ $currentStatus === 'interview_user' ? 'selected' : '' }}>Tahap: Interview User</option>
                     <option value="skill_test" {{ $currentStatus === 'skill_test' ? 'selected' : '' }}>Tahap: Skill Test</option>
                     <option value="interview_gm" {{ $currentStatus === 'interview_gm' ? 'selected' : '' }}>Tahap: Interview GM</option>
                     <option value="final_discussion" {{ $currentStatus === 'final_discussion' ? 'selected' : '' }}>Tahap: Final Discussion</option>
-                    <option value="accepted" {{ $currentStatus === 'accepted' ? 'selected' : '' }}>🎉 Status: Diterima Bekerja</option>
-                    <option value="rejected" {{ $currentStatus === 'rejected' ? 'selected' : '' }}>❌ Status: Tidak Lolos</option>
+                    <option value="accepted" {{ $currentStatus === 'accepted' ? 'selected' : '' }}>🎉 Status: Diterima Bekerja (Accepted)</option>
                 </select>
             @endif
 

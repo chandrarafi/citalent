@@ -10,26 +10,31 @@ use Illuminate\Http\Request;
 class EmailPreviewController extends Controller
 {
     /**
-     * Preview Hub / Dashboard for all 3 email templates.
+     * Preview Hub / Dashboard for email templates.
      */
     public function index(Request $request)
     {
-        $current = $request->query('email', 'otp');
+        $current = $request->query('email', 'lamaran-lulus');
+
+        // Backward compatibility
+        if ($current === 'status-lamaran') {
+            $current = ($request->query('status') === 'rejected') ? 'lamaran-gagal' : 'lamaran-lulus';
+        }
 
         $emails = [
             [
-                'id' => 'otp',
-                'title' => 'Kode OTP Verifikasi',
-                'description' => 'Email verifikasi 6 digit OTP akun kandidat saat pendaftaran/login.',
-                'url' => route('preview.email.render.otp'),
-            ],
-            [
-                'id' => 'status-lamaran',
-                'title' => 'Pemberitahuan Status Seleksi',
-                'description' => 'Email update tahapan lamaran (Lolos, Diterima, Tidak Lolos, dll).',
-                'url' => route('preview.email.render.status', [
+                'id' => 'lamaran-lulus',
+                'title' => 'Pengumuman Lulus / Lolos Seleksi',
+                'description' => 'Email ucapan selamat kepada kandidat yang lolos ke tahap berikutnya atau diterima bekerja.',
+                'url' => route('preview.email.render.lulus', [
                     'status' => $request->query('status', 'interview_hr'),
                 ]),
+            ],
+            [
+                'id' => 'lamaran-gagal',
+                'title' => 'Pengumuman Tidak Lolos (Gagal)',
+                'description' => 'Email evaluasi seleksi & talent pool (surat penolakan resmi yang sopan dan profesional).',
+                'url' => route('preview.email.render.gagal'),
             ],
             [
                 'id' => 'undangan-interview',
@@ -39,6 +44,12 @@ class EmailPreviewController extends Controller
                     'type' => $request->query('type', 'online'),
                     'reminder' => $request->query('reminder', 0),
                 ]),
+            ],
+            [
+                'id' => 'otp',
+                'title' => 'Kode OTP Verifikasi',
+                'description' => 'Email verifikasi 6 digit OTP akun kandidat saat pendaftaran/login.',
+                'url' => route('preview.email.render.otp'),
             ],
         ];
 
@@ -58,11 +69,14 @@ class EmailPreviewController extends Controller
     }
 
     /**
-     * Render emails.status_lamaran_updated
+     * Render emails.lamaran_lulus (Kandidat Lolos / Lulus)
      */
-    public function renderStatusLamaran(Request $request)
+    public function renderLamaranLulus(Request $request)
     {
         $status = $request->query('status', 'interview_hr');
+        if ($status === 'rejected') {
+            $status = 'interview_hr';
+        }
 
         $statusLabels = [
             'screening_cv' => 'Screening CV',
@@ -73,7 +87,6 @@ class EmailPreviewController extends Controller
             'interview_gm' => 'Wawancara General Manager (Interview GM)',
             'final_discussion' => 'Final Discussion / Offering',
             'accepted' => 'Diterima Bekerja',
-            'rejected' => 'Tidak Lolos Seleksi',
         ];
 
         $statusLabel = $statusLabels[$status] ?? ucwords(str_replace('_', ' ', $status));
@@ -93,14 +106,55 @@ class EmailPreviewController extends Controller
 
         $defaultCatatan = match ($status) {
             'accepted' => "Selamat bergabung dengan keluarga besar Citalent. Tim HR akan menghubungi Saudara/i untuk proses onboarding.",
-            'rejected' => "Terima kasih atas partisipasi Saudara/i. Profil Anda tetap tersimpan di bank data talent kami.",
             'interview_hr' => "Harap membawa berkas fisik identitas (KTP), ijazah asli, dan portofolio karya terbaru.",
+            'skill_test' => "Ujian teknis live coding akan berlangsung selama 90 menit. Siapkan laptop dengan koneksi internet stabil.",
             default => "Harap memeriksa jadwal dan informasi terkini di dashboard kandidat Anda.",
         };
 
         $catatan = $request->query('catatan', $defaultCatatan);
 
-        return view('emails.status_lamaran_updated', compact('pelamar', 'status', 'statusLabel', 'catatan'));
+        return view('emails.lamaran_lulus', compact('pelamar', 'status', 'statusLabel', 'catatan'));
+    }
+
+    /**
+     * Render emails.lamaran_gagal (Kandidat Tidak Lolos)
+     */
+    public function renderLamaranGagal(Request $request)
+    {
+        $status = 'rejected';
+        $statusLabel = 'Tidak Lolos Seleksi';
+
+        // Use real pelamar if available, else mock
+        $pelamar = Pelamar::with('lowongan')->first();
+        if (!$pelamar) {
+            $pelamar = (object) [
+                'nama_lengkap' => $request->query('name', 'Rafi Chandra, S.Kom'),
+                'no_pendaftaran' => 'REG-202610-0082',
+                'posisi_dilamar' => 'Fullstack Developer',
+                'lowongan' => (object) [
+                    'judul' => 'Fullstack Developer',
+                ],
+            ];
+        }
+
+        $defaultCatatan = "Terima kasih atas partisipasi Saudara/i. Kualifikasi dan minat Anda sangat kami hargai, dan profil Anda tetap tersimpan di bank data talent pool kami untuk peluang karir mendatang.";
+        $catatan = $request->query('catatan', $defaultCatatan);
+
+        return view('emails.lamaran_gagal', compact('pelamar', 'status', 'statusLabel', 'catatan'));
+    }
+
+    /**
+     * Render emails.status_lamaran_updated (Forwarder compatibility)
+     */
+    public function renderStatusLamaran(Request $request)
+    {
+        $status = $request->query('status', 'interview_hr');
+
+        if ($status === 'rejected') {
+            return $this->renderLamaranGagal($request);
+        }
+
+        return $this->renderLamaranLulus($request);
     }
 
     /**
