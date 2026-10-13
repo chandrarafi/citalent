@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Models\LogPengirimanEmail;
 use App\Models\Pelamar;
 use App\Models\PenjadwalanInterview;
 use Illuminate\Bus\Queueable;
@@ -87,5 +88,84 @@ class StatusLamaranUpdatedMail extends Mailable implements ShouldQueue
     public function attachments(): array
     {
         return [];
+    }
+
+    /**
+     * Send the message using the given mailer and log to database.
+     */
+    public function send($mailer)
+    {
+        $isLolos = ($this->status !== 'rejected');
+        $detailJadwal = null;
+        if ($this->schedule) {
+            $detailJadwal = [
+                'tahap' => $this->schedule->tahap,
+                'tanggal_interview' => $this->schedule->tanggal_interview?->format('Y-m-d') ?? (string) $this->schedule->tanggal_interview,
+                'jam_mulai' => $this->schedule->jam_mulai,
+                'jam_selesai' => $this->schedule->jam_selesai,
+                'tipe_interview' => $this->schedule->tipe_interview,
+                'lokasi' => $this->schedule->lokasi,
+                'link_meeting' => $this->schedule->link_meeting,
+                'pewawancara_nama' => $this->schedule->pewawancara_nama,
+            ];
+        }
+
+        $log = null;
+        try {
+            $log = LogPengirimanEmail::create([
+                'pelamar_id' => $this->pelamar->id,
+                'lowongan_id' => $this->pelamar->lowongan_id,
+                'penjadwalan_interview_id' => $this->schedule?->id,
+                'email_tujuan' => $this->pelamar->email,
+                'nama_penerima' => $this->pelamar->nama_lengkap,
+                'tipe_email' => $isLolos ? 'lolos' : 'tidak_lolos',
+                'status_lamaran' => $this->status,
+                'subject' => $this->envelope()->subject,
+                'detail_jadwal' => $detailJadwal,
+                'catatan' => $this->catatan,
+                'status_pengiriman' => 'queued',
+            ]);
+        } catch (\Throwable $e) {
+            // Jangan gagalkan pengiriman email jika create log awal mengalami kendala
+        }
+
+        try {
+            $result = parent::send($mailer);
+
+            if ($log) {
+                $log->update([
+                    'status_pengiriman' => 'terkirim',
+                    'sent_at' => now(),
+                ]);
+            }
+
+            return $result;
+        } catch (\Throwable $e) {
+            if ($log) {
+                $log->update([
+                    'status_pengiriman' => 'gagal',
+                    'error_message' => $e->getMessage(),
+                ]);
+            } else {
+                try {
+                    LogPengirimanEmail::create([
+                        'pelamar_id' => $this->pelamar->id,
+                        'lowongan_id' => $this->pelamar->lowongan_id,
+                        'penjadwalan_interview_id' => $this->schedule?->id,
+                        'email_tujuan' => $this->pelamar->email,
+                        'nama_penerima' => $this->pelamar->nama_lengkap,
+                        'tipe_email' => $isLolos ? 'lolos' : 'tidak_lolos',
+                        'status_lamaran' => $this->status,
+                        'subject' => $this->envelope()->subject,
+                        'detail_jadwal' => $detailJadwal,
+                        'catatan' => $this->catatan,
+                        'status_pengiriman' => 'gagal',
+                        'error_message' => $e->getMessage(),
+                    ]);
+                } catch (\Throwable) {}
+            }
+
+            throw $e;
+        }
     }
 }

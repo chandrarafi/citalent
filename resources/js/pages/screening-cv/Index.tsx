@@ -438,17 +438,22 @@ export default function Index({
   const startIndex = filteredScreenings.length === 0 ? 0 : (page - 1) * limit + 1
   const endIndex = Math.min(page * limit, filteredScreenings.length)
 
-  const allCurrentPageSelected =
-    paginatedScreenings.length > 0 &&
-    paginatedScreenings.every((s) => selectedIds.includes(s.pelamar_id))
+  const allFilteredSelected =
+    filteredScreenings.length > 0 &&
+    filteredScreenings.every((s) => selectedIds.includes(s.pelamar_id))
+
+  const someFilteredSelected =
+    filteredScreenings.length > 0 &&
+    filteredScreenings.some((s) => selectedIds.includes(s.pelamar_id)) &&
+    !allFilteredSelected
 
   function toggleSelectAll() {
-    if (allCurrentPageSelected) {
-      const currentIds = paginatedScreenings.map((s) => s.pelamar_id)
-      setSelectedIds(selectedIds.filter((id) => !currentIds.includes(id)))
+    if (allFilteredSelected) {
+      const filteredIds = filteredScreenings.map((s) => s.pelamar_id)
+      setSelectedIds(selectedIds.filter((id) => !filteredIds.includes(id)))
     } else {
-      const currentIds = paginatedScreenings.map((s) => s.pelamar_id)
-      setSelectedIds(Array.from(new Set([...selectedIds, ...currentIds])))
+      const filteredIds = filteredScreenings.map((s) => s.pelamar_id)
+      setSelectedIds(Array.from(new Set([...selectedIds, ...filteredIds])))
     }
   }
 
@@ -709,9 +714,26 @@ export default function Index({
   const columns = [
     {
       key: 'select',
-      header: '✓',
+      header: (
+        <div className="flex items-center justify-center">
+          <Checkbox
+            checked={
+              allFilteredSelected
+                ? true
+                : someFilteredSelected
+                ? 'indeterminate'
+                : false
+            }
+            onChange={() => toggleSelectAll()}
+            label="Pilih Semua (Hasil Filter)"
+            hideLabel
+            disabled={filteredScreenings.length === 0}
+          />
+        </div>
+      ),
       width: '38px',
       minWidth: '38px',
+      align: 'center' as const,
       render: (s: ScreeningItem) => (
         <div className="flex items-center justify-center">
           <Checkbox

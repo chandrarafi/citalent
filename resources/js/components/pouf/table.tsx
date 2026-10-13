@@ -23,7 +23,7 @@ export { useReactTable, flexRender, getCoreRowModel, getSortedRowModel }
 
 export interface TableColumn<T> {
   key: string
-  header: string
+  header: ReactNode
   render: (row: T) => ReactNode
   align?: 'left' | 'right' | 'center'
   mono?: boolean
@@ -71,11 +71,14 @@ export function Table<T>({
           }
           return (row as any)?.[col.key] ?? ''
         },
-        header: () => (
-          <span className={cx(isRight && 'text-right', isCenter && 'text-center', 'whitespace-nowrap font-extrabold text-[13px]')}>
-            {col.header}
-          </span>
-        ),
+        header: () =>
+          typeof col.header === 'string' ? (
+            <span className={cx(isRight && 'text-right', isCenter && 'text-center', 'whitespace-nowrap font-extrabold text-[13px]')}>
+              {col.header}
+            </span>
+          ) : (
+            col.header
+          ),
         cell: ({ row }) => {
           const content = col.render(row.original)
           return (
@@ -146,13 +149,21 @@ export function Table<T>({
                 const isSorted = header.column.getIsSorted()
                 const colDef = columns.find((c) => c.key === header.id)
                 const isRight = colDef?.align === 'right'
+                const isCenter = colDef?.align === 'center'
 
                 return (
                   <th
                     key={header.id}
+                    style={
+                      colDef?.width
+                        ? { width: colDef.width }
+                        : colDef?.minWidth
+                          ? { minWidth: colDef.minWidth }
+                          : undefined
+                    }
                     className={cx(
                       'whitespace-nowrap px-4 py-3 font-extrabold text-muted text-[13px] border-b-2 border-[rgba(201,168,255,0.3)]',
-                      isRight ? 'pouf-table__h--right text-right' : 'text-left',
+                      isRight ? 'pouf-table__h--right text-right' : isCenter ? 'text-center' : 'text-left',
                     )}
                     aria-sort={
                       isSorted
@@ -184,10 +195,12 @@ export function Table<T>({
                           {isSorted ? (isSorted === 'desc' ? '▾' : '▴') : '⇅'}
                         </span>
                       </button>
-                    ) : (
+                    ) : typeof colDef?.header === 'string' ? (
                       <Text size="sm" muted>
                         {flexRender(header.column.columnDef.header, header.getContext())}
                       </Text>
+                    ) : (
+                      flexRender(header.column.columnDef.header, header.getContext())
                     )}
                   </th>
                 )
