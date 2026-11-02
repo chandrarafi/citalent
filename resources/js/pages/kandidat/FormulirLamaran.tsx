@@ -160,7 +160,18 @@ export default function FormulirLamaran({ pelamar, initialForm, isSubmitted, isA
                 Cetak Formulir (PDF)
               </Button>
 
-             
+              {!isReadOnly && (
+                <Button
+                  variant="quiet"
+                  tone="purple"
+                  size="sm"
+                  loading={processing}
+                  onClick={handleSaveDraft}
+                >
+                  <IconDeviceFloppy size={16} />
+                  Simpan Draf
+                </Button>
+              )}
             </div>
           </div>
 
@@ -1996,16 +2007,26 @@ export default function FormulirLamaran({ pelamar, initialForm, isSubmitted, isA
                   </div>
                 </fieldset>
 
-                <div className="flex justify-between pt-3">
+                <div className="flex justify-between items-center pt-3">
                   <Button variant="quiet" onClick={() => setActiveTab(6)}>
                     ← Kembali ke Aktivitas Sosial
                   </Button>
-                  {isReadOnly && (
+                  {isReadOnly ? (
                     <Button
                       tone="purple"
                       onClick={() => router.visit(`/kandidat/lamaran/${pelamar.no_pendaftaran}`)}
                     >
                       Kembali ke Detail Lamaran
+                    </Button>
+                  ) : (
+                    <Button
+                      tone="mint"
+                      loading={processing}
+                      disabled={!data.pernyataan_kebenaran}
+                      onClick={() => setConfirmSubmitModal(true)}
+                    >
+                      <IconSend size={16} />
+                      Kirim Formulir Resmi
                     </Button>
                   )}
                 </div>
@@ -2013,7 +2034,42 @@ export default function FormulirLamaran({ pelamar, initialForm, isSubmitted, isA
             </Card>
           )}
 
-         
+          {/* Bottom Action Bar */}
+          {!isReadOnly && (
+            <Card>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="text-xs text-slate-500">
+                  Data draf tersimpan di akun Anda dan dapat diubah sebelum dikirimkan secara resmi.
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="quiet"
+                    tone="purple"
+                    loading={processing}
+                    onClick={handleSaveDraft}
+                  >
+                    <IconDeviceFloppy size={16} />
+                    Simpan Draf Saja
+                  </Button>
+
+                  <Button
+                    type="button"
+                    tone="mint"
+                    loading={processing}
+                    disabled={!data.pernyataan_kebenaran}
+                    onClick={() => setConfirmSubmitModal(true)}
+                  >
+                    <IconSend size={16} />
+                    Kirim Formulir Resmi
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
+
         </Stack>
       </div>
 
