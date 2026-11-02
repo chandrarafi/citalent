@@ -11,6 +11,7 @@ use App\Http\Controllers\EmailPreviewController;
 use App\Http\Controllers\FormulirLamaranController;
 use App\Http\Controllers\KandidatLowonganController;
 use App\Http\Controllers\KandidatProfileController;
+use App\Http\Controllers\KriteriaAtsController;
 use App\Http\Controllers\LowonganController;
 use App\Http\Controllers\ParameterSkillTestController;
 use App\Http\Controllers\PelamarController;
@@ -54,6 +55,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 Route::middleware(['auth', 'role:super-admin,admin'])->prefix('preview-emails')->group(function () {
     Route::get('/', [EmailPreviewController::class, 'index'])->name('preview.emails');
     Route::get('/render/otp', [EmailPreviewController::class, 'renderOtp'])->name('preview.email.render.otp');
+    Route::get('/render/lamaran-lulus', [EmailPreviewController::class, 'renderLamaranLulus'])->name('preview.email.render.lulus');
+    Route::get('/render/lamaran-gagal', [EmailPreviewController::class, 'renderLamaranGagal'])->name('preview.email.render.gagal');
     Route::get('/render/status-lamaran', [EmailPreviewController::class, 'renderStatusLamaran'])->name('preview.email.render.status');
     Route::get('/render/undangan-interview', [EmailPreviewController::class, 'renderUndanganInterview'])->name('preview.email.render.interview');
 });
@@ -272,6 +275,14 @@ Route::middleware('auth')->group(function () {
         ->name('screening-cv.index')
         ->middleware('permission:manage-permintaan-rekrutmen');
 
+    Route::get('/screening-cv/batch-progress', [AtsScreeningController::class, 'getBatchProgress'])
+        ->name('screening-cv.batch-progress')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
+    Route::post('/screening-cv/cancel-batch', [AtsScreeningController::class, 'cancelBatch'])
+        ->name('screening-cv.cancel-batch')
+        ->middleware('permission:manage-permintaan-rekrutmen');
+
     Route::post('/screening-cv/run-batch', [AtsScreeningController::class, 'runBatch'])
         ->name('screening-cv.run-batch')
         ->middleware('permission:manage-permintaan-rekrutmen');
@@ -299,6 +310,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/screening-cv/kriteria/reset', [AtsScreeningController::class, 'resetKriteriaLowongan'])
         ->name('screening-cv.kriteria.reset')
         ->middleware('permission:manage-permintaan-rekrutmen');
+
+    // ─── Kriteria ATS Screening ───────────────────────────────────────────────
+    Route::prefix('kriteria-ats')->name('kriteria-ats.')->middleware('permission:manage-permintaan-rekrutmen')->group(function () {
+        Route::get('/', [KriteriaAtsController::class, 'index'])->name('index');
+        Route::post('/', [KriteriaAtsController::class, 'store'])->name('store');
+        Route::put('/{kriteria}', [KriteriaAtsController::class, 'update'])->name('update');
+        Route::delete('/{kriteria}', [KriteriaAtsController::class, 'destroy'])->name('destroy');
+        Route::patch('/{kriteria}/toggle-active', [KriteriaAtsController::class, 'toggleActive'])->name('toggle-active');
+        Route::post('/{kriteria}/duplicate', [KriteriaAtsController::class, 'duplicate'])->name('duplicate');
+    });
 
     // ─── Candidate Satisfaction Analytics & Survey ──────────────────────────
     Route::get('/candidate-satisfaction', [CandidateSatisfactionController::class, 'index'])

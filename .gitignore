@@ -27,3 +27,9 @@ yarn-error.log
 /.vscode
 /.zed
 /graphify-out
+
+/screenshots
+/test-results
+/tests
+/playwright-report
+playwright.config.ts

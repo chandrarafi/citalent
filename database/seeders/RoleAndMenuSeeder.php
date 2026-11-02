@@ -184,6 +184,16 @@ class RoleAndMenuSeeder extends Seeder
                 'permission_name' => 'manage-permintaan-rekrutmen',
             ],
             [
+                'name' => 'kriteria-ats',
+                'label' => 'Kriteria ATS',
+                'kelompok' => 'Rekrutmen & Seleksi',
+                'url' => '/kriteria-ats',
+                'icon' => 'target',
+                'tone' => 'purple',
+                'order' => 6,
+                'permission_name' => 'manage-permintaan-rekrutmen',
+            ],
+            [
                 'name' => 'penjadwalan-interview',
                 'label' => 'Penjadwalan Interview',
                 'kelompok' => 'Rekrutmen & Seleksi',

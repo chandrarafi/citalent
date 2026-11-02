@@ -32,6 +32,7 @@ class Pelamar extends Model
         'sumber_informasi',
         'foto_path',
         'cv_path',
+        'cv_markdown',
         'surat_lamaran_path',
         'pernyataan_kebenaran',
         'status',

@@ -142,7 +142,6 @@ export default function PenilaianSkillTestForm({
   const [catatanUmum, setCatatanUmum] = useState(existingAssessment?.catatan || '')
   const [submitting, setSubmitting] = useState(false)
 
-  // Calculate live weighted score
   const calculation = useMemo(() => {
     let totalWeightedScore = 0
 
