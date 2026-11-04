@@ -37,7 +37,7 @@ export default function ResetPassword({
   userName,
   errors: serverErrors,
 }: ResetPasswordProps) {
-  const { flash } = usePage<any>().props
+  const { flash, errors: pageErrors } = usePage<any>().props
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -58,16 +58,17 @@ export default function ResetPassword({
   })
 
   // Sync server errors
+  const activeErrors = pageErrors || serverErrors
   useEffect(() => {
-    if (serverErrors?.password) {
-      setError('password', { message: serverErrors.password })
+    if (activeErrors?.password) {
+      setError('password', { message: activeErrors.password })
     }
-    if (serverErrors?.password_confirmation) {
+    if (activeErrors?.password_confirmation) {
       setError('password_confirmation', {
-        message: serverErrors.password_confirmation,
+        message: activeErrors.password_confirmation,
       })
     }
-  }, [serverErrors, setError])
+  }, [activeErrors, setError])
 
   const newPasswordVal = watch('password')
 
@@ -80,6 +81,14 @@ export default function ResetPassword({
         password_confirmation: values.password_confirmation,
       },
       {
+        onError: (errs) => {
+          if (errs.password) {
+            setError('password', { message: errs.password }, { shouldFocus: true })
+          }
+          if (errs.password_confirmation) {
+            setError('password_confirmation', { message: errs.password_confirmation })
+          }
+        },
         onFinish: () => setLoading(false),
       }
     )

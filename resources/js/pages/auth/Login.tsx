@@ -3,11 +3,10 @@ import { Head, Link, router, usePage } from '@inertiajs/react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { Card } from '@/components/pouf/surface'
 import { Stack, Row } from '@/components/pouf/layout'
-import { Heading, Text } from '@/components/pouf/text'
+import { Text } from '@/components/pouf/text'
 import { Field, Input } from '@/components/pouf/Input'
 import { Button } from '@/components/pouf/Button'
 import { Separator } from '@/components/pouf/separator'
-import { Blob } from '@/components/pouf/media'
 import { IconCheck, IconAlertCircle, IconEye, IconEyeOff } from '@tabler/icons-react'
 import AuthLayout from '@/layouts/AuthLayout'
 
@@ -27,7 +26,7 @@ export default function Login({
   email: initialEmail = '',
   errors: serverErrors,
 }: LoginPageProps) {
-  const { flash } = usePage<any>().props
+  const { flash, errors: pageErrors } = usePage<any>().props
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -60,21 +59,31 @@ export default function Login({
   const email = useWatch({ control, name: 'email' })
 
   // Map server-side errors back to react-hook-form
+  const activeErrors = pageErrors || serverErrors
   useEffect(() => {
-    if (serverErrors?.email) {
-      setError('email', { message: serverErrors.email })
+    if (activeErrors?.email) {
+      setError('email', { message: activeErrors.email })
     }
-    if (serverErrors?.password) {
-      setError('password', { message: serverErrors.password })
+    if (activeErrors?.password) {
+      setError('password', { message: activeErrors.password })
     }
-  }, [serverErrors, setError])
+  }, [activeErrors, setError])
 
   const submit = handleSubmit((values) => {
     setLoading(true)
     router.post(
       '/login',
       { email: values.email, password: values.password },
-      { onFinish: () => setLoading(false) },
+      {
+        onError: (errs) => {
+          Object.entries(errs).forEach(([key, val]) => {
+            if (key === 'email' || key === 'password') {
+              setError(key as 'email' | 'password', { message: val as string }, { shouldFocus: true })
+            }
+          })
+        },
+        onFinish: () => setLoading(false),
+      },
     )
   })
 

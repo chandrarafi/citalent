@@ -25,7 +25,7 @@ export default function ForgotPassword({
   email: initialEmail = '',
   errors: serverErrors,
 }: ForgotPasswordProps) {
-  const { flash } = usePage<any>().props
+  const { flash, errors: pageErrors } = usePage<any>().props
   const [loading, setLoading] = useState(false)
 
   // Ambil email dari prop atau URL search parameter jika ada
@@ -55,11 +55,12 @@ export default function ForgotPassword({
   }, [defaultEmail, setValue])
 
   // Map server-side errors
+  const activeErrors = pageErrors || serverErrors
   useEffect(() => {
-    if (serverErrors?.email) {
-      setError('email', { message: serverErrors.email })
+    if (activeErrors?.email) {
+      setError('email', { message: activeErrors.email })
     }
-  }, [serverErrors, setError])
+  }, [activeErrors, setError])
 
   const submit = handleSubmit((values) => {
     setLoading(true)
@@ -67,6 +68,11 @@ export default function ForgotPassword({
       '/forgot-password',
       { email: values.email },
       {
+        onError: (errs) => {
+          if (errs.email) {
+            setError('email', { message: errs.email }, { shouldFocus: true })
+          }
+        },
         onFinish: () => setLoading(false),
       }
     )
