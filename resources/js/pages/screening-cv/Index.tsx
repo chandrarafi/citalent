@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Head, router, usePage } from '@inertiajs/react'
-import { AppLayout } from '@/layouts/AppLayout'
+import { AdminLayout } from '@/layouts/AdminLayout'
 import { Card } from '@/components/pouf/surface'
 import { Stack, Row, Grid } from '@/components/pouf/layout'
 import { Heading, Text, Eyebrow } from '@/components/pouf/text'
@@ -968,7 +968,7 @@ export default function Index({
   ]
 
   return (
-    <AppLayout wide>
+    <AdminLayout wide>
       <Head title="Screening CV Otomatis (ATS) & Konfirmasi HR" />
 
       <Stack gap={5}>
@@ -2375,6 +2375,6 @@ export default function Index({
           </div>
         </div>
       )}
-    </AppLayout>
+    </AdminLayout>
   )
 }

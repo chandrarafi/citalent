@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Head, router, usePage } from '@inertiajs/react'
-import { AppLayout } from '@/layouts/AppLayout'
+import { AdminLayout } from '@/layouts/AdminLayout'
 import { Card } from '@/components/pouf/surface'
 import { Stack, Row } from '@/components/pouf/layout'
 import { Heading, Text, Eyebrow } from '@/components/pouf/text'
@@ -391,7 +391,7 @@ export default function Index({ permintaans, departements, jabatans }: Props) {
   ]
 
   return (
-    <AppLayout>
+    <AdminLayout>
       <Head title="Permintaan Rekrutmen" />
       <Stack gap={5}>
         {/* Header Title & Actions */}
@@ -508,6 +508,6 @@ export default function Index({ permintaans, departements, jabatans }: Props) {
         loading={loading}
         onApprove={handleApprove}
       />
-    </AppLayout>
+    </AdminLayout>
   )
 }

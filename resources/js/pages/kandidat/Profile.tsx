@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Head, useForm, usePage } from '@inertiajs/react'
-import { AppLayout } from '@/layouts/AppLayout'
+import { KandidatLayout } from '@/layouts/KandidatLayout'
 import { Card } from '@/components/pouf/surface'
 import { Stack, Row, Grid } from '@/components/pouf/layout'
 import { Heading, Text, Eyebrow } from '@/components/pouf/text'
@@ -236,7 +236,7 @@ export default function Profile({ user, profile }: Props) {
   const isProfileComplete = Boolean(profile?.is_complete)
 
   return (
-    <AppLayout>
+    <KandidatLayout>
       <Head title="Profil & Biodata Kandidat - Citalent" />
 
       <div className="max-w-4xl mx-auto pb-16 pt-1 sm:pt-2">
@@ -772,6 +772,6 @@ export default function Profile({ user, profile }: Props) {
           </Row>
         </Stack>
       </Dialog>
-    </AppLayout>
+    </KandidatLayout>
   )
 }

@@ -170,14 +170,8 @@ class PublicJobController extends Controller
             $suratLamaranPath = $request->file('surat_lamaran_file')->store('rekrutmen/surat_lamaran', 'public');
         }
 
-        // Generate No. Pendaftaran: REG-YYYYMMDD-SEQ
-        $todayPrefix = 'REG-' . date('Ymd') . '-';
-        $countToday = Pelamar::where('no_pendaftaran', 'like', "{$todayPrefix}%")->count();
-        $noPendaftaran = $todayPrefix . str_pad((string) ($countToday + 1), 4, '0', STR_PAD_LEFT);
-
-        $pelamar = Pelamar::create([
+        $pelamar = Pelamar::createWithGeneratedNoPendaftaran([
             'lowongan_id' => $lowongan->id,
-            'no_pendaftaran' => $noPendaftaran,
             'nama_lengkap' => $validated['nama_lengkap'],
             'tempat_lahir' => $validated['tempat_lahir'],
             'tanggal_lahir' => $validated['tanggal_lahir'],

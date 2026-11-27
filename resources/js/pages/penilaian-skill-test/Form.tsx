@@ -1,6 +1,6 @@
 import { useState, useMemo, Fragment } from 'react'
 import { Head, router } from '@inertiajs/react'
-import { AppLayout } from '@/layouts/AppLayout'
+import { AdminLayout } from '@/layouts/AdminLayout'
 import { Card } from '@/components/pouf/surface'
 import { Stack, Row, Grid } from '@/components/pouf/layout'
 import { Heading, Text, Eyebrow } from '@/components/pouf/text'
@@ -249,7 +249,7 @@ export default function PenilaianSkillTestForm({
   }
 
   return (
-    <AppLayout>
+    <AdminLayout>
       <Head title={`Form ${title} - ${pelamar.nama_lengkap}`} />
 
       <Stack gap={5} className="p-6 max-w-[1400px] mx-auto">
@@ -623,6 +623,6 @@ export default function PenilaianSkillTestForm({
           </Stack>
         </Card>
       </Stack>
-    </AppLayout>
+    </AdminLayout>
   )
 }

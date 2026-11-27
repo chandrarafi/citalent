@@ -45,13 +45,25 @@ class HandleInertiaRequests extends Middleware
             $user = null;
         }
 
+        $fotoUrl = null;
+        if ($user) {
+            $user->load('role.permissions');
+            if ($user->hasRole('kandidat')) {
+                $user->loadMissing('kandidatProfile');
+                if ($user->kandidatProfile && !empty($user->kandidatProfile->foto_path)) {
+                    $fotoUrl = $user->kandidatProfile->foto_url;
+                }
+            }
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $user ? $user->load('role.permissions')->only([
+                'user' => $user ? $user->only([
                     'id', 'name', 'email', 'role_id',
                 ]) + [
+                    'foto_url' => $fotoUrl,
                     'role' => $user->role ? [
                         'id' => $user->role->id,
                         'name' => $user->role->name,
@@ -68,6 +80,7 @@ class HandleInertiaRequests extends Middleware
                 'error' => $request->session()->get('error'),
                 'info' => $request->session()->get('info'),
                 'already_registered_email' => $request->session()->get('already_registered_email'),
+                'welcome_animation' => (bool) $request->session()->get('welcome_animation', false),
             ],
         ];
     }

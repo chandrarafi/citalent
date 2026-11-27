@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Head, router, usePage } from '@inertiajs/react'
-import { AppLayout } from '@/layouts/AppLayout'
+import { AdminLayout } from '@/layouts/AdminLayout'
 import { Card } from '@/components/pouf/surface'
 import { Stack, Row, Grid } from '@/components/pouf/layout'
 import { Heading, Text, Eyebrow } from '@/components/pouf/text'
@@ -201,7 +201,7 @@ export default function Show({ lowongan }: Props) {
   ]
 
   return (
-    <AppLayout>
+    <AdminLayout>
       <Head title={`Detail Lowongan - ${lowongan.judul}`} />
       <Stack gap={5}>
         {/* Header Section */}
@@ -477,6 +477,6 @@ export default function Show({ lowongan }: Props) {
           </Row>
         </Card>
       </Stack>
-    </AppLayout>
+    </AdminLayout>
   )
 }

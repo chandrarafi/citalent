@@ -113,7 +113,7 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         if ($user->hasRole('kandidat')) {
-            return redirect()->intended('/kandidat/lowongan');
+            return redirect()->intended('/kandidat/lowongan')->with('welcome_animation', true);
         }
 
         return redirect()->intended('/');
@@ -291,7 +291,11 @@ class AuthController extends Controller
             Auth::login($user);
             $request->session()->forget('otp_email');
             $request->session()->regenerate();
-            return redirect()->intended('/')->with('success', 'Akun telah aktif.');
+            $redirect = redirect()->intended('/')->with('success', 'Akun telah aktif.');
+            if ($user->hasRole('kandidat')) {
+                $redirect->with('welcome_animation', true);
+            }
+            return $redirect;
         }
 
         if ($user->otp_code !== $request->otp) {
@@ -318,9 +322,13 @@ class AuthController extends Controller
 
         if ($user->hasRole('kandidat')) {
             if (!$user->isProfileComplete()) {
-                return redirect()->route('kandidat.profile')->with('success', 'Selamat! Akun Anda berhasil diverifikasi dan aktif. Silakan lengkapi profil biodata Anda untuk keperluan melamar pekerjaan.');
+                return redirect()->route('kandidat.profile')
+                    ->with('success', 'Selamat! Akun Anda berhasil diverifikasi dan aktif. Silakan lengkapi profil biodata Anda untuk keperluan melamar pekerjaan.')
+                    ->with('welcome_animation', true);
             }
-            return redirect()->route('kandidat.lowongan')->with('success', 'Selamat! Akun Anda berhasil diverifikasi dan aktif.');
+            return redirect()->route('kandidat.lowongan')
+                ->with('success', 'Selamat! Akun Anda berhasil diverifikasi dan aktif.')
+                ->with('welcome_animation', true);
         }
 
         return redirect()->intended('/')->with('success', 'Selamat! Akun Anda berhasil diverifikasi dan aktif.');

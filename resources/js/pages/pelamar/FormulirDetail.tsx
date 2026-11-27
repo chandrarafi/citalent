@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react'
-import { AppLayout } from '@/layouts/AppLayout'
+import { AdminLayout } from '@/layouts/AdminLayout'
 import { Card } from '@/components/pouf/surface'
 import { Stack, Row, Grid } from '@/components/pouf/layout'
 import { Heading, Text } from '@/components/pouf/text'
@@ -36,7 +36,7 @@ interface Props {
 
 export default function FormulirDetail({ pelamar, formulir }: Props) {
   return (
-    <AppLayout>
+    <AdminLayout>
       <Head title={`Formulir Lamaran Kerja - ${pelamar.nama_lengkap}`} />
 
       <div className="max-w-5xl mx-auto pb-20 pt-1 sm:pt-2">
@@ -433,6 +433,6 @@ export default function FormulirDetail({ pelamar, formulir }: Props) {
           )}
         </Stack>
       </div>
-    </AppLayout>
+    </AdminLayout>
   )
 }

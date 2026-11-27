@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react'
-import { AppLayout } from '@/layouts/AppLayout'
+import { KandidatLayout } from '@/layouts/KandidatLayout'
 import { Card } from '@/components/pouf/surface'
 import { Stack } from '@/components/pouf/layout'
 import { Heading, Text } from '@/components/pouf/text'
@@ -50,7 +50,7 @@ export default function Lamaran({ applications }: Props) {
   const { flash } = usePage<any>().props
 
   return (
-    <AppLayout>
+    <KandidatLayout>
       <Head title="Riwayat Lamaran Saya - Citalent" />
 
       <div className="max-w-5xl mx-auto pb-16 pt-1 sm:pt-2">
@@ -167,6 +167,6 @@ export default function Lamaran({ applications }: Props) {
           )}
         </Stack>
       </div>
-    </AppLayout>
+    </KandidatLayout>
   )
 }

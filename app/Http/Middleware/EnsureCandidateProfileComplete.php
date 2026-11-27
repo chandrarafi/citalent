@@ -20,6 +20,9 @@ class EnsureCandidateProfileComplete
             if (!$user->isProfileComplete()) {
                 // Allow profile edit, profile update, and logout
                 if (!$request->routeIs('kandidat.profile', 'kandidat.profile.update', 'logout')) {
+                    if ($request->session()->has('welcome_animation')) {
+                        $request->session()->keep(['welcome_animation']);
+                    }
                     return redirect()->route('kandidat.profile')->with('error', 'Wajib melengkapi profil / biodata Anda terlebih dahulu sebelum mengakses halaman dashboard.');
                 }
             }

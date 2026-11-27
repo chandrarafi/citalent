@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Head, router, usePage } from '@inertiajs/react'
-import { AppLayout } from '@/layouts/AppLayout'
+import { AdminLayout } from '@/layouts/AdminLayout'
 import { Card } from '@/components/pouf/surface'
 import { Stack, Row, Grid } from '@/components/pouf/layout'
 import { Heading, Text, Eyebrow } from '@/components/pouf/text'
@@ -364,7 +364,7 @@ export default function Show({ pelamar }: Props) {
   }
 
   return (
-    <AppLayout>
+    <AdminLayout>
       <Head title={`Detail Pelamar - ${pelamar.nama_lengkap}`} />
       <Stack gap={5}>
         {/* Navigation & Header */}
@@ -1210,6 +1210,6 @@ export default function Show({ pelamar }: Props) {
           </Stack>
         </Dialog>
       )}
-    </AppLayout>
+    </AdminLayout>
   )
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Head, router, Link } from '@inertiajs/react'
-import { AppLayout } from '@/layouts/AppLayout'
+import { AdminLayout } from '@/layouts/AdminLayout'
 import { Card } from '@/components/pouf/surface'
 import { Stack, Row } from '@/components/pouf/layout'
 import { Heading, Text } from '@/components/pouf/text'
@@ -434,7 +434,7 @@ export default function PenjadwalanInterviewIndex({
   ]
 
   return (
-    <AppLayout>
+    <AdminLayout>
       <Head title="Penjadwalan Interview & Pengingat Kandidat" />
 
       <Stack gap={5} className="w-full pb-12">
@@ -727,6 +727,6 @@ export default function PenjadwalanInterviewIndex({
           </div>
         </div>
       </Dialog>
-    </AppLayout>
+    </AdminLayout>
   )
 }

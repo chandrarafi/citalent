@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Head, router, usePage } from '@inertiajs/react'
-import { AppLayout } from '@/layouts/AppLayout'
+import { AdminLayout } from '@/layouts/AdminLayout'
 import { Card } from '@/components/pouf/surface'
 import { Stack, Row, Grid } from '@/components/pouf/layout'
 import { Heading, Text, Eyebrow } from '@/components/pouf/text'
@@ -313,7 +313,7 @@ export default function Menus({ menus, allRoles }: Props) {
   const activeCount = menus.filter((m) => m.is_active).length
 
   return (
-    <AppLayout>
+    <AdminLayout>
       <Head title="Manajemen Menu & Navigasi" />
       <Stack gap={5}>
         {/* Header Title & Actions */}
@@ -618,6 +618,6 @@ export default function Menus({ menus, allRoles }: Props) {
           </Row>
         </Stack>
       </Dialog>
-    </AppLayout>
+    </AdminLayout>
   )
 }

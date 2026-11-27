@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react'
-import { AppLayout } from '@/layouts/AppLayout'
+import { AdminLayout } from '@/layouts/AdminLayout'
 import { Card } from '@/components/pouf/surface'
 import { Stack, Row, Grid } from '@/components/pouf/layout'
 import { Heading, Text, Eyebrow } from '@/components/pouf/text'
@@ -164,7 +164,7 @@ export default function PenilaianSkillTestShow({
     : penilaian.nilai_akhir.toFixed(1)
 
   return (
-    <AppLayout>
+    <AdminLayout>
       <Head title={`Hasil ${title} - ${pelamar.nama_lengkap ?? 'Kandidat'}`} />
 
       <Stack gap={5} className="p-6 max-w-[1400px] mx-auto">
@@ -432,6 +432,6 @@ export default function PenilaianSkillTestShow({
           </Stack>
         </Card>
       </Stack>
-    </AppLayout>
+    </AdminLayout>
   )
 }

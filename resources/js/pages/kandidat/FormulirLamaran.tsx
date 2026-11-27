@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Head, router, useForm, usePage } from '@inertiajs/react'
-import { AppLayout } from '@/layouts/AppLayout'
+import { KandidatLayout } from '@/layouts/KandidatLayout'
 import { Card } from '@/components/pouf/surface'
 import { Stack, Row, Grid } from '@/components/pouf/layout'
 import { Heading, Text } from '@/components/pouf/text'
@@ -133,7 +133,7 @@ export default function FormulirLamaran({ pelamar, initialForm, isSubmitted, isA
   ]
 
   return (
-    <AppLayout>
+    <KandidatLayout>
       <Head title={`Formulir Lamaran Kerja - ${pelamar.posisi_dilamar}`} />
 
       <div className="max-w-5xl mx-auto pb-20 pt-1 sm:pt-2">
@@ -2101,6 +2101,6 @@ export default function FormulirLamaran({ pelamar, initialForm, isSubmitted, isA
           </Row>
         </Stack>
       </Dialog>
-    </AppLayout>
+    </KandidatLayout>
   )
 }

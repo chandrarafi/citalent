@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Head, router, usePage } from '@inertiajs/react'
-import { AppLayout } from '@/layouts/AppLayout'
+import { AdminLayout } from '@/layouts/AdminLayout'
 import { Card } from '@/components/pouf/surface'
 import { Stack, Row } from '@/components/pouf/layout'
 import { Heading, Text } from '@/components/pouf/text'
@@ -256,7 +256,7 @@ export default function DashboardPage({
   ]
 
   return (
-    <AppLayout>
+    <AdminLayout>
       <Head title="Dashboard Rekrutmen & Talenta" />
 
       <Stack gap={5} className="w-full">
@@ -851,6 +851,6 @@ export default function DashboardPage({
           </div>
         </div>
       </Stack>
-    </AppLayout>
+    </AdminLayout>
   )
 }

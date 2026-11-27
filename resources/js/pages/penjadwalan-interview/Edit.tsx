@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Head, router, Link } from '@inertiajs/react'
-import { AppLayout } from '@/layouts/AppLayout'
+import { AdminLayout } from '@/layouts/AdminLayout'
 import { Card } from '@/components/pouf/surface'
 import { Stack, Row } from '@/components/pouf/layout'
 import { Heading, Text } from '@/components/pouf/text'
@@ -123,7 +123,7 @@ export default function PenjadwalanInterviewEdit({
   }
 
   return (
-    <AppLayout>
+    <AdminLayout>
       <Head title={`Edit Jadwal Interview - ${schedule.kandidat_nama}`} />
 
       <Stack gap={5} className="w-full max-w-4xl mx-auto pb-16">
@@ -396,6 +396,6 @@ export default function PenjadwalanInterviewEdit({
           </form>
         </Card>
       </Stack>
-    </AppLayout>
+    </AdminLayout>
   )
 }

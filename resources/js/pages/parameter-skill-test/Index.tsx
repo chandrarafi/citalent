@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Head, router, useForm } from '@inertiajs/react'
-import { AppLayout } from '@/layouts/AppLayout'
+import { AdminLayout } from '@/layouts/AdminLayout'
 import { Card } from '@/components/pouf/surface'
 import { Stack, Row, Grid } from '@/components/pouf/layout'
 import { Heading, Text, Eyebrow } from '@/components/pouf/text'
@@ -335,7 +335,7 @@ export default function ParameterSkillTestIndex({
   }
 
   return (
-    <AppLayout>
+    <AdminLayout>
       <Head title={`${pageTitle} - Rekrutmen & Talenta`} />
 
       <Stack gap={5}>
@@ -799,6 +799,6 @@ export default function ParameterSkillTestIndex({
           </Stack>
         </form>
       </Dialog>
-    </AppLayout>
+    </AdminLayout>
   )
 }

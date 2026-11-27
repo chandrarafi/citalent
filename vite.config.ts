@@ -10,7 +10,7 @@ import { defineConfig, lazyPlugins } from 'vite-plus';
 export default defineConfig({
     plugins: lazyPlugins(() => [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.tsx'],
+            input: ['resources/css/app.css', 'resources/js/app.tsx', 'resources/js/maintenance.tsx'],
             refresh: true,
             fonts: [
                 bunny('Instrument Sans', {
@@ -28,6 +28,9 @@ export default defineConfig({
             formVariants: true,
         }),
     ]),
+    optimizeDeps: {
+        include: ['lottie-web'],
+    },
     server: {
         watch: {
             ignored: [

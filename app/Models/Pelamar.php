@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 
 class Pelamar extends Model
 {
@@ -147,5 +149,61 @@ class Pelamar extends Model
         }
 
         return 'screening_cv';
+    }
+
+    /**
+     * Generate the next registration number (REG-YYYYMMDD-XXXX) based on the
+     * highest existing sequence for the given date so deleted rows never cause collisions.
+     */
+    public static function generateNextNoPendaftaran(?string $date = null): string
+    {
+        $prefix = 'REG-' . ($date ?? date('Ymd')) . '-';
+        $prefixLen = strlen($prefix);
+
+        $maxSeq = static::query()
+            ->where('no_pendaftaran', 'like', "{$prefix}%")
+            ->pluck('no_pendaftaran')
+            ->reduce(function (int $max, string $code) use ($prefixLen): int {
+                $suffix = substr($code, $prefixLen);
+
+                return ctype_digit($suffix) ? max($max, (int) $suffix) : $max;
+            }, 0);
+
+        return $prefix . str_pad((string) ($maxSeq + 1), 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Create a Pelamar record with a unique sequential registration number,
+     * protected against deleted gaps and concurrent submissions.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public static function createWithGeneratedNoPendaftaran(array $attributes): self
+    {
+        $maxAttempts = 5;
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                return DB::transaction(function () use ($attributes): self {
+                    if (DB::getDriverName() === 'pgsql') {
+                        DB::statement('SELECT pg_advisory_xact_lock(hashtext(?))', ['pelamar_no_pendaftaran_' . date('Ymd')]);
+                    }
+
+                    $attributes['no_pendaftaran'] = static::generateNextNoPendaftaran();
+
+                    return static::create($attributes);
+                });
+            } catch (QueryException $e) {
+                $sqlState = (string) ($e->errorInfo[0] ?? $e->getCode());
+                $isUniqueViolation = in_array($sqlState, ['23505', '23000'], true)
+                    && str_contains($e->getMessage(), 'no_pendaftaran');
+
+                if (!$isUniqueViolation || $attempt === $maxAttempts) {
+                    throw $e;
+                }
+            }
+        }
+
+        throw new \RuntimeException('Gagal membuat nomor pendaftaran.');
     }
 }

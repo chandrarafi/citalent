@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Head, router } from '@inertiajs/react'
-import { AppLayout } from '@/layouts/AppLayout'
+import { AdminLayout } from '@/layouts/AdminLayout'
 import { Card } from '@/components/pouf/surface'
 import { Stack, Row } from '@/components/pouf/layout'
 import { Heading, Text } from '@/components/pouf/text'
@@ -133,7 +133,7 @@ export default function CandidateSatisfactionIndex({
   }
 
   return (
-    <AppLayout>
+    <AdminLayout>
       <Head title="Candidate Satisfaction — CITALENT PT Menara Agung" />
 
       <Stack gap={5} className="w-full pb-10">
@@ -631,6 +631,6 @@ export default function CandidateSatisfactionIndex({
           </Card>
         </div>
       </Stack>
-    </AppLayout>
+    </AdminLayout>
   )
 }

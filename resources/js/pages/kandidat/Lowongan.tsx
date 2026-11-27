@@ -1,29 +1,22 @@
 import { useState, useEffect } from 'react'
 import { Head, router, usePage } from '@inertiajs/react'
-import { AppLayout } from '@/layouts/AppLayout'
+import { KandidatLayout } from '@/layouts/KandidatLayout'
 import { Card } from '@/components/pouf/surface'
-import { Stack, Row, Grid } from '@/components/pouf/layout'
-import { Heading, Text, Eyebrow } from '@/components/pouf/text'
+import { Stack } from '@/components/pouf/layout'
+import { Heading, Text } from '@/components/pouf/text'
 import { Button } from '@/components/pouf/Button'
-import { Badge, Blob } from '@/components/pouf/media'
-import { Input } from '@/components/pouf/Input'
+import { Badge } from '@/components/pouf/media'
 import { Select, Dialog } from '@/components/pouf/controls'
 import { Separator } from '@/components/pouf/separator'
 import {
-  IconSearch,
   IconBriefcase,
   IconCalendar,
   IconCheck,
   IconAlertCircle,
   IconEye,
   IconSend,
+  IconUpload,
 } from '@tabler/icons-react'
-
-interface Posisi {
-  id: number
-  kd_jabatan: string
-  nama_jabatan: string
-}
 
 interface LowonganItem {
   id: number
@@ -71,11 +64,6 @@ interface Props {
   appliedMap: Record<number, AppliedInfo>
   isProfileComplete: boolean
   candidateProfile?: CandidateProfile | null
-  posisis: Posisi[]
-  filters: {
-    keyword?: string
-    posisi_id?: string
-  }
 }
 
 const SUMBER_INFORMASI_OPTIONS = [
@@ -95,14 +83,8 @@ export default function Lowongan({
   appliedMap,
   isProfileComplete,
   candidateProfile,
-  posisis,
-  filters,
 }: Props) {
   const { flash } = usePage<any>().props
-
-  // Search & Filter State
-  const [keyword, setKeyword] = useState(filters.keyword || '')
-  const [posisiId, setPosisiId] = useState(filters.posisi_id || '')
 
   // Success Alert Modal State
   const [successModal, setSuccessModal] = useState<string | null>(flash?.success || null)
@@ -137,25 +119,32 @@ export default function Lowongan({
     sumber_informasi: 'Website Karir Perusahaan',
   })
 
-  function handleFilter() {
-    router.get(
-      '/kandidat/lowongan',
-      {
-        keyword: keyword || undefined,
-        posisi_id: posisiId || undefined,
-      },
-      { preserveState: true, replace: true },
-    )
-  }
-
-  function handleReset() {
-    setKeyword('')
-    setPosisiId('')
-    router.get('/kandidat/lowongan', {}, { preserveState: true, replace: true })
-  }
+  // Missing Document Alert Dialog State
+  const [missingDocAlert, setMissingDocAlert] = useState<{
+    open: boolean
+    missingDocs: string[]
+  }>({
+    open: false,
+    missingDocs: [],
+  })
 
   function handleApplyConfirm() {
     if (!applyModal.lowongan) return
+
+    const missingDocs: string[] = []
+    if (!candidateProfile?.cv_url) {
+      missingDocs.push('Dokumen CV (PDF)')
+    }
+    if (!candidateProfile?.foto_url) {
+      missingDocs.push('Pas Foto Formal')
+    }
+
+    if (missingDocs.length > 0) {
+      setApplyModal((prev) => ({ ...prev, open: false, submitting: false }))
+      setMissingDocAlert({ open: true, missingDocs })
+      return
+    }
+
     setApplyModal((prev) => ({ ...prev, submitting: true }))
 
     router.post(
@@ -171,15 +160,8 @@ export default function Lowongan({
     )
   }
 
-  const posisiOptions = [
-    { value: '', label: 'Semua Posisi' },
-    ...posisis.map((p) => ({ value: String(p.id), label: p.nama_jabatan })),
-  ]
-
-  const totalApplied = Object.keys(appliedMap).length
-
   return (
-    <AppLayout>
+    <KandidatLayout>
       <Head title="Lowongan Pekerjaan Tersedia - Citalent" />
 
       <div className="max-w-6xl mx-auto pb-16 pt-1 sm:pt-2">
@@ -195,42 +177,6 @@ export default function Lowongan({
               </div>
             </div>
           )}
-
-
-          {/* Search & Filter Bar */}
-          <Card>
-            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <Input
-                  value={keyword}
-                  onChange={setKeyword}
-                  placeholder="Cari judul posisi, departemen, keahlian..."
-                />
-              </div>
-
-              <div className="w-full md:w-56">
-                <Select
-                  value={posisiId}
-                  options={posisiOptions}
-                  onChange={setPosisiId}
-                  placeholder="Pilih Posisi"
-                />
-              </div>
-
-
-              <div className="flex items-center gap-2">
-                <Button tone="purple" onClick={handleFilter}>
-                  <IconSearch size={16} />
-                  Cari
-                </Button>
-                {(keyword || posisiId) && (
-                  <Button variant="quiet" onClick={handleReset}>
-                    Reset
-                  </Button>
-                )}
-              </div>
-            </div>
-          </Card>
 
           {/* Job Vacancies List */}
           {lowongans.length === 0 ? (
@@ -421,6 +367,7 @@ export default function Lowongan({
         open={applyModal.open}
         onOpenChange={(open) => !open && setApplyModal((prev) => ({ ...prev, open: false, lowongan: null, agreed: false, submitting: false }))}
         title="Konfirmasi Pengajuan Lamaran"
+        size="lg"
       >
         {applyModal.lowongan && candidateProfile && (
           <Stack gap={4}>
@@ -523,6 +470,51 @@ export default function Lowongan({
         )}
       </Dialog>
 
+      {/* Missing Document Alert Dialog */}
+      <Dialog
+        open={missingDocAlert.open}
+        onOpenChange={(open) => !open && setMissingDocAlert({ open: false, missingDocs: [] })}
+        title="Dokumen Belum Diunggah"
+      >
+        <Stack gap={4}>
+          <div className="flex items-start gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900">
+            <IconAlertCircle size={22} className="text-amber-600 shrink-0 mt-0.5" />
+            <div className="text-xs sm:text-sm space-y-1.5">
+              <p className="font-bold">
+                Lamaran belum dapat dikirim karena dokumen wajib berikut belum diunggah:
+              </p>
+              <ul className="list-disc list-inside space-y-0.5 text-amber-800 font-medium">
+                {missingDocAlert.missingDocs.map((doc) => (
+                  <li key={doc}>{doc}</li>
+                ))}
+              </ul>
+              <p className="text-amber-800 pt-1">
+                Silakan unggah terlebih dahulu pada halaman <strong>Profil Biodata</strong> sebelum mengirim lamaran.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2.5">
+            <Button
+              variant="quiet"
+              onClick={() => setMissingDocAlert({ open: false, missingDocs: [] })}
+            >
+              Tutup
+            </Button>
+            <Button
+              tone="purple"
+              onClick={() => {
+                setMissingDocAlert({ open: false, missingDocs: [] })
+                router.visit('/kandidat/profil')
+              }}
+            >
+              <IconUpload size={16} />
+              Unggah di Profil
+            </Button>
+          </div>
+        </Stack>
+      </Dialog>
+
       {/* Animated Success Alert Dialog */}
       <Dialog
         open={Boolean(successModal)}
@@ -568,6 +560,6 @@ export default function Lowongan({
           </div>
         </div>
       </Dialog>
-    </AppLayout>
+    </KandidatLayout>
   )
 }

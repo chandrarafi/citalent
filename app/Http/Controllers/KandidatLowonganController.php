@@ -110,7 +110,7 @@ class KandidatLowonganController extends Controller
                 'pendidikan_terakhir' => $profile->pendidikan_terakhir ?? '',
                 'nama_institusi' => $profile->nama_institusi ?? '',
                 'jurusan' => $profile->jurusan ?? '',
-                'foto_url' => $profile->foto_url,
+                'foto_url' => $profile->foto_path ? $profile->foto_url : null,
                 'cv_url' => $profile->cv_url,
                 'surat_lamaran_url' => $profile->surat_lamaran_url,
             ] : null,
@@ -134,6 +134,17 @@ class KandidatLowonganController extends Controller
             return redirect()->route('kandidat.profile')->with('error', 'Harap lengkapi seluruh profil biodata dan dokumen Anda sebelum mengajukan lamaran.');
         }
 
+        if (empty($profile->cv_path) || empty($profile->foto_path)) {
+            $missing = [];
+            if (empty($profile->cv_path)) {
+                $missing[] = 'Dokumen CV (PDF)';
+            }
+            if (empty($profile->foto_path)) {
+                $missing[] = 'Pas Foto Formal';
+            }
+            return back()->with('error', 'Dokumen berikut belum diunggah: ' . implode(', ', $missing) . '. Silakan unggah terlebih dahulu di halaman Profil Biodata.');
+        }
+
         if (
             $lowongan->status !== 'aktif' ||
             ($lowongan->tgl_tutup && Carbon::parse($lowongan->tgl_tutup)->endOfDay()->isPast())
@@ -150,11 +161,6 @@ class KandidatLowonganController extends Controller
             return back()->with('error', "Anda sudah pernah mengajukan lamaran untuk posisi ini dengan No. Pendaftaran: {$existing->no_pendaftaran}.");
         }
 
-        // Generate No. Pendaftaran: REG-YYYYMMDD-SEQ
-        $todayPrefix = 'REG-' . date('Ymd') . '-';
-        $countToday = Pelamar::where('no_pendaftaran', 'like', "{$todayPrefix}%")->count();
-        $noPendaftaran = $todayPrefix . str_pad((string) ($countToday + 1), 4, '0', STR_PAD_LEFT);
-
         $request->validate([
             'sumber_informasi' => ['nullable', 'string', 'max:150'],
         ]);
@@ -162,9 +168,8 @@ class KandidatLowonganController extends Controller
         $lowongan->loadMissing(['jabatan', 'departement']);
         $posisiNama = $lowongan->jabatan?->nama_jabatan ?? $lowongan->judul;
 
-        $pelamar = Pelamar::create([
+        $pelamar = Pelamar::createWithGeneratedNoPendaftaran([
             'lowongan_id' => $lowongan->id,
-            'no_pendaftaran' => $noPendaftaran,
             'nama_lengkap' => $user->name,
             'tempat_lahir' => $profile->tempat_lahir ?? '-',
             'tanggal_lahir' => $profile->tanggal_lahir,
