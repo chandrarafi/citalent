@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Head, router, usePage } from '@inertiajs/react'
 import { AppLayout } from '@/layouts/AppLayout'
 import { Card } from '@/components/pouf/surface'
@@ -23,13 +23,6 @@ interface PelamarItem {
   id: number
   no_pendaftaran: string
   nama_lengkap: string
-  tempat_lahir: string
-  tanggal_lahir?: string | null
-  jenis_kelamin: 'Laki-laki' | 'Perempuan'
-  status_pernikahan: string
-  agama: string
-  alamat: string
-  domisili: string
   nomor_kontak: string
   email: string
   pendidikan_terakhir: string
@@ -38,10 +31,7 @@ interface PelamarItem {
   tahun_lulus: string
   posisi_dilamar: string
   foto_url?: string | null
-  cv_url?: string | null
-  surat_lamaran_url?: string | null
-  status: 'submitted' | 'review' | 'interview' | 'accepted' | 'rejected'
-  catatan?: string | null
+  status: string
   ats_screening?: {
     id: number
     total_skor: number
@@ -62,10 +52,35 @@ interface PelamarItem {
   created_at?: string | null
 }
 
+interface PaginatedPelamars {
+  data: PelamarItem[]
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+  from: number
+  to: number
+}
+
+interface PelamarStats {
+  total: number
+  submitted: number
+  review: number
+  interview: number
+  accepted: number
+  rejected: number
+}
+
 interface Props {
-  pelamars: PelamarItem[]
+  pelamars: PaginatedPelamars
+  stats: PelamarStats
   lowongans: LowonganOption[]
-  selectedLowonganId?: string | number | null
+  filters?: {
+    search?: string | null
+    lowongan_id?: string | null
+    status?: string | null
+    per_page?: number | null
+  }
 }
 
 const STATUS_SELEKSI_OPTIONS = [
@@ -115,64 +130,64 @@ const PAGE_SIZE_OPTIONS = [
   { value: '25', label: '25 per hal' },
 ]
 
-export default function Index({ pelamars, lowongans, selectedLowonganId }: Props) {
+export default function Index({ pelamars, stats, lowongans, filters }: Props) {
   const { flash } = usePage<any>().props
 
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(filters?.search ?? '')
   const [lowonganFilter, setLowonganFilter] = useState<string>(
-    selectedLowonganId ? String(selectedLowonganId) : 'all'
+    filters?.lowongan_id ? String(filters.lowongan_id) : 'all'
   )
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [pageSize, setPageSize] = useState('5')
-  const [page, setPage] = useState(1)
+  const [statusFilter, setStatusFilter] = useState<string>(
+    filters?.status ? String(filters.status) : 'all'
+  )
+  const [pageSize, setPageSize] = useState<string>(
+    String(filters?.per_page ?? pelamars.per_page ?? 5)
+  )
+  const isFirstRender = useRef(true)
 
-  // Filtered Pelamars
-  const filteredPelamars = useMemo(() => {
-    return pelamars.filter((p) => {
-      const q = search.trim().toLowerCase()
-      const matchSearch =
-        !q ||
-        p.no_pendaftaran.toLowerCase().includes(q) ||
-        p.nama_lengkap.toLowerCase().includes(q) ||
-        p.email.toLowerCase().includes(q) ||
-        p.nomor_kontak.toLowerCase().includes(q) ||
-        p.posisi_dilamar.toLowerCase().includes(q) ||
-        p.nama_institusi.toLowerCase().includes(q) ||
-        p.jurusan.toLowerCase().includes(q)
+  const navigateWithFilters = (overrides: {
+    search?: string
+    lowongan_id?: string
+    status?: string
+    per_page?: string
+    page?: number
+  }) => {
+    const nextSearch = overrides.search ?? search
+    const nextLowongan = overrides.lowongan_id ?? lowonganFilter
+    const nextStatus = overrides.status ?? statusFilter
+    const nextPerPage = overrides.per_page ?? pageSize
+    const nextPage = overrides.page ?? 1
 
-      const matchLowongan =
-        lowonganFilter === 'all' ||
-        String(p.lowongan?.id) === String(lowonganFilter)
+    router.get(
+      '/pelamar',
+      {
+        search: nextSearch.trim() || undefined,
+        lowongan_id: nextLowongan !== 'all' ? nextLowongan : undefined,
+        status: nextStatus !== 'all' ? nextStatus : undefined,
+        per_page: nextPerPage !== '5' ? nextPerPage : undefined,
+        page: nextPage > 1 ? nextPage : undefined,
+      },
+      {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+      }
+    )
+  }
 
-      const matchStatus =
-        statusFilter === 'all' || p.status === statusFilter
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    const timer = setTimeout(() => {
+      navigateWithFilters({ search, page: 1 })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [search])
 
-      return matchSearch && matchLowongan && matchStatus
-    })
-  }, [pelamars, search, lowonganFilter, statusFilter])
-
-  // Pagination calculations
-  const limit = parseInt(pageSize, 10) || 5
-  const totalPages = Math.max(1, Math.ceil(filteredPelamars.length / limit))
-
-  const paginatedPelamars = useMemo(() => {
-    const start = (page - 1) * limit
-    return filteredPelamars.slice(start, start + limit)
-  }, [filteredPelamars, page, limit])
-
-  const startIndex = filteredPelamars.length === 0 ? 0 : (page - 1) * limit + 1
-  const endIndex = Math.min(page * limit, filteredPelamars.length)
-
-  // KPI calculations
-  const stats = useMemo(() => {
-    const total = pelamars.length
-    const submitted = pelamars.filter((p) => p.status === 'submitted').length
-    const review = pelamars.filter((p) => p.status === 'review').length
-    const interview = pelamars.filter((p) => p.status === 'interview').length
-    const accepted = pelamars.filter((p) => p.status === 'accepted').length
-    const rejected = pelamars.filter((p) => p.status === 'rejected').length
-    return { total, submitted, review, interview, accepted, rejected }
-  }, [pelamars])
+  const totalPages = Math.max(1, pelamars.last_page)
+  const currentPage = pelamars.current_page
 
   const columns = [
     {
@@ -390,10 +405,7 @@ export default function Index({ pelamars, lowongans, selectedLowonganId }: Props
               <div className="w-full lg:max-w-[340px]">
                 <Input
                   value={search}
-                  onChange={(v) => {
-                    setSearch(v)
-                    setPage(1)
-                  }}
+                  onChange={(v) => setSearch(v)}
                   placeholder="Cari no. daftar, nama, email, kampus..."
                 />
               </div>
@@ -405,7 +417,7 @@ export default function Index({ pelamars, lowongans, selectedLowonganId }: Props
                     value={lowonganFilter}
                     onChange={(v) => {
                       setLowonganFilter(v)
-                      setPage(1)
+                      navigateWithFilters({ lowongan_id: v, page: 1 })
                     }}
                     options={[
                       { value: 'all', label: 'Semua Lowongan' },
@@ -423,7 +435,7 @@ export default function Index({ pelamars, lowongans, selectedLowonganId }: Props
                     value={statusFilter}
                     onChange={(v) => {
                       setStatusFilter(v)
-                      setPage(1)
+                      navigateWithFilters({ status: v, page: 1 })
                     }}
                     options={STATUS_SELEKSI_OPTIONS}
                   />
@@ -435,7 +447,7 @@ export default function Index({ pelamars, lowongans, selectedLowonganId }: Props
                     value={pageSize}
                     onChange={(v) => {
                       setPageSize(v)
-                      setPage(1)
+                      navigateWithFilters({ per_page: v, page: 1 })
                     }}
                     options={PAGE_SIZE_OPTIONS}
                   />
@@ -445,7 +457,7 @@ export default function Index({ pelamars, lowongans, selectedLowonganId }: Props
 
             {/* Pouf Table */}
             <Table
-              rows={paginatedPelamars}
+              rows={pelamars.data}
               columns={columns}
               getKey={(p) => String(p.id)}
             />
@@ -453,12 +465,12 @@ export default function Index({ pelamars, lowongans, selectedLowonganId }: Props
             {/* Pagination Controls */}
             <div className="flex flex-col sm:flex-row justify-between items-center gap-3 w-full pt-2">
               <Text size="sm" muted className="text-center sm:text-left">
-                Menampilkan {startIndex}-{endIndex} dari {filteredPelamars.length} data (Halaman {page} dari {totalPages})
+                Menampilkan {pelamars.from}-{pelamars.to} dari {pelamars.total} data (Halaman {currentPage} dari {totalPages})
               </Text>
               <Pagination
-                page={page}
+                page={currentPage}
                 total={totalPages}
-                onChange={(p) => setPage(p)}
+                onChange={(p) => navigateWithFilters({ page: p })}
               />
             </div>
           </Stack>

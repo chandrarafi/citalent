@@ -21,61 +21,124 @@ class PelamarController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = Pelamar::with(['lowongan.departement', 'lowongan.jabatan', 'atsScreening'])
+        $search = trim((string) $request->input('search', ''));
+        $lowonganId = $request->input('lowongan_id');
+        $status = $request->input('status');
+        $perPage = (int) $request->input('per_page', 5);
+        if (!in_array($perPage, [5, 10, 25], true)) {
+            $perPage = 5;
+        }
+
+        $query = Pelamar::query()
+            ->select([
+                'id',
+                'lowongan_id',
+                'no_pendaftaran',
+                'nama_lengkap',
+                'email',
+                'nomor_kontak',
+                'pendidikan_terakhir',
+                'nama_institusi',
+                'jurusan',
+                'tahun_lulus',
+                'posisi_dilamar',
+                'foto_path',
+                'status',
+                'created_at',
+            ])
+            ->with([
+                'lowongan:id,kode_lowongan,judul,kd_departement,posisi_id',
+                'lowongan.departement:id,deskripsi',
+                'lowongan.jabatan:id,nama_jabatan,kd_jabatan',
+                'atsScreening:id,pelamar_id,total_skor,rekomendasi,status_konfirmasi',
+            ])
             ->whereHas('lowongan', function ($q) {
                 $q->where('status', 'aktif');
             })
             ->orderBy('id', 'desc');
 
-        if ($request->filled('lowongan_id')) {
-            $query->where('lowongan_id', $request->lowongan_id);
+        if ($lowonganId && $lowonganId !== 'all') {
+            $query->where('lowongan_id', $lowonganId);
         }
 
-        $pelamars = $query->get()->map(function (Pelamar $p) {
-            return [
-                'id' => $p->id,
-                'no_pendaftaran' => $p->no_pendaftaran,
-                'nama_lengkap' => $p->nama_lengkap,
-                'tempat_lahir' => $p->tempat_lahir,
-                'tanggal_lahir' => $p->tanggal_lahir ? $p->tanggal_lahir->format('Y-m-d') : null,
-                'jenis_kelamin' => $p->jenis_kelamin,
-                'status_pernikahan' => $p->status_pernikahan,
-                'agama' => $p->agama,
-                'alamat' => $p->alamat,
-                'domisili' => $p->domisili,
-                'nomor_kontak' => $p->nomor_kontak,
-                'email' => $p->email,
-                'pendidikan_terakhir' => $p->pendidikan_terakhir,
-                'nama_institusi' => $p->nama_institusi,
-                'jurusan' => $p->jurusan,
-                'tahun_lulus' => $p->tahun_lulus,
-                'posisi_dilamar' => $p->posisi_dilamar,
-                'foto_url' => $p->foto_url,
-                'cv_url' => $p->cv_url,
-                'surat_lamaran_url' => $p->surat_lamaran_path ? asset('storage/' . $p->surat_lamaran_path) : null,
-                'status' => $p->status,
-                'catatan' => $p->catatan,
-                'ats_screening' => $p->atsScreening ? [
-                    'id' => $p->atsScreening->id,
-                    'total_skor' => (float) $p->atsScreening->total_skor,
-                    'rekomendasi' => $p->atsScreening->rekomendasi,
-                    'rekomendasi_label' => $p->atsScreening->rekomendasi_label,
-                    'rekomendasi_tone' => $p->atsScreening->rekomendasi_tone,
-                    'status_konfirmasi' => $p->atsScreening->status_konfirmasi,
-                    'status_konfirmasi_label' => $p->atsScreening->status_konfirmasi_label,
-                    'status_konfirmasi_tone' => $p->atsScreening->status_konfirmasi_tone,
-                ] : null,
-                'lowongan' => $p->lowongan ? [
-                    'id' => $p->lowongan->id,
-                    'kode_lowongan' => $p->lowongan->kode_lowongan,
-                    'judul' => $p->lowongan->judul,
-                    'departemen_nama' => $p->lowongan->departement?->deskripsi,
-                    'posisi_nama' => $p->lowongan->jabatan?->nama_jabatan,
-                    'kd_jabatan' => $p->lowongan->jabatan?->kd_jabatan,
-                ] : null,
-                'created_at' => $p->created_at ? $p->created_at->format('Y-m-d H:i') : null,
-            ];
-        });
+        if ($status && $status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        if ($search !== '') {
+            $term = '%' . mb_strtolower($search) . '%';
+            $query->where(function ($q) use ($term) {
+                $q->whereRaw('LOWER(no_pendaftaran) LIKE ?', [$term])
+                    ->orWhereRaw('LOWER(nama_lengkap) LIKE ?', [$term])
+                    ->orWhereRaw('LOWER(email) LIKE ?', [$term])
+                    ->orWhereRaw('LOWER(nomor_kontak) LIKE ?', [$term])
+                    ->orWhereRaw('LOWER(posisi_dilamar) LIKE ?', [$term])
+                    ->orWhereRaw('LOWER(nama_institusi) LIKE ?', [$term])
+                    ->orWhereRaw('LOWER(jurusan) LIKE ?', [$term]);
+            });
+        }
+
+        $paginator = $query->paginate($perPage)->withQueryString();
+
+        $pelamars = [
+            'data' => $paginator->getCollection()->map(function (Pelamar $p) {
+                return [
+                    'id' => $p->id,
+                    'no_pendaftaran' => $p->no_pendaftaran,
+                    'nama_lengkap' => $p->nama_lengkap,
+                    'email' => $p->email,
+                    'nomor_kontak' => $p->nomor_kontak,
+                    'pendidikan_terakhir' => $p->pendidikan_terakhir,
+                    'nama_institusi' => $p->nama_institusi,
+                    'jurusan' => $p->jurusan,
+                    'tahun_lulus' => $p->tahun_lulus,
+                    'posisi_dilamar' => $p->posisi_dilamar,
+                    'foto_url' => $p->foto_url,
+                    'status' => $p->status,
+                    'ats_screening' => $p->atsScreening ? [
+                        'id' => $p->atsScreening->id,
+                        'total_skor' => (float) $p->atsScreening->total_skor,
+                        'rekomendasi' => $p->atsScreening->rekomendasi,
+                        'rekomendasi_label' => $p->atsScreening->rekomendasi_label,
+                        'rekomendasi_tone' => $p->atsScreening->rekomendasi_tone,
+                        'status_konfirmasi' => $p->atsScreening->status_konfirmasi,
+                        'status_konfirmasi_label' => $p->atsScreening->status_konfirmasi_label,
+                        'status_konfirmasi_tone' => $p->atsScreening->status_konfirmasi_tone,
+                    ] : null,
+                    'lowongan' => $p->lowongan ? [
+                        'id' => $p->lowongan->id,
+                        'kode_lowongan' => $p->lowongan->kode_lowongan,
+                        'judul' => $p->lowongan->judul,
+                        'departemen_nama' => $p->lowongan->departement?->deskripsi,
+                        'posisi_nama' => $p->lowongan->jabatan?->nama_jabatan,
+                        'kd_jabatan' => $p->lowongan->jabatan?->kd_jabatan,
+                    ] : null,
+                    'created_at' => $p->created_at ? $p->created_at->format('Y-m-d H:i') : null,
+                ];
+            })->values(),
+            'current_page' => $paginator->currentPage(),
+            'last_page' => $paginator->lastPage(),
+            'per_page' => $paginator->perPage(),
+            'total' => $paginator->total(),
+            'from' => $paginator->firstItem() ?? 0,
+            'to' => $paginator->lastItem() ?? 0,
+        ];
+
+        $statusCounts = Pelamar::whereHas('lowongan', function ($q) {
+            $q->where('status', 'aktif');
+        })
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
+        $stats = [
+            'total' => (int) $statusCounts->sum(),
+            'submitted' => (int) ($statusCounts['submitted'] ?? 0),
+            'review' => (int) ($statusCounts['review'] ?? 0),
+            'interview' => (int) ($statusCounts['interview'] ?? 0),
+            'accepted' => (int) ($statusCounts['accepted'] ?? 0),
+            'rejected' => (int) ($statusCounts['rejected'] ?? 0),
+        ];
 
         $lowongans = Lowongan::where('status', 'aktif')
             ->orderBy('id', 'desc')
@@ -83,8 +146,14 @@ class PelamarController extends Controller
 
         return Inertia::render('pelamar/Index', [
             'pelamars' => $pelamars,
+            'stats' => $stats,
             'lowongans' => $lowongans,
-            'selectedLowonganId' => $request->lowongan_id ?? null,
+            'filters' => [
+                'search' => $search !== '' ? $search : null,
+                'lowongan_id' => ($lowonganId && $lowonganId !== 'all') ? (string) $lowonganId : null,
+                'status' => ($status && $status !== 'all') ? (string) $status : null,
+                'per_page' => $perPage,
+            ],
         ]);
     }
 
