@@ -46,7 +46,7 @@ export function initEcho(): Echo<'reverb'> | null {
   const scheme = (import.meta.env.VITE_REVERB_SCHEME as string | undefined) || 'http'
   const host =
     (import.meta.env.VITE_REVERB_HOST as string | undefined) || window.location.hostname
-  const port = Number(import.meta.env.VITE_REVERB_PORT || (scheme === 'https' ? 443 : 8080))
+  const port = Number(import.meta.env.VITE_REVERB_PORT || (scheme === 'https' ? 443 : 8081))
   const forceTLS = scheme === 'https'
 
   echoInstance = new Echo({
