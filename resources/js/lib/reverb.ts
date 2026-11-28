@@ -43,9 +43,16 @@ export function initEcho(): Echo<'reverb'> | null {
 
   window.Pusher = Pusher
 
-  const scheme = (import.meta.env.VITE_REVERB_SCHEME as string | undefined) || 'http'
-  const host =
+  const scheme = ((import.meta.env.VITE_REVERB_SCHEME as string | undefined) || 'http')
+    .trim()
+    .toLowerCase()
+  const rawHost =
     (import.meta.env.VITE_REVERB_HOST as string | undefined) || window.location.hostname
+  const host =
+    rawHost
+      .trim()
+      .replace(/^(https?|wss?):\/\//i, '')
+      .replace(/\/+.*$/, '') || window.location.hostname
   const port = Number(import.meta.env.VITE_REVERB_PORT || (scheme === 'https' ? 443 : 8081))
   const forceTLS = scheme === 'https'
 
