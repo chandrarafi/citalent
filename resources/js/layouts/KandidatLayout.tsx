@@ -10,6 +10,7 @@ import { Card } from '@/components/pouf/surface'
 import { Dialog } from '@/components/pouf/controls'
 import { Toaster } from '@/components/pouf/toaster'
 import WelcomeIntroOverlay from '@/components/kandidat/WelcomeIntroOverlay'
+import CandidateHelpdeskWidget from '@/components/kandidat/CandidateHelpdeskWidget'
 import CandidatePageLoader, {
   markPathVisited,
   preloadLoadingAnimation,
@@ -366,6 +367,13 @@ export function KandidatLayout({ children, wide = false }: KandidatLayoutProps) 
       </Dialog>
 
       <Toaster />
+
+      {auth?.user && (
+        <CandidateHelpdeskWidget
+          currentPath={currentPath}
+          hidden={showWelcome || isNavigating}
+        />
+      )}
 
       <CandidatePageLoader open={isNavigating && !showWelcome} />
 

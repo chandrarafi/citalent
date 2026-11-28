@@ -76,6 +76,7 @@ class RoleAndMenuSeeder extends Seeder
             ['name' => 'manage-parameter-skill-test', 'label' => 'Kelola Parameter Skill Test', 'group' => 'rekrutmen'],
             ['name' => 'manage-penilaian-skill-test', 'label' => 'Penilaian Skill Test & Interview', 'group' => 'rekrutmen'],
             ['name' => 'manage-candidate-satisfaction', 'label' => 'Kelola & Lihat Candidate Satisfaction', 'group' => 'rekrutmen'],
+            ['name' => 'manage-helpdesk', 'label' => 'Kelola Pengaduan Helpdesk', 'group' => 'rekrutmen'],
             ['name' => 'fill-candidate-survey', 'label' => 'Mengisi Survey Kepuasan Kandidat', 'group' => 'kandidat'],
             ['name' => 'view-lowongan-kandidat', 'label' => 'Lihat Lowongan Kerja Kandidat', 'group' => 'kandidat'],
             ['name' => 'apply-lowongan-kandidat', 'label' => 'Lamar Lowongan Kerja', 'group' => 'kandidat'],
@@ -100,6 +101,7 @@ class RoleAndMenuSeeder extends Seeder
             $permissionModels['manage-parameter-skill-test']->id,
             $permissionModels['manage-penilaian-skill-test']->id,
             $permissionModels['manage-candidate-satisfaction']->id,
+            $permissionModels['manage-helpdesk']->id,
             $permissionModels['fill-candidate-survey']->id,
         ]);
 
@@ -110,6 +112,7 @@ class RoleAndMenuSeeder extends Seeder
             $permissionModels['manage-parameter-skill-test']->id,
             $permissionModels['manage-penilaian-skill-test']->id,
             $permissionModels['manage-candidate-satisfaction']->id,
+            $permissionModels['manage-helpdesk']->id,
             $permissionModels['fill-candidate-survey']->id,
         ]);
 
@@ -232,6 +235,16 @@ class RoleAndMenuSeeder extends Seeder
                 'tone' => 'purple',
                 'order' => 8,
                 'permission_name' => 'manage-candidate-satisfaction',
+            ],
+            [
+                'name' => 'helpdesk',
+                'label' => 'Helpdesk Error',
+                'kelompok' => 'Rekrutmen & Seleksi',
+                'url' => '/helpdesk',
+                'icon' => 'comment',
+                'tone' => 'orange',
+                'order' => 9,
+                'permission_name' => 'manage-helpdesk',
             ],
             [
                 'name' => 'users',

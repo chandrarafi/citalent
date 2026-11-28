@@ -18,8 +18,8 @@ class EnsureCandidateProfileComplete
 
         if ($user && $user->hasRole('kandidat')) {
             if (!$user->isProfileComplete()) {
-                // Allow profile edit, profile update, and logout
-                if (!$request->routeIs('kandidat.profile', 'kandidat.profile.update', 'logout')) {
+                // Allow profile edit, profile update, candidate helpdesk, and logout
+                if (!$request->routeIs('kandidat.profile', 'kandidat.profile.update', 'kandidat.helpdesk.*', 'logout')) {
                     if ($request->session()->has('welcome_animation')) {
                         $request->session()->keep(['welcome_animation']);
                     }

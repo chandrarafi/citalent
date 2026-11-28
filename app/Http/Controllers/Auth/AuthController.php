@@ -113,7 +113,12 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         if ($user->hasRole('kandidat')) {
-            return redirect()->intended('/kandidat/lowongan')->with('welcome_animation', true);
+            $intended = (string) $request->session()->pull('url.intended', '');
+            $target = (str_contains($intended, '/kandidat/') || str_contains($intended, '/karir/'))
+                ? $intended
+                : route('kandidat.lowongan');
+
+            return redirect()->to($target)->with('welcome_animation', true);
         }
 
         return redirect()->intended('/');

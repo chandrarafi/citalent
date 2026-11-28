@@ -9,6 +9,7 @@ use App\Http\Controllers\CandidateSatisfactionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmailPreviewController;
 use App\Http\Controllers\FormulirLamaranController;
+use App\Http\Controllers\HelpdeskController;
 use App\Http\Controllers\KandidatLowonganController;
 use App\Http\Controllers\KandidatProfileController;
 use App\Http\Controllers\KriteriaAtsController;
@@ -25,6 +26,14 @@ use Inertia\Inertia;
 // ─── Public Job Vacancy & Candidate Application ─────────────────────────────
 Route::get('/karir/{slug}', [PublicJobController::class, 'show'])->name('careers.show');
 Route::post('/karir/{slug}/apply', [PublicJobController::class, 'apply'])->name('careers.apply');
+Route::post('/helpdesk/lapor', [HelpdeskController::class, 'publicStore'])
+    ->middleware('throttle:10,1')
+    ->name('helpdesk.public.store');
+Route::get('/helpdesk/lapor/{kodeTiket}/messages', [HelpdeskController::class, 'publicMessagesIndex'])
+    ->name('helpdesk.public.messages.index');
+Route::post('/helpdesk/lapor/{kodeTiket}/messages', [HelpdeskController::class, 'publicMessagesStore'])
+    ->middleware('throttle:30,1')
+    ->name('helpdesk.public.messages.store');
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 Route::middleware('guest')->group(function () {
@@ -75,6 +84,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/kandidat/lamaran/{pelamar:no_pendaftaran}/formulir', [FormulirLamaranController::class, 'save'])->name('kandidat.formulir.save');
     Route::get('/kandidat/profil', [KandidatProfileController::class, 'edit'])->name('kandidat.profile');
     Route::post('/kandidat/profil', [KandidatProfileController::class, 'update'])->name('kandidat.profile.update');
+    Route::get('/kandidat/helpdesk', [HelpdeskController::class, 'kandidatIndex'])->name('kandidat.helpdesk.index');
+    Route::post('/kandidat/helpdesk', [HelpdeskController::class, 'kandidatStore'])->name('kandidat.helpdesk.store');
+    Route::get('/kandidat/helpdesk/{helpdeskTicket}/messages', [HelpdeskController::class, 'kandidatMessagesIndex'])->name('kandidat.helpdesk.messages.index');
+    Route::post('/kandidat/helpdesk/{helpdeskTicket}/messages', [HelpdeskController::class, 'kandidatMessagesStore'])->name('kandidat.helpdesk.messages.store');
 
     // ─── Permintaan Rekrutmen ────────────────────────────────────────────────
     Route::post('/permintaanrekrutmen/{permintaanrekrutman}/approve', [PermintaanRekrutmenController::class, 'approve'])
@@ -341,6 +354,15 @@ Route::middleware('auth')->group(function () {
         ->name('candidate-survey.public');
     Route::post('/survey-kepuasan', [CandidateSatisfactionController::class, 'store'])
         ->name('candidate-survey.public.store');
+
+    // ─── Helpdesk Pengaduan Error (Admin & HR) ──────────────────────────────
+    Route::prefix('helpdesk')->name('helpdesk.')->middleware('permission:manage-helpdesk')->group(function () {
+        Route::get('/', [HelpdeskController::class, 'index'])->name('index');
+        Route::get('/{helpdeskTicket}/messages', [HelpdeskController::class, 'adminMessagesIndex'])->name('messages.index');
+        Route::post('/{helpdeskTicket}/messages', [HelpdeskController::class, 'adminMessagesStore'])->name('messages.store');
+        Route::put('/{helpdeskTicket}', [HelpdeskController::class, 'update'])->name('update');
+        Route::delete('/{helpdeskTicket}', [HelpdeskController::class, 'destroy'])->name('destroy');
+    });
 
     // ─── Admin ───────────────────────────────────────────────────────────────
     Route::middleware('role:super-admin')->prefix('admin')->name('admin.')->group(function () {

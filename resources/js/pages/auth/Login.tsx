@@ -7,8 +7,10 @@ import { Text } from '@/components/pouf/text'
 import { Field, Input } from '@/components/pouf/Input'
 import { Button } from '@/components/pouf/Button'
 import { Separator } from '@/components/pouf/separator'
+import { Toaster } from '@/components/pouf/toaster'
 import { IconCheck, IconAlertCircle, IconEye, IconEyeOff } from '@tabler/icons-react'
 import AuthLayout from '@/layouts/AuthLayout'
+import CandidateHelpdeskWidget from '@/components/kandidat/CandidateHelpdeskWidget'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -239,6 +241,14 @@ export default function Login({
           </Card>
         </form>
       </AuthLayout>
+
+      <Toaster />
+      <CandidateHelpdeskWidget
+        currentPath="/login"
+        isGuest
+        defaultEmail={email || ''}
+        hasBottomNav={false}
+      />
     </>
   )
 }

@@ -23,6 +23,10 @@ class DashboardController extends Controller
     {
         $user = $request->user();
         if ($user && $user->hasRole('kandidat')) {
+            if ($request->session()->has('welcome_animation')) {
+                $request->session()->keep(['welcome_animation']);
+            }
+
             return redirect()->route('kandidat.lowongan');
         }
 

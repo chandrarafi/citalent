@@ -43,4 +43,13 @@ return [
         'verify_ssl' => (bool) env('AI_ROUTER_VERIFY_SSL', false),
     ],
 
+    'telegram' => [
+        'enabled' => filter_var(env('TELEGRAM_HELPDESK_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'chat_id' => env('TELEGRAM_CHAT_ID'),
+        'thread_id' => env('TELEGRAM_THREAD_ID'),
+        'timeout' => (int) env('TELEGRAM_TIMEOUT', 8),
+        'verify_ssl' => filter_var(env('TELEGRAM_VERIFY_SSL', true), FILTER_VALIDATE_BOOLEAN),
+    ],
+
 ];
