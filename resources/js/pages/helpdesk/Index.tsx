@@ -409,9 +409,7 @@ export default function HelpdeskIndex({
               <h1 className="font-helpdesk-display text-xl font-bold tracking-tight text-[#1E3A5F]">
                 Helpdesk
               </h1>
-              <span className="text-xs text-slate-500">
-                Live Chat Kandidat: {liveChatSchedule?.schedule_label || 'Senin – Sabtu, 08:00 – 17:00 WIB'}
-              </span>
+
             </div>
 
             <div className="flex flex-wrap items-center gap-4 text-xs text-zinc-500 [font-variant-numeric:tabular-nums]">
